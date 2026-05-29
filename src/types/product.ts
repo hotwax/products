@@ -2,7 +2,6 @@ export type FetchStatus = "none" | "pending" | "success" | "error"
 
 export interface ProductSearchParams {
   queryString?: string
-  readiness?: string
   productTypeId?: string
   productKind?: "All" | "Variants" | "Virtuals"
   productStoreId?: string
@@ -19,6 +18,8 @@ export interface ProductSummary {
   imageUrl: string
   brandName: string
   primaryProductCategoryId: string
+  productStoreIds: string[]
+  searchText: string
   isVirtual: boolean
   isVariant: boolean
   readiness: ReadinessSummary
@@ -34,6 +35,7 @@ export interface ProductSearchResult {
 export interface ProductDetail extends ProductSummary {
   description: string
   taxable: string
+  createdDate: string
   dimensions: FieldValue[]
   identifiers: ProductIdentifier[]
   relationships: ProductRelationship[]
@@ -59,23 +61,37 @@ export interface ProductIdentifier {
   active: boolean
 }
 
+export type ProductRelationshipDirection = "outgoing" | "incoming"
+
 export interface ProductRelationship {
   typeId: string
   relatedProductId: string
   relatedName: string
+  relatedImageUrl: string
+  relatedSku: string
+  relatedTypeId: string
+  direction: ProductRelationshipDirection
   quantity: string
+  scrapFactor: string
+  instruction: string
+  reason: string
   sequenceNum: string
   fromDate: string
   thruDate: string
   active: boolean
+  mirrored: boolean
 }
 
 export interface StoreCatalogExposure {
   productStoreId: string
   storeName: string
   prodCatalogId: string
+  catalogName: string
   productCategoryId: string
   categoryName: string
+  categoryTypeId: string
+  categoryTypeDescription: string
+  sequenceNum: string
   fromDate: string
   thruDate: string
   status: string
@@ -102,6 +118,12 @@ export interface ShopifyMapping {
   lastUpdated: string
 }
 
+export interface ProductSalesDay {
+  date: string
+  units: number
+  orders: number
+}
+
 export interface ProductAnalytics {
   windowDays: number
   orderCount: number | null
@@ -109,13 +131,32 @@ export interface ProductAnalytics {
   cancelledUnits: number | null
   returnedUnits: number | null
   exceptionCount: number | null
+  salesByDay: ProductSalesDay[]
 }
 
 export interface ProductHistory {
+  id: string
   source: string
   status: string
   message: string
   timestamp: string
+  productId: string
+  parentTitle: string
+  variantTitle: string
+  internalName: string
+  sku: string
+  shopId: string
+  shopifyId: string
+  shopifyIdLabel: string
+  systemMessageId: string
+  details: ProductHistoryDetail[]
+}
+
+export interface ProductHistoryDetail {
+  type: string
+  label: string
+  value: string
+  items?: Array<{ label?: string, value: string }>
 }
 
 export interface ReadinessSummary {

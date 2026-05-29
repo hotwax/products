@@ -19,6 +19,11 @@ This MVP uses the live `test-oms` / `test-maarg` read APIs that are currently av
   - Identifier vocabulary.
 - `GET /rest/s1/admin/productCategories/member?productId={productId}`
   - Product category membership.
+- `POST /rest/s1/oms/dataDocumentView` with the catalog mapping DataDocuments in `/Users/adityapatel/Documents/GitHub/oms/data/ProductsCatalogMappingDataDocuments.xml`
+  - `ProductsProductCategoryMembers` fetches all category memberships for the product.
+  - `ProductsCatalogCategoryLookup` resolves each category to every catalog/category purpose where it is configured.
+  - `ProductsProductStoreCatalogLookup` resolves catalogs to product stores.
+  - The frontend joins these read models so one product can display multiple store/catalog/category mappings without requiring write APIs.
 - `GET /rest/s1/admin/productCategories`
   - Category lookup.
 - `GET /rest/s1/admin/productStores`
@@ -32,6 +37,7 @@ This MVP uses the live `test-oms` / `test-maarg` read APIs that are currently av
 
 - Product list uses `OmsProduct` first and filters initial load to `FINISHED_GOOD`.
 - Product detail uses `oms/products/{productId}` for identity and `oms/products/{productId}/variants` for variant relationships.
+- Store/catalog exposure uses the Products catalog mapping DataDocuments first and falls back to `admin/productCategories/member` if those documents are not installed yet.
 - Identifiers are read from `OmsProduct` joined rows when `goodIdentificationTypeId` and `idValue` are present.
 - Logistics, financials, selectable features, Shopify mapping repair, BOM, substitutes, and analytics expose honest empty or API-gap states when product-scoped APIs are missing.
 - Analytics defaults to a 30-day window as requested.
@@ -48,8 +54,8 @@ This MVP uses the live `test-oms` / `test-maarg` read APIs that are currently av
   - `GET /rest/s1/admin/products/{productId}/selectableFeatures`
   - Must include `ProductFeatureType`, `ProductFeature`, `ProductFeatureAppl`, `SELECTABLE_FEATURE`, sequence, active dates, and Shopify option order when available.
 - Store/catalog exposure:
-  - `GET /rest/s1/admin/products/{productId}/storeCatalog`
-  - Must separate primary category from product-store/catalog/category exposure.
+  - The read-only page can be powered by `ProductsProductCategoryMembers`, `ProductsCatalogCategoryLookup`, and `ProductsProductStoreCatalogLookup`.
+  - A future service-backed aggregate endpoint can still replace the client-side join if payload size becomes a problem.
 - Shopify mappings:
   - `GET /rest/s1/admin/products/{productId}/shopifyMappings`
   - Must distinguish Shopify parent product ID from variant ID and include shop/product-store context.

@@ -5,6 +5,7 @@ import { useAuth } from "@common/composables/useAuth"
 
 import Imports from "@/views/Imports.vue"
 import ProductDetail from "@/views/ProductDetail.vue"
+import ProductRelationships from "@/views/ProductRelationships.vue"
 import ProductSection from "@/views/ProductSection.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
@@ -48,6 +49,17 @@ const routes: RouteRecordRaw[] = [
     path: "/products/:productId",
     name: "ProductDetail",
     component: ProductDetail,
+    props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/products/:productId/identifiers",
+    redirect: (to) => `/products/${to.params.productId}`
+  },
+  {
+    path: "/products/:productId/relationships",
+    name: "ProductRelationships",
+    component: ProductRelationships,
     props: true,
     beforeEnter: authGuard
   },

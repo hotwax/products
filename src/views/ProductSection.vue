@@ -22,21 +22,40 @@
       />
 
       <template v-if="detail">
-        <ion-list>
-          <ion-list-header>
-            <ion-label>{{ detail.productName || detail.internalName || detail.productId }}</ion-label>
-          </ion-list-header>
-          <ion-item>
+        <ion-card>
+          <ion-item lines="none">
+            <ion-thumbnail slot="start">
+              <DxpShopifyImg
+                :src="detail.imageUrl"
+                size="small"
+              />
+            </ion-thumbnail>
             <ion-label>
-              <h2>{{ detail.productId }}</h2>
+              <p>{{ detail.productId }}</p>
+              <h2>{{ detail.productName || detail.internalName || detail.productId }}</h2>
               <p>{{ detail.productTypeId || "Unknown type" }} · {{ detail.primaryProductCategoryId || "No category" }}</p>
             </ion-label>
           </ion-item>
-        </ion-list>
+          <ion-item lines="none">
+            <ion-label>
+              <p>{{ productKindLabel }}</p>
+              <p>{{ detail.createdDate ? `Selling since ${detail.createdDate}` : "Selling date unavailable" }}</p>
+            </ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit product
+            </ion-button>
+          </ion-item>
+        </ion-card>
 
         <ion-list v-if="section === 'identifiers'">
           <ion-list-header>
             <ion-label>Identifiers and aliases</ion-label>
+            <ion-button fill="clear">
+              Add identifier
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="identifier in detail.identifiers"
@@ -53,12 +72,21 @@
             >
               {{ identifier.active ? "Active" : "Expired" }}
             </ion-badge>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'relationships'">
           <ion-list-header>
-            <ion-label>Relationships</ion-label>
+            <ion-label>{{ relationshipListTitle }}</ion-label>
+            <ion-button fill="clear">
+              {{ relationshipActionLabel }}
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="relationship in detail.relationships"
@@ -72,12 +100,21 @@
             <ion-note slot="end">
               {{ relationship.sequenceNum }}
             </ion-note>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'stores'">
           <ion-list-header>
             <ion-label>Store and category exposure</ion-label>
+            <ion-button fill="clear">
+              Add exposure
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="exposure in detail.storeCatalogs"
@@ -85,18 +122,28 @@
           >
             <ion-label>
               <h2>{{ exposure.categoryName || exposure.productCategoryId }}</h2>
-              <p>{{ exposure.storeName || exposure.productStoreId || "Product category member" }}</p>
-              <p>{{ exposure.prodCatalogId || "No catalog" }} · {{ exposure.fromDate || "No start date" }}</p>
+              <p>{{ exposure.storeName || exposure.productStoreId || "No product store" }}</p>
+              <p>{{ catalogLabel(exposure) }}</p>
+              <p>{{ exposure.fromDate || "No start date" }} · {{ exposure.thruDate || "No end date" }}</p>
             </ion-label>
             <ion-badge slot="end">
               {{ exposure.status }}
             </ion-badge>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'features'">
           <ion-list-header>
-            <ion-label>Selectable features</ion-label>
+            <ion-label>{{ featureListTitle }}</ion-label>
+            <ion-button fill="clear">
+              {{ detail.isVariant ? "Add value" : "Add option" }}
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="feature in detail.features"
@@ -107,12 +154,21 @@
               <p>{{ feature.description || feature.productFeatureId }}</p>
               <p>Sequence {{ feature.sequenceNum || "not set" }}</p>
             </ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'shopify'">
           <ion-list-header>
-            <ion-label>Shopify mappings</ion-label>
+            <ion-label>Channel mapping</ion-label>
+            <ion-button fill="clear">
+              Add mapping
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="mapping in detail.shopifyMappings"
@@ -126,6 +182,12 @@
             <ion-note slot="end">
               {{ mapping.status }}
             </ion-note>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
           <ion-item button>
             <ion-label>
@@ -138,6 +200,9 @@
         <ion-list v-if="section === 'logistics'">
           <ion-list-header>
             <ion-label>Logistics and trade</ion-label>
+            <ion-button fill="clear">
+              Edit logistics
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="field in detail.dimensions"
@@ -153,12 +218,21 @@
             <ion-note slot="end">
               {{ hsCode || "Missing" }}
             </ion-note>
+            <ion-button
+              slot="end"
+              fill="clear"
+            >
+              Edit
+            </ion-button>
           </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'financials'">
           <ion-list-header>
             <ion-label>Financial setup</ion-label>
+            <ion-button fill="clear">
+              Edit finance
+            </ion-button>
           </ion-list-header>
           <ion-item>
             <ion-label>Taxable</ion-label>
@@ -183,6 +257,9 @@
         <ion-list v-if="section === 'analytics'">
           <ion-list-header>
             <ion-label>Last {{ detail.analytics.windowDays }} days</ion-label>
+            <ion-button fill="clear">
+              View orders
+            </ion-button>
           </ion-list-header>
           <ion-item>
             <ion-label>Orders</ion-label>
@@ -208,17 +285,14 @@
               {{ metric(detail.analytics.returnedUnits) }}
             </ion-note>
           </ion-item>
-          <ion-item>
-            <ion-label>Fulfillment exceptions</ion-label>
-            <ion-note slot="end">
-              {{ metric(detail.analytics.exceptionCount) }}
-            </ion-note>
-          </ion-item>
         </ion-list>
 
         <ion-list v-if="section === 'history'">
           <ion-list-header>
-            <ion-label>Sync and import history</ion-label>
+            <ion-label>Entity audit history</ion-label>
+            <ion-button fill="clear">
+              Refresh
+            </ion-button>
           </ion-list-header>
           <ion-item
             v-for="history in detail.histories"
@@ -249,7 +323,9 @@
 import {
   IonBackButton,
   IonBadge,
+  IonButton,
   IonButtons,
+  IonCard,
   IonContent,
   IonHeader,
   IonItem,
@@ -260,15 +336,18 @@ import {
   IonNote,
   IonPage,
   IonProgressBar,
+  IonThumbnail,
   IonTitle,
   IonToolbar
 } from "@ionic/vue"
 import { storeToRefs } from "pinia"
 import { computed, onMounted, watch } from "vue"
+import { DxpShopifyImg } from "@common"
 
 import EmptyState from "@/components/EmptyState.vue"
 import ErrorState from "@/components/ErrorState.vue"
 import { useProductsStore } from "@/store/products"
+import type { StoreCatalogExposure } from "@/types/product"
 
 const props = defineProps<{
   productId: string
@@ -281,10 +360,10 @@ const { detail, detailLoading, detailError } = storeToRefs(productsStore)
 const title = computed(() => {
   const titles: Record<string, string> = {
     identifiers: "Identifiers",
-    relationships: "Relationships",
-    stores: "Stores",
-    features: "Features",
-    shopify: "Shopify",
+    relationships: relationshipListTitle.value,
+    stores: "Stores and categories",
+    features: featureListTitle.value,
+    shopify: "Channel mapping",
     logistics: "Logistics",
     financials: "Financials",
     analytics: "Analytics",
@@ -295,6 +374,25 @@ const title = computed(() => {
 })
 
 const hsCode = computed(() => detail.value?.identifiers.find((identifier) => identifier.typeId.toUpperCase().includes("HS"))?.value || "")
+const relationshipListTitle = computed(() => {
+  if(detail.value?.isVariant) {return "Substitutions and replacements"}
+  if(detail.value?.isVirtual) {return "Variant family"}
+
+  return "Related products"
+})
+const featureListTitle = computed(() => detail.value?.isVariant ? "Variant option values" : "Selectable options")
+const productKindLabel = computed(() => {
+  if(detail.value?.isVirtual) {return "Virtual product"}
+  if(detail.value?.isVariant) {return "Variant product"}
+
+  return "Standard product"
+})
+const relationshipActionLabel = computed(() => {
+  if(detail.value?.isVariant) {return "Add substitute"}
+  if(detail.value?.isVirtual) {return "Add variant"}
+
+  return "Add relationship"
+})
 
 const isEmptySection = computed(() => {
   if(!detail.value) {return false}
@@ -309,8 +407,11 @@ const isEmptySection = computed(() => {
 })
 
 const emptyMessage = computed(() => {
-  if(props.section === "features") {return "Selectable feature APIs are not exposed as a product-scoped read yet."}
-  if(props.section === "shopify") {return "No product-scoped Shopify mapping was returned by the current OMS APIs."}
+  if(props.section === "relationships" && detail.value?.isVariant) {return "No substitute, replacement, kit, BOM, or parent relationship was returned for this variant."}
+  if(props.section === "relationships" && detail.value?.isVirtual) {return "No child variants or family relationships were returned for this virtual product."}
+  if(props.section === "features" && detail.value?.isVariant) {return "No assigned option values were returned for this variant."}
+  if(props.section === "features") {return "No selectable option data was returned for this product."}
+  if(props.section === "shopify") {return "No product-scoped Shopify mapping was returned."}
   if(props.section === "stores") {return "No category membership or product-store exposure was returned."}
 
   return "The current OMS APIs did not return records for this section."
@@ -324,5 +425,12 @@ watch(() => props.productId, (productId) => {
 
 function metric(value: number | null): string {
   return value === null ? "API gap" : String(value)
+}
+
+function catalogLabel(exposure: StoreCatalogExposure): string {
+  return [
+    exposure.catalogName || exposure.prodCatalogId || "No catalog",
+    exposure.categoryTypeDescription || exposure.categoryTypeId
+  ].filter(Boolean).join(" · ")
 }
 </script>

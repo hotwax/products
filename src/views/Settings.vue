@@ -86,6 +86,38 @@
       <section>
         <ion-card>
           <ion-card-header>
+            <ion-card-subtitle>{{ translate("Diagnostics") }}</ion-card-subtitle>
+            <ion-card-title>{{ translate("Product data") }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            {{ translate("Refresh the local product search index when product results look stale or empty.") }}
+          </ion-card-content>
+          <ion-item lines="full">
+            <ion-label>
+              <p>{{ translate("Indexed products") }}</p>
+              {{ productIndexCount }}
+            </ion-label>
+          </ion-item>
+          <ion-item lines="none">
+            <ion-label>
+              <p>{{ translate("Last refreshed") }}</p>
+              {{ productIndexSyncedAt }}
+            </ion-label>
+          </ion-item>
+          <ion-item v-if="productIndexError" lines="none">
+            <ion-label color="danger">
+              {{ productIndexError }}
+            </ion-label>
+          </ion-item>
+          <ion-button fill="outline" :disabled="productIndexLoading" @click="refreshProductData()">
+            <ion-spinner v-if="productIndexLoading" slot="start" name="crescent" />
+            <ion-icon v-else slot="start" :icon="refreshOutline" />
+            {{ translate("Refetch product data") }}
+          </ion-button>
+        </ion-card>
+
+        <ion-card>
+          <ion-card-header>
             <ion-card-title>{{ translate("Timezone") }}</ion-card-title>
           </ion-card-header>
           <ion-card-content>
@@ -218,12 +250,13 @@ import {
   IonTitle,
   IonToolbar
 } from "@ionic/vue"
-import { closeOutline, openOutline, saveOutline } from "ionicons/icons"
+import { closeOutline, openOutline, refreshOutline, saveOutline } from "ionicons/icons"
 import { DateTime } from "luxon"
 import { computed, onBeforeMount, ref } from "vue"
 import { commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
+import { useProductsStore } from "@/store/products"
 import { useUserStore } from "@/store/user"
 
 const props = defineProps({
@@ -242,6 +275,7 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
+const productsStore = useProductsStore()
 const userProfile = computed(() => userStore.getUserProfile)
 const currentProductStore = computed(() => userStore.getCurrentProductStore)
 const productStores = computed(() => userProfile.value?.stores || [])
@@ -255,6 +289,10 @@ const appVersion = computed(() => {
   return appInfo.tag || appInfo.version || "0.1.0"
 })
 const builtDateTime = computed(() => appInfo.builtTime ? DateTime.fromMillis(appInfo.builtTime).setZone(currentTimeZone.value).toLocaleString(DateTime.DATETIME_MED) : "")
+const productIndexCount = computed(() => productsStore.productIndexMetadata?.count ?? 0)
+const productIndexSyncedAt = computed(() => productsStore.productIndexMetadata?.syncedAt ? DateTime.fromISO(productsStore.productIndexMetadata.syncedAt).setZone(currentTimeZone.value).toLocaleString(DateTime.DATETIME_MED) : translate("Never"))
+const productIndexLoading = computed(() => productsStore.productIndexLoading)
+const productIndexError = computed(() => productsStore.productIndexError)
 const userInitials = computed(() => {
   const name = userProfile.value?.userFullName || userProfile.value?.partyId || userProfile.value?.userId || ""
 
@@ -273,6 +311,7 @@ const browserTimeZone = ref({
 
 onBeforeMount(async () => {
   isLoading.value = true
+  await productsStore.loadProductIndexMetadata()
   await userStore.fetchAvailableTimeZones()
   timeZoneId.value = currentTimeZone.value
 
@@ -283,6 +322,10 @@ onBeforeMount(async () => {
   findTimeZone()
   isLoading.value = false
 })
+
+async function refreshProductData() {
+  await productsStore.refreshProductIndex()
+}
 
 function setCurrentProductStore(event: CustomEvent) {
   if(currentProductStore.value.productStoreId !== event.detail.value) {
