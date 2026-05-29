@@ -1,0 +1,43 @@
+{
+  "name": "products",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HotWax Products App",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "test:unit": "vitest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@capacitor/android": "catalog:",
+    "@capacitor/core": "catalog:",
+    "@capacitor/ios": "catalog:",
+    "@hotwax/app-version-info": "^1.0.0",
+    "@ionic/core": "catalog:",
+    "@ionic/vue": "catalog:",
+    "@ionic/vue-router": "catalog:",
+    "ionicons": "catalog:",
+    "luxon": "catalog:",
+    "mitt": "catalog:",
+    "pinia": "catalog:",
+    "pinia-plugin-persistedstate": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:",
+    "vue-logger-plugin": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "catalog:",
+    "@types/luxon": "catalog:",
+    "@vitejs/plugin-legacy": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "~5.9.3",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
+  }
+}

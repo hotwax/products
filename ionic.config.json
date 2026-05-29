@@ -1,0 +1,8 @@
+{
+  "name": "products",
+  "appId": "co.hotwax.products",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}

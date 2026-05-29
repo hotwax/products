@@ -1,0 +1,84 @@
+import { createRouter, createWebHistory } from "@ionic/vue-router"
+import type { RouteRecordRaw } from "vue-router"
+import { Login, cookieHelper } from "@common"
+import { useAuth } from "@common/composables/useAuth"
+
+import Imports from "@/views/Imports.vue"
+import ProductDetail from "@/views/ProductDetail.vue"
+import ProductSection from "@/views/ProductSection.vue"
+import ProductWorkbench from "@/views/ProductWorkbench.vue"
+import Settings from "@/views/Settings.vue"
+import { useUserStore } from "@/store/user"
+
+const authGuard = () => {
+  const userStore = useUserStore()
+  const oms = cookieHelper().get("oms") as string
+  const userId = cookieHelper().get("userId") as string
+
+  if(oms && userId && !userStore.current?.userId) {
+    userStore.oms = oms
+    userStore.current = {
+      ...userStore.current,
+      userId
+    }
+  }
+
+  if(!useAuth().isAuthenticated.value) {
+    return { path: "/login" }
+  }
+}
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: "/",
+    redirect: "/products"
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: Login
+  },
+  {
+    path: "/products",
+    name: "ProductWorkbench",
+    component: ProductWorkbench,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/products/:productId",
+    name: "ProductDetail",
+    component: ProductDetail,
+    props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/products/:productId/:section",
+    name: "ProductSection",
+    component: ProductSection,
+    props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/imports",
+    name: "Imports",
+    component: Imports,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/settings",
+    name: "Settings",
+    component: Settings,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/products"
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
+})
+
+export default router
