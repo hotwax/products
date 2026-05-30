@@ -52,8 +52,8 @@
 
             <div class="product-facts">
               <ion-note>
-                SKU
-                <span>{{ detail.primarySku || detail.productId }}</span>
+                Internal name
+                <span>{{ detail.internalName || "Missing" }}</span>
               </ion-note>
               <ion-note>
                 Brand
@@ -218,66 +218,6 @@
                   <span>{{ returnsSummary.returnRate }}</span>
                 </ion-note>
               </div>
-            </ion-card-content>
-          </ion-card>
-        </div>
-
-        <div class="detail-card-grid">
-          <ion-card>
-            <ion-card-header>
-              <ion-card-subtitle>Configuration health</ion-card-subtitle>
-              <ion-card-title>{{ readyChecklistCount }} / {{ detail.readinessChecklist.length }} ready</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <ion-list>
-                <ion-item
-                  v-for="item in detail.readinessChecklist"
-                  :key="item.label"
-                  lines="none"
-                  :router-link="item.route"
-                >
-                  <ion-icon
-                    slot="start"
-                    :icon="item.complete ? checkmarkCircleOutline : alertCircleOutline"
-                    :color="item.complete ? 'success' : 'warning'"
-                  />
-                  <ion-label>
-                    <h2>{{ item.label }}</h2>
-                    <p>{{ item.detail }}</p>
-                  </ion-label>
-                </ion-item>
-              </ion-list>
-            </ion-card-content>
-          </ion-card>
-
-          <ion-card>
-            <ion-card-header>
-              <ion-card-subtitle>Next action</ion-card-subtitle>
-              <ion-card-title>{{ nextActionTitle }}</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <p>{{ nextActionDetail }}</p>
-              <ion-button
-                v-if="nextActionRoute.endsWith('/identifiers')"
-                fill="clear"
-                @click="openIdentifiersModal()"
-              >
-                Open setup area
-              </ion-button>
-              <ion-button
-                v-else-if="nextActionRoute.endsWith('/stores')"
-                fill="clear"
-                @click="openCatalogsModal()"
-              >
-                Open setup area
-              </ion-button>
-              <ion-button
-                v-else
-                fill="clear"
-                :router-link="nextActionRoute"
-              >
-                Open setup area
-              </ion-button>
             </ion-card-content>
           </ion-card>
         </div>
@@ -577,9 +517,7 @@ import {
   IonToolbar
 } from "@ionic/vue"
 import {
-  alertCircleOutline,
   barcodeOutline,
-  checkmarkCircleOutline,
   closeOutline,
   cubeOutline,
   ellipsisVerticalOutline,
@@ -636,11 +574,6 @@ const productKindLabel = computed(() => {
   return "Standard"
 })
 const readinessLabel = computed(() => detail.value?.readiness.state === "ready" ? "Ready" : `${detail.value?.readiness.missingCount || 0} missing`)
-const readyChecklistCount = computed(() => detail.value?.readinessChecklist.filter((item) => item.complete).length || 0)
-const nextAction = computed(() => detail.value?.readinessChecklist.find((item) => !item.complete) || detail.value?.readinessChecklist[0])
-const nextActionTitle = computed(() => nextAction.value?.label || "Review product setup")
-const nextActionDetail = computed(() => nextAction.value?.detail || "Open a configuration area to inspect this product.")
-const nextActionRoute = computed(() => nextAction.value?.route || `/products/${props.productId}/identifiers`)
 const sections = computed(() => [
   { id: "identifiers", label: "Identifiers", description: "SKU, UPC, GTIN, HS code, aliases", icon: barcodeOutline, countLabel: countLabel("identifiers"), emptyMessage: emptySectionMessage("identifiers") },
   { id: "relationships", label: relationshipSectionLabel.value, description: relationshipSectionDescription.value, icon: gitBranchOutline, countLabel: countLabel("relationships"), emptyMessage: emptySectionMessage("relationships") },

@@ -1,13 +1,19 @@
-import { api, useSolrSearch } from "@common"
+import { api, commonUtil, useSolrSearch } from "@common"
 
 import {
   getProductIndexMetadata,
   replaceIndexedProducts
 } from "@/services/productIndex"
 import type {
+  DuplicateIdentifierGroup,
   FieldValue,
   ProductAnalytics,
   ProductDetail,
+  ProductFeatureApplication,
+  ProductFeatureFamily,
+  ProductFeatureFamilyType,
+  ProductFeatureFamilyVariant,
+  ProductFeatureRecord,
   ProductHistory,
   ProductHistoryDetail,
   ProductIdentifier,
@@ -18,8 +24,10 @@ import type {
   ProductSummary,
   ReadinessItem,
   ReadinessSummary,
+  RowSalesSpark,
   ShopifyMapping,
-  StoreCatalogExposure
+  StoreCatalogExposure,
+  TagFacet
 } from "@/types/product"
 import type { OmsProductAssocTypeRow } from "@/utils/productAssocTypes"
 
@@ -29,6 +37,7 @@ export async function searchProducts(params: ProductSearchParams = {}): Promise<
   const { searchProducts: searchSolrProducts } = useSolrSearch()
   const response = await searchSolrProducts({
     keyword: params.queryString,
+    sort: productSolrSort(params),
     viewSize: pageSize,
     viewIndex: pageIndex,
     filters: productSolrFilters(params)
@@ -123,6 +132,295 @@ export async function getProductAssocTypes(): Promise<OmsProductAssocTypeRow[]> 
     description: textValue(value(row, "description")),
     parentDescription: textValue(value(row, "parentDescription"))
   })).filter((row) => row.productAssocTypeId)
+}
+
+export async function getProductFeatureFamily(productId: string): Promise<ProductFeatureFamily> {
+  const [productResult, featureApplResult, parentAssocResult] = await Promise.allSettled([
+    getProduct(productId),
+    performFindAll("ProductFeatureAppl", { productId }),
+    performFindAll("ProductAssoc", { productIdTo: productId, productAssocTypeId: "PRODUCT_VARIANT" })
+  ])
+
+  const product = productResult.status === "fulfilled" ? productResult.value : { productId }
+  const isVirtual = flagValue(value(product, "isVirtual"))
+  const directFeatureAppls = productListFromSettled(featureApplResult)
+  const parentAssocs = productListFromSettled(parentAssocResult)
+
+  const virtualProductId = isVirtual ? productId : textValue(value(parentAssocs[0] || {}, "productId")) || productId
+
+  const variantsResult = await performFindAll("ProductAssoc", {
+    productId: virtualProductId,
+    productAssocTypeId: "PRODUCT_VARIANT"
+  }).catch(() => [])
+
+  const variantIds = Array.from(new Set([
+    productId,
+    ...variantsResult.map((row) => textValue(value(row, "productIdTo"))).filter(Boolean)
+  ])).filter((id) => id !== virtualProductId)
+
+  if(virtualProductId !== productId && !variantIds.includes(productId)) {
+    variantIds.unshift(productId)
+  }
+
+  const variantProductLookups = variantIds.length
+    ? await Promise.all(variantIds.map((id) => getProduct(id).catch(() => ({ productId: id }))))
+    : []
+  const variantFeatureAppls = variantIds.length
+    ? await Promise.all(variantIds.map((id) => performFindAll("ProductFeatureAppl", { productId: id }).catch(() => [])))
+    : []
+
+  const allFeatureAppls = [...directFeatureAppls, ...variantFeatureAppls.flat()]
+  const featureIds = Array.from(new Set(allFeatureAppls.map((row) => textValue(value(row, "productFeatureId"))).filter(Boolean)))
+  const featureMap = await loadFeatureMap(featureIds)
+  const applTypeMap = await loadApplTypeMap()
+
+  const normalizeAppl = (row: Record<string, unknown>): ProductFeatureApplication => {
+    const featureId = textValue(value(row, "productFeatureId"))
+    const feature = featureMap.get(featureId) || {} as ProductFeatureRecord
+    const fromDate = value(row, "fromDate")
+    const thruDate = value(row, "thruDate")
+    const applTypeId = textValue(value(row, "productFeatureApplTypeId"))
+
+    return {
+      productId: textValue(value(row, "productId")),
+      productFeatureId: featureId,
+      productFeatureApplTypeId: applTypeId,
+      applTypeDescription: applTypeMap.get(applTypeId) || applTypeId,
+      featureTypeId: feature.productFeatureTypeId || "",
+      featureTypeDescription: feature.featureTypeDescription || feature.productFeatureTypeId || "",
+      featureDescription: feature.description || "",
+      description: feature.description || featureId,
+      abbrev: feature.abbrev || "",
+      idCode: feature.idCode || "",
+      sequenceNum: textValue(value(row, "sequenceNum")),
+      fromDate: formatDate(fromDate),
+      thruDate: formatDate(thruDate),
+      active: isActive(fromDate, thruDate)
+    }
+  }
+
+  const virtualProduct = virtualProductId === productId
+    ? product
+    : await getProduct(virtualProductId).catch(() => ({ productId: virtualProductId }))
+
+  const virtualSummary = normalizeProductSummary(virtualProduct)
+  const virtualFeatureAppls = isVirtual ? directFeatureAppls : (await performFindAll("ProductFeatureAppl", { productId: virtualProductId }).catch(() => []))
+
+  const selectableFeatures = virtualFeatureAppls
+    .map(normalizeAppl)
+    .filter((appl) => appl.productFeatureApplTypeId !== "STANDARD_FEATURE")
+    .sort(featureSortComparator)
+
+  const variants: ProductFeatureFamilyVariant[] = variantIds.map((id, index) => {
+    const variantProduct = variantProductLookups[index] || { productId: id }
+    const summary = normalizeProductSummary(variantProduct)
+    const features = (variantFeatureAppls[index] || [])
+      .map(normalizeAppl)
+      .filter((appl) => appl.productFeatureApplTypeId === "STANDARD_FEATURE")
+      .sort(featureSortComparator)
+
+    return {
+      productId: summary.productId || id,
+      productName: summary.productName,
+      internalName: summary.internalName,
+      imageUrl: summary.imageUrl,
+      primarySku: summary.primarySku,
+      features
+    }
+  })
+
+  const featureTypeMap = new Map<string, ProductFeatureFamilyType>()
+  const distinctVariantFeatures = new Map<string, ProductFeatureApplication>()
+  variants.flatMap((variant) => variant.features).forEach((appl) => {
+    if(!appl.featureTypeId) {return}
+    if(!distinctVariantFeatures.has(appl.productFeatureId)) {
+      distinctVariantFeatures.set(appl.productFeatureId, appl)
+    }
+  })
+  Array.from(distinctVariantFeatures.values()).concat(selectableFeatures).forEach((appl) => {
+    if(!appl.featureTypeId) {return}
+    const entry = featureTypeMap.get(appl.featureTypeId) || {
+      featureTypeId: appl.featureTypeId,
+      featureTypeDescription: appl.featureTypeDescription,
+      featureCount: 0
+    }
+    entry.featureCount += 1
+    featureTypeMap.set(appl.featureTypeId, entry)
+  })
+
+  return {
+    virtualProductId,
+    virtualProductName: virtualSummary.productName || virtualSummary.internalName || virtualProductId,
+    virtualProductImageUrl: virtualSummary.imageUrl,
+    variants,
+    featureTypes: Array.from(featureTypeMap.values()).sort((a, b) => a.featureTypeDescription.localeCompare(b.featureTypeDescription)),
+    selectableFeatures
+  }
+}
+
+export async function getProductFeatureTypeCatalog(): Promise<Array<{ id: string, description: string }>> {
+  const rows = await performFindAll("ProductFeatureType", {}, 200).catch(() => [])
+
+  return rows.map((row) => ({
+    id: textValue(value(row, "productFeatureTypeId")),
+    description: textValue(value(row, "description")) || textValue(value(row, "productFeatureTypeId"))
+  })).filter((entry) => entry.id).sort((a, b) => a.description.localeCompare(b.description))
+}
+
+export async function getProductFeatureApplTypeCatalog(): Promise<Array<{ id: string, description: string }>> {
+  const rows = await performFindAll("ProductFeatureApplType", {}, 50).catch(() => [])
+
+  return rows.map((row) => ({
+    id: textValue(value(row, "productFeatureApplTypeId")),
+    description: textValue(value(row, "description")) || textValue(value(row, "productFeatureApplTypeId"))
+  })).filter((entry) => entry.id).sort((a, b) => a.description.localeCompare(b.description))
+}
+
+export async function getAllProductFeatures(): Promise<ProductFeatureRecord[]> {
+  const [docs, typeMap] = await Promise.all([
+    performFindAll("ProductFeature", {}, 200).catch(() => []),
+    loadFeatureTypeMap()
+  ])
+
+  return docs.map((row) => {
+    const typeId = textValue(value(row, "productFeatureTypeId"))
+
+    return {
+      productFeatureId: textValue(value(row, "productFeatureId")),
+      productFeatureTypeId: typeId,
+      featureTypeDescription: typeMap.get(typeId) || typeId,
+      description: textValue(value(row, "description")),
+      abbrev: textValue(value(row, "abbrev")),
+      idCode: textValue(value(row, "idCode"))
+    }
+  }).filter((entry) => entry.productFeatureId)
+    .sort((a, b) => (a.description || a.productFeatureId).localeCompare(b.description || b.productFeatureId))
+}
+
+export async function searchProductFeatures(term: string, limit = 25): Promise<ProductFeatureRecord[]> {
+  const trimmed = term.trim()
+  if(!trimmed) {return []}
+
+  const docs = await performFindAll("ProductFeature", {})
+  const matches = docs.filter((row) => {
+    const haystack = [
+      value(row, "productFeatureId"),
+      value(row, "description"),
+      value(row, "abbrev"),
+      value(row, "idCode"),
+      value(row, "productFeatureTypeId")
+    ].map(textValue).join(" ").toLowerCase()
+
+    return haystack.includes(trimmed.toLowerCase())
+  }).slice(0, limit)
+  const typeMap = await loadFeatureTypeMap()
+
+  return matches.map((row) => ({
+    productFeatureId: textValue(value(row, "productFeatureId")),
+    productFeatureTypeId: textValue(value(row, "productFeatureTypeId")),
+    featureTypeDescription: typeMap.get(textValue(value(row, "productFeatureTypeId"))) || textValue(value(row, "productFeatureTypeId")),
+    description: textValue(value(row, "description")),
+    abbrev: textValue(value(row, "abbrev")),
+    idCode: textValue(value(row, "idCode"))
+  }))
+}
+
+async function loadFeatureMap(featureIds: string[]): Promise<Map<string, ProductFeatureRecord>> {
+  if(!featureIds.length) {return new Map()}
+  const typeMap = await loadFeatureTypeMap()
+
+  const featureMap = new Map<string, ProductFeatureRecord>()
+  const lookups = await Promise.all(featureIds.map((id) => performFindAll("ProductFeature", { productFeatureId: id }, 5).catch(() => [])))
+
+  lookups.forEach((rows, index) => {
+    const row = rows[0]
+    if(!row) {
+      featureMap.set(featureIds[index]!, {
+        productFeatureId: featureIds[index]!,
+        productFeatureTypeId: "",
+        featureTypeDescription: "",
+        description: "",
+        abbrev: "",
+        idCode: ""
+      })
+
+      return
+    }
+
+    const typeId = textValue(value(row, "productFeatureTypeId"))
+    featureMap.set(textValue(value(row, "productFeatureId")), {
+      productFeatureId: textValue(value(row, "productFeatureId")),
+      productFeatureTypeId: typeId,
+      featureTypeDescription: typeMap.get(typeId) || typeId,
+      description: textValue(value(row, "description")),
+      abbrev: textValue(value(row, "abbrev")),
+      idCode: textValue(value(row, "idCode"))
+    })
+  })
+
+  return featureMap
+}
+
+let featureTypeMapCache: Promise<Map<string, string>> | null = null
+
+function loadFeatureTypeMap(): Promise<Map<string, string>> {
+  if(!featureTypeMapCache) {
+    featureTypeMapCache = performFindAll("ProductFeatureType", {}, 200).then((rows) => {
+      const map = new Map<string, string>()
+      rows.forEach((row) => {
+        map.set(textValue(value(row, "productFeatureTypeId")), textValue(value(row, "description")))
+      })
+
+      return map
+    }).catch(() => new Map<string, string>())
+  }
+
+  return featureTypeMapCache
+}
+
+let applTypeMapCache: Promise<Map<string, string>> | null = null
+
+function loadApplTypeMap(): Promise<Map<string, string>> {
+  if(!applTypeMapCache) {
+    applTypeMapCache = performFindAll("ProductFeatureApplType", {}, 20).then((rows) => {
+      const map = new Map<string, string>()
+      rows.forEach((row) => {
+        map.set(textValue(value(row, "productFeatureApplTypeId")), textValue(value(row, "description")))
+      })
+
+      return map
+    }).catch(() => new Map<string, string>())
+  }
+
+  return applTypeMapCache
+}
+
+async function performFindAll(entityName: string, inputFields: Record<string, unknown>, viewSize = 200): Promise<Record<string, unknown>[]> {
+  const response = await api({
+    url: "performFind",
+    method: "post",
+    baseURL: commonUtil.getOmsURL(),
+    data: {
+      entityName,
+      inputFields,
+      viewSize,
+      noConditionFind: "Y"
+    }
+  })
+
+  return responseList(response.data)
+}
+
+function featureSortComparator(a: ProductFeatureApplication, b: ProductFeatureApplication): number {
+  if(a.featureTypeDescription !== b.featureTypeDescription) {
+    return a.featureTypeDescription.localeCompare(b.featureTypeDescription)
+  }
+
+  const seqA = Number(a.sequenceNum) || 0
+  const seqB = Number(b.sequenceNum) || 0
+  if(seqA !== seqB) {return seqA - seqB}
+
+  return a.description.localeCompare(b.description)
 }
 
 export async function getImportHistory(): Promise<ProductHistory[]> {
@@ -436,10 +734,25 @@ export function normalizeProductSummary(raw: Record<string, unknown>): ProductSu
     internalName: textValue(value(raw, "internalName")),
     productTypeId: textValue(value(raw, "productTypeId")),
     primarySku: textValue(value(raw, "sku") || value(raw, "primarySku") || value(raw, "productId")),
+    createdDate: formatDate(value(raw, "createdDate") ||
+      value(raw, "entryDate") ||
+      value(raw, "createdStamp") ||
+      value(raw, "createdTxStamp") ||
+      value(raw, "fromDate") ||
+      value(raw, "introductionDate") ||
+      value(raw, "salesIntroductionDate")),
+    updatedDate: formatDate(value(raw, "updatedDate") ||
+      value(raw, "updatedDatetime") ||
+      value(raw, "lastUpdatedStamp") ||
+      value(raw, "lastModifiedDate") ||
+      value(raw, "lastUpdatedTxStamp")),
     imageUrl: normalizeProductImageUrl(raw),
     brandName: textValue(value(raw, "brandName")),
     primaryProductCategoryId: textValue(value(raw, "primaryProductCategoryId") || value(raw, "productCategoryId")),
     productStoreIds: productStoreIds(raw),
+    groupId: textValue(value(raw, "groupId")),
+    tags: stringArray(value(raw, "tags")),
+    catalogCategoryTypeIds: stringArray(value(raw, "prodCatalogCategoryTypeIds")),
     searchText: productSearchText(raw),
     isVirtual: flagValue(value(raw, "isVirtual")),
     isVariant: flagValue(value(raw, "isVariant")),
@@ -566,8 +879,7 @@ function normalizeProductAssociations(docs: Record<string, unknown>[], productId
       sequenceNum: textValue(value(doc, "sequenceNum")),
       fromDate: formatDate(value(doc, "fromDate")),
       thruDate: formatDate(value(doc, "thruDate")),
-      active: isActive(value(doc, "fromDate"), value(doc, "thruDate")),
-      mirrored: false
+      active: isActive(value(doc, "fromDate"), value(doc, "thruDate"))
     }
   }).filter((relationship) => relationship.relatedProductId && relationship.relatedProductId !== productId)
 }
@@ -725,10 +1037,11 @@ export async function getProductSalesAnalytics(productId: string, windowDays = 3
       },
       query: "*:*",
       filter: [
-        "docType: OISGIR",
+        "docType: ORDER",
         `productId: ${productId}`,
         "orderTypeId: SALES_ORDER",
-        "-orderStatusId: (ORDER_CANCELLED OR ORDER_REJECTED)",
+        "-orderStatusId: ORDER_CANCELLED",
+        "-orderItemStatusId: ITEM_CANCELLED",
         `orderDate: [${startIso} TO NOW]`
       ],
       facet: {
@@ -739,11 +1052,11 @@ export async function getProductSalesAnalytics(productId: string, windowDays = 3
           end: "NOW",
           gap: "+1DAY",
           facet: {
-            units: "sum(itemQuantity)",
+            units: "sum(quantity)",
             orders: "unique(orderId)"
           }
         },
-        unitsSold: "sum(itemQuantity)",
+        unitsSold: "sum(quantity)",
         orderCount: "unique(orderId)"
       }
     }
@@ -780,6 +1093,322 @@ function numberOrNull(raw: unknown): number | null {
   const parsed = Number(raw)
 
   return Number.isFinite(parsed) ? parsed : null
+}
+
+function salesWindowStartIso(windowDays: number): string {
+  const startDate = new Date()
+  startDate.setHours(0, 0, 0, 0)
+  startDate.setDate(startDate.getDate() - (windowDays - 1))
+
+  return `${isoDay(startDate)}T00:00:00Z`
+}
+
+const ACTIVE_SALES_FILTERS = [
+  "docType: ORDER",
+  "orderTypeId: SALES_ORDER",
+  "-orderStatusId: ORDER_CANCELLED",
+  "-orderItemStatusId: ITEM_CANCELLED"
+]
+
+// One Solr query returns a 30-day daily sales series for every product id passed in, so result
+// rows can render sparklines without firing a request per row. The facet nests an outer orderDate
+// range over an inner productId terms facet (range -> terms): the reverse nesting (terms -> range)
+// and nested sum() metrics both return empty/zero on this Solr build, whereas bucket counts are
+// reliable. Each order line carries quantity 1 in practice, so the line-item count is an accurate
+// proxy for units; the product detail page still uses the exact sum(quantity).
+export async function getBatchSalesAnalytics(productIds: string[], windowDays = 30): Promise<Map<string, RowSalesSpark>> {
+  const result = new Map<string, RowSalesSpark>()
+  const ids = Array.from(new Set(productIds.filter(Boolean)))
+  if(!ids.length) {return result}
+
+  const { runSolrQuery, escapeSolrSpecialChars } = useSolrSearch()
+  const startIso = salesWindowStartIso(windowDays)
+  const idClause = ids.map((id) => `"${escapeSolrSpecialChars(id)}"`).join(" OR ")
+
+  const payload = {
+    json: {
+      params: { rows: 0, "q.op": "AND" },
+      query: "*:*",
+      filter: [...ACTIVE_SALES_FILTERS, `productId: (${idClause})`, `orderDate: [${startIso} TO NOW]`],
+      facet: {
+        byDay: {
+          type: "range",
+          field: "orderDate",
+          start: startIso,
+          end: "NOW",
+          gap: "+1DAY",
+          facet: {
+            byProduct: { type: "terms", field: "productId", limit: ids.length }
+          }
+        }
+      }
+    }
+  }
+
+  try {
+    const response = await runSolrQuery(payload)
+    const dayBuckets = response?.data?.facets?.byDay?.buckets || []
+    const series = new Map<string, number[]>(ids.map((id) => [id, Array(dayBuckets.length).fill(0)]))
+
+    dayBuckets.forEach((day: Record<string, any>, dayIndex: number) => {
+      (day.byProduct?.buckets || []).forEach((bucket: Record<string, unknown>) => {
+        const productId = textValue(bucket.val)
+        const row = series.get(productId)
+        if(row) {row[dayIndex] = Number(bucket.count) || 0}
+      })
+    })
+
+    series.forEach((row, productId) => {
+      const unitsSold = row.reduce((total, value) => total + value, 0)
+      if(unitsSold > 0) {result.set(productId, { productId, series: row, unitsSold })}
+    })
+  } catch {
+    // Sparklines are decorative; on failure rows simply render without them.
+  }
+
+  return result
+}
+
+// Counts how many variants roll up under each virtual/parent product id, in a single query.
+export async function getVariantCounts(parentIds: string[]): Promise<Map<string, number>> {
+  const counts = new Map<string, number>()
+  const ids = Array.from(new Set(parentIds.filter(Boolean)))
+  if(!ids.length) {return counts}
+
+  const { runSolrQuery, escapeSolrSpecialChars } = useSolrSearch()
+  const idClause = ids.map((id) => `"${escapeSolrSpecialChars(id)}"`).join(" OR ")
+
+  const payload = {
+    json: {
+      params: { rows: 0, "q.op": "AND" },
+      query: "*:*",
+      filter: ["docType: PRODUCT", "isVariant: true", `groupId: (${idClause})`],
+      facet: { groupId: { type: "terms", field: "groupId", limit: ids.length } }
+    }
+  }
+
+  try {
+    const response = await runSolrQuery(payload)
+    const buckets = response?.data?.facets?.groupId?.buckets || []
+    buckets.forEach((bucket: Record<string, unknown>) => {
+      const parentId = textValue(bucket.val)
+      if(parentId) {counts.set(parentId, Number(bucket.count) || 0)}
+    })
+  } catch {
+    // Variant counts are supplementary; omit on failure.
+  }
+
+  return counts
+}
+
+// Tag facet counts within the current browse/search scope, excluding selected tags so users can
+// add another tag without first clearing the current tag filter.
+export async function getProductTagFacets(params: ProductSearchParams = {}, limit = 2000): Promise<TagFacet[]> {
+  const { runSolrQuery, escapeSolrSpecialChars } = useSolrSearch()
+  const payload = {
+    json: {
+      params: { rows: 0, "q.op": "AND" },
+      query: productFacetQuery(params, escapeSolrSpecialChars),
+      filter: ["docType: PRODUCT", ...productScopeFilterStrings({ ...params, tags: [] })],
+      facet: { tags: { type: "terms", field: "tags", limit, mincount: 1, sort: { count: "desc" } } }
+    }
+  }
+
+  try {
+    const response = await runSolrQuery(payload)
+
+    return (response?.data?.facets?.tags?.buckets || [])
+      .map((bucket: Record<string, unknown>) => ({ value: textValue(bucket.val), count: Number(bucket.count) || 0 }))
+      .filter((facet: TagFacet) => facet.value)
+  } catch {
+    return []
+  }
+}
+
+// Finds products whose chosen identifier value collides with another product's, so they can be
+// triaged and resolved. Two queries: one facet pass to find the colliding values, one fetch pass
+// to pull the products that share them.
+export async function getDuplicateIdentifierGroups(field: "sku" | "upc", maxGroups = 100): Promise<DuplicateIdentifierGroup[]> {
+  const { runSolrQuery, escapeSolrSpecialChars } = useSolrSearch()
+
+  const facetResponse = await runSolrQuery({
+    json: {
+      params: { rows: 0, "q.op": "AND" },
+      query: "*:*",
+      filter: ["docType: PRODUCT"],
+      facet: { dup: { type: "terms", field, limit: maxGroups, mincount: 2, sort: { count: "desc" } } }
+    }
+  })
+
+  const dupValues: string[] = (facetResponse?.data?.facets?.dup?.buckets || [])
+    .map((bucket: Record<string, unknown>) => textValue(bucket.val))
+    .filter(Boolean)
+  if(!dupValues.length) {return []}
+
+  const valueClause = dupValues.map((dupValue) => `"${escapeSolrSpecialChars(dupValue)}"`).join(" OR ")
+  const docsResponse = await runSolrQuery({
+    json: {
+      params: { rows: dupValues.length * 25, "q.op": "AND" },
+      query: "*:*",
+      filter: ["docType: PRODUCT", `${field}: (${valueClause})`]
+    }
+  })
+
+  const docs = docsResponse?.data?.response?.docs || []
+  const grouped = new Map<string, ProductSummary[]>()
+  docs.forEach((doc: Record<string, unknown>) => {
+    const key = textValue(value(doc, field))
+    if(!key) {return}
+    const list = grouped.get(key) || []
+    list.push(normalizeProductSummary(doc))
+    grouped.set(key, list)
+  })
+
+  return dupValues
+    .map((dupValue) => ({ field, value: dupValue, products: grouped.get(dupValue) || [] }))
+    .filter((group) => group.products.length > 1)
+}
+
+// One facet pass (rows: 0) counting, for each requested Solr field, how many products have it
+// empty/unset — plus the audited catalog total. Powers the Missing-values coverage scorecard.
+export async function getMissingFieldCounts(fields: string[]): Promise<{ total: number, totalByField: Record<string, number>, missing: Record<string, number> }> {
+  const { runSolrQuery } = useSolrSearch()
+  const safeFields = Array.from(new Set(fields.map((field) => canonicalMissingField(field)).filter(Boolean)))
+  if(!safeFields.length) {return { total: 0, totalByField: {}, missing: {} }}
+
+  const facet: Record<string, unknown> = {}
+  safeFields.forEach((field) => {
+    facet[field] = { type: "query", q: missingFieldQuery(field) }
+    facet[`${field}Total`] = { type: "query", q: missingFieldEligibilityQuery(field) }
+  })
+
+  try {
+    const response = await runSolrQuery({
+      json: {
+        params: { rows: 0, "q.op": "AND" },
+        query: "*:*",
+        filter: ["docType: PRODUCT"],
+        facet
+      }
+    })
+
+    const facets = response?.data?.facets || {}
+    const total = Number(facets.count ?? response?.data?.response?.numFound) || 0
+    const missing: Record<string, number> = {}
+    const totalByField: Record<string, number> = {}
+    safeFields.forEach((field) => {
+      missing[field] = Number(facets[field]?.count) || 0
+      totalByField[field] = Number(facets[`${field}Total`]?.count) || total
+    })
+
+    return { total, totalByField, missing }
+  } catch {
+    return { total: 0, totalByField: {}, missing: {} }
+  }
+}
+
+// Products where the chosen Solr field is empty/unset.
+export async function getProductsMissingField(field: string, params: ProductSearchParams = {}): Promise<ProductSearchResult> {
+  const { runSolrQuery } = useSolrSearch()
+  const pageSize = Number(params.pageSize ?? 25)
+  const pageIndex = Number(params.pageIndex ?? 0)
+  const safeField = canonicalMissingField(field)
+  if(!safeField) {return { products: [], total: 0, pageIndex, pageSize }}
+
+  const response = await runSolrQuery({
+    json: {
+      params: { rows: pageSize, start: pageSize * pageIndex, "q.op": "AND" },
+      query: "*:*",
+      filter: ["docType: PRODUCT", ...missingFieldFilterStrings(safeField), ...productScopeFilterStrings(params)]
+    }
+  })
+
+  const docs = response?.data?.response?.docs || []
+
+  return {
+    products: docs.map(normalizeProductSummary),
+    total: Number(response?.data?.response?.numFound) || 0,
+    pageIndex,
+    pageSize
+  }
+}
+
+function canonicalMissingField(field: string): string {
+  const safeField = field.replace(/[^\w.]/g, "")
+  if(safeField.toLowerCase() === "upc") {return "upc"}
+
+  return safeField
+}
+
+function missingFieldEligibilityFilters(field: string): string[] {
+  return field === "upc" ? ["isVariant: true"] : []
+}
+
+function missingFieldEligibilityQuery(field: string): string {
+  return missingFieldEligibilityFilters(field).join(" AND ") || "*:*"
+}
+
+function missingFieldQuery(field: string): string {
+  return [...missingFieldEligibilityFilters(field), `-${field}: *`].join(" AND ")
+}
+
+function missingFieldFilterStrings(field: string): string[] {
+  return [...missingFieldEligibilityFilters(field), `-${field}: *`]
+}
+
+// Optimistic write: the OMS endpoint for updating a product identifier is not connected yet, so
+// this intentionally posts to the expected route and lets the resulting error surface to the user.
+export async function updateProductIdentification(payload: {
+  productId: string
+  goodIdentificationTypeId: string
+  idValue: string
+}): Promise<void> {
+  await api({
+    url: `oms/products/${encodeURIComponent(payload.productId)}/goodIdentifications`,
+    method: "post",
+    data: {
+      goodIdentificationTypeId: payload.goodIdentificationTypeId,
+      idValue: payload.idValue
+    }
+  })
+}
+
+function productScopeFilterStrings(params: ProductSearchParams): string[] {
+  const filters: string[] = []
+  const productTypeId = params.productTypeId ?? "FINISHED_GOOD"
+
+  if(productTypeId && productTypeId !== "All") {filters.push(`productTypeId: ${productTypeId}`)}
+  if(params.productStoreId && params.productStoreId !== "All") {filters.push(`productStoreId: ${params.productStoreId}`)}
+
+  if(params.productKind === "Variants") {
+    filters.push("isVariant: true")
+  } else if(params.productKind === "Virtuals") {
+    filters.push("isVirtual: true")
+  }
+
+  if(params.tags?.length) {
+    const tagClause = params.tags.map((tag) => `"${tag}"`).join(" OR ")
+    filters.push(`tags: (${tagClause})`)
+  }
+
+  return filters
+}
+
+function productSolrSort(params: ProductSearchParams): string {
+  if(params.sort === "Updated") {return "updatedDatetime desc"}
+  if(params.sort === "Created") {return "entryDate desc"}
+
+  return "sort_productName asc"
+}
+
+function productFacetQuery(params: ProductSearchParams, escapeSolrSpecialChars: (value: string) => string): string {
+  const queryString = params.queryString?.trim()
+  if(!queryString) {return "*:*"}
+
+  const tokens = queryString.split(/\s+/).map((token) => token.trim()).filter(Boolean)
+  if(!tokens.length) {return "*:*"}
+
+  return `searchText:(${tokens.map((token) => `*${escapeSolrSpecialChars(token)}*`).join(" AND ")})`
 }
 
 function buildReadinessChecklist(product: ProductDetail): ReadinessItem[] {
@@ -869,9 +1498,11 @@ function dedupeProducts(products: ProductSummary[]): ProductSummary[] {
 }
 
 function productStoreIds(raw: Record<string, unknown>): string[] {
-  const productStoreId = textValue(value(raw, "productStoreId"))
+  const ids = stringArray(value(raw, "productStoreIds"))
+  const single = textValue(value(raw, "productStoreId"))
+  if(single && !ids.includes(single)) {ids.push(single)}
 
-  return productStoreId ? [productStoreId] : []
+  return ids
 }
 
 function productSearchText(raw: Record<string, unknown>): string {
@@ -907,6 +1538,10 @@ function productSolrFilters(params: ProductSearchParams): Record<string, { value
     filters.isVirtual = { value: [true, false], op: "OR" }
   }
 
+  if(params.tags?.length) {
+    filters.tags = { value: params.tags.map((tag) => `"${tag}"`), op: "OR" }
+  }
+
   return filters
 }
 
@@ -939,6 +1574,13 @@ function normalizeRecord(raw: any): Record<string, unknown> {
 
 function value(raw: Record<string, unknown>, key: string): unknown {
   return raw[key] ?? raw[key.toLowerCase()]
+}
+
+function stringArray(raw: unknown): string[] {
+  if(Array.isArray(raw)) {return raw.map(textValue).filter(Boolean)}
+  const single = textValue(raw)
+
+  return single ? [single] : []
 }
 
 function textValue(raw: unknown): string {

@@ -29,6 +29,32 @@
         <ion-menu-toggle :auto-hide="false">
           <ion-item
             button
+            router-link="/data-fixes/duplicates"
+            router-direction="root"
+          >
+            <ion-icon
+              slot="start"
+              :icon="copyOutline"
+            />
+            <ion-label>{{ translate("Duplicate identifiers") }}</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+        <ion-menu-toggle :auto-hide="false">
+          <ion-item
+            button
+            router-link="/data-fixes/missing"
+            router-direction="root"
+          >
+            <ion-icon
+              slot="start"
+              :icon="alertCircleOutline"
+            />
+            <ion-label>{{ translate("Missing values") }}</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+        <ion-menu-toggle :auto-hide="false">
+          <ion-item
+            button
             router-link="/imports"
             router-direction="root"
           >
@@ -59,7 +85,7 @@
 
 <script setup lang="ts">
 import { IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonMenu, IonMenuToggle, IonTitle, IonToolbar } from "@ionic/vue"
-import { cloudDownloadOutline, pricetagsOutline, settingsOutline } from "ionicons/icons"
+import { alertCircleOutline, cloudDownloadOutline, copyOutline, pricetagsOutline, settingsOutline } from "ionicons/icons"
 import { translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 

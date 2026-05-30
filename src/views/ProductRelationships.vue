@@ -68,14 +68,16 @@
               </ion-segment-button>
             </ion-segment>
 
-            <div class="toggle-row">
-              <ion-toggle v-model="showExpired">
+            <ion-item lines="none">
+              <ion-label>
                 Show expired
-              </ion-toggle>
-              <ion-note>
-                OFBiz expires associations instead of deleting them, preserving order history.
-              </ion-note>
-            </div>
+                <p>OFBiz expires associations instead of deleting them, preserving order history.</p>
+              </ion-label>
+              <ion-toggle
+                slot="end"
+                v-model="showExpired"
+              />
+            </ion-item>
           </ion-card-content>
         </ion-card>
 
@@ -94,260 +96,255 @@
           </button>
         </div>
 
-        <div
+        <template
           v-if="activeMeta"
-          class="active-panel"
         >
-          <ion-card class="panel-card">
-            <ion-card-header>
-              <div class="panel-heading">
-                <ion-card-subtitle>
-                  {{ activeMeta.typeId }}
-                </ion-card-subtitle>
-                <ion-card-title>{{ activeMeta.label }}</ion-card-title>
-                <p
-                  v-if="activeDescription"
-                  class="panel-description"
-                >
-                  {{ activeDescription }}
-                </p>
-                <div
-                  v-if="panelBadges.length"
-                  class="panel-badges"
-                >
-                  <ion-badge
-                    v-for="badge in panelBadges"
-                    :key="badge.label"
-                    :color="badge.color"
+          <div class="active-panel">
+            <ion-card class="panel-card">
+              <ion-card-header>
+                <div class="panel-heading">
+                  <ion-card-subtitle>
+                    {{ activeMeta.typeId }}
+                  </ion-card-subtitle>
+                  <ion-card-title>{{ activeMeta.label }}</ion-card-title>
+                  <p
+                    v-if="activeDescription"
+                    class="panel-description"
                   >
-                    {{ badge.label }}
-                  </ion-badge>
-                </div>
-              </div>
-            </ion-card-header>
-
-            <ion-card-content>
-              <ion-searchbar
-                ref="searchBar"
-                v-model="searchTerm"
-                :placeholder="`Search products by ID, SKU, or name`"
-                :debounce="180"
-                @keyup.enter="handleEnterKey"
-              />
-              <ion-item lines="none">
-                <ion-label>
-                  Search for products by ID, SKU, or name to link as {{ activeMeta.shortLabel.toLowerCase() }}.
-                </ion-label>
-              </ion-item>
-              <ion-item
-                v-if="searchTerm && firstSuggestion"
-                lines="none"
-              >
-                <ion-thumbnail slot="start">
-                  <DxpShopifyImg
-                    :src="firstSuggestion.imageUrl"
-                    size="thumb"
-                  />
-                </ion-thumbnail>
-                <ion-label>
-                  <h3>{{ firstSuggestion.productName || firstSuggestion.internalName || firstSuggestion.productId }}</h3>
-                  <p>{{ firstSuggestion.productId }} · {{ firstSuggestion.productTypeId || "Unknown type" }}</p>
-                </ion-label>
-                <ion-button
-                  slot="end"
-                  fill="outline"
-                  @click="addRelationship(firstSuggestion)"
-                >
-                  <ion-icon
-                    slot="start"
-                    :icon="addCircleOutline"
-                  />
-                  Add link
-                </ion-button>
-              </ion-item>
-              <ion-item
-                v-if="searchTerm && firstSuggestion"
-                lines="none"
-              >
-                <ion-label>
-                  <p>Press enter to add the first match.</p>
-                </ion-label>
-              </ion-item>
-              <ion-item
-                v-if="searchTerm && searchSuggestions.length > 1"
-                lines="none"
-                button
-                detail
-                @click="openSearchResultsModal"
-              >
-                <ion-label>
-                  View more results ({{ searchSuggestions.length - 1 }} more)
-                </ion-label>
-              </ion-item>
-              <ion-item
-                v-if="searchTerm && !firstSuggestion"
-                lines="none"
-              >
-                <ion-label>
-                  <p>No catalog match for "{{ searchTerm }}".</p>
-                </ion-label>
-              </ion-item>
-              <ion-list
-                v-if="visibleRelationships.length"
-                class="relationship-list"
-                lines="none"
-              >
-                <ion-item
-                  v-for="(relationship, index) in visibleRelationships"
-                  :key="relationshipKey(relationship)"
-                  :class="['relationship-row', { 'relationship-row--expired': !relationship.active }]"
-                >
+                    {{ activeDescription }}
+                  </p>
                   <div
-                    class="reorder-handle"
+                    v-if="panelBadges.length"
+                    class="panel-badges"
                   >
-                    <button
-                      :disabled="index === 0"
-                      :aria-label="`Move ${relationship.relatedName} up`"
-                      @click="reorder(index, index - 1)"
+                    <ion-badge
+                      v-for="badge in panelBadges"
+                      :key="badge.label"
+                      :color="badge.color"
                     >
-                      <ion-icon :icon="chevronUpOutline" />
-                    </button>
-                    <span class="reorder-handle__seq">{{ relationship.sequenceNum }}</span>
-                    <button
-                      :disabled="index === visibleRelationships.length - 1"
-                      :aria-label="`Move ${relationship.relatedName} down`"
-                      @click="reorder(index, index + 1)"
-                    >
-                      <ion-icon :icon="chevronDownOutline" />
-                    </button>
+                      {{ badge.label }}
+                    </ion-badge>
                   </div>
+                </div>
+              </ion-card-header>
 
-                  <ion-thumbnail
-                    slot="start"
-                    class="relationship-thumb"
-                  >
+              <ion-card-content>
+                <ion-searchbar
+                  ref="searchBar"
+                  v-model="searchTerm"
+                  :placeholder="`Search products by ID, SKU, or name`"
+                  :debounce="180"
+                  @keyup.enter="handleEnterKey"
+                />
+                <ion-item lines="none">
+                  <ion-label>
+                    Search for products by ID, SKU, or name to link as {{ activeMeta.shortLabel.toLowerCase() }}.
+                  </ion-label>
+                </ion-item>
+                <ion-item
+                  v-if="searchTerm && firstSuggestion"
+                  lines="none"
+                >
+                  <ion-thumbnail slot="start">
                     <DxpShopifyImg
-                      :src="relationship.relatedImageUrl"
-                      size="small"
+                      :src="firstSuggestion.imageUrl"
+                      size="thumb"
                     />
                   </ion-thumbnail>
-
                   <ion-label>
-                    <h3>{{ relationship.relatedName || relationship.relatedProductId }}</h3>
-                    <p>
-                      <span class="mono">{{ relationship.relatedProductId }}</span>
-                      <span v-if="relationship.relatedSku && relationship.relatedSku !== relationship.relatedProductId">
-                        · SKU {{ relationship.relatedSku }}
-                      </span>
-                      <span v-if="relationship.relatedTypeId">
-                        · {{ relationship.relatedTypeId }}
-                      </span>
-                    </p>
-                    <p class="relationship-meta">
-                      <ion-badge :color="relationship.active ? 'success' : 'medium'">
-                        {{ relationship.active ? "Active" : "Expired" }}
-                      </ion-badge>
-                      <ion-badge
-                        v-if="relationship.mirrored"
-                        color="tertiary"
-                      >
-                        Mirrored
-                      </ion-badge>
-                      <ion-badge
-                        v-if="relationship.direction === 'incoming'"
-                        color="medium"
-                      >
-                        Incoming
-                      </ion-badge>
-                      <span class="dates">{{ relationship.fromDate || "Started today" }} → {{ relationship.thruDate || "no end" }}</span>
-                    </p>
-                    <div
-                      v-if="activeMeta.supportsBom"
-                      class="bom-grid"
-                    >
-                      <label>
-                        <span>Qty per parent</span>
-                        <input
-                          :value="relationship.quantity"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          @change="updateField(relationship, 'quantity', ($event.target as HTMLInputElement).value)"
-                        >
-                      </label>
-                      <label>
-                        <span>Scrap factor</span>
-                        <input
-                          :value="relationship.scrapFactor"
-                          type="number"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          @change="updateField(relationship, 'scrapFactor', ($event.target as HTMLInputElement).value)"
-                        >
-                      </label>
-                      <label class="bom-grid__wide">
-                        <span>Instruction</span>
-                        <input
-                          :value="relationship.instruction"
-                          type="text"
-                          placeholder="Assembly note for the floor"
-                          @change="updateField(relationship, 'instruction', ($event.target as HTMLInputElement).value)"
-                        >
-                      </label>
-                    </div>
+                    <h3>{{ firstSuggestion.productName || firstSuggestion.internalName || firstSuggestion.productId }}</h3>
+                    <p>{{ firstSuggestion.productId }} · {{ firstSuggestion.productTypeId || "Unknown type" }}</p>
                   </ion-label>
-
-                  <div
+                  <ion-button
                     slot="end"
-                    class="row-actions"
+                    fill="outline"
+                    @click="addRelationship(firstSuggestion)"
                   >
-                    <ion-button
-                      :router-link="`/products/${relationship.relatedProductId}`"
-                      fill="clear"
-                      size="small"
-                    >
-                      Open
-                      <ion-icon
-                        slot="end"
-                        :icon="openOutline"
-                      />
-                    </ion-button>
-                    <ion-button
-                      v-if="relationship.active"
-                      color="warning"
-                      fill="outline"
-                      size="small"
-                      @click="expire(relationship)"
-                    >
-                      Expire
-                    </ion-button>
-                    <ion-button
-                      v-else
-                      color="success"
-                      fill="outline"
-                      size="small"
-                      @click="reactivate(relationship)"
-                    >
-                      Reactivate
-                    </ion-button>
-                  </div>
+                    <ion-icon
+                      slot="start"
+                      :icon="addCircleOutline"
+                    />
+                    Add link
+                  </ion-button>
                 </ion-item>
-              </ion-list>
+                <ion-item
+                  v-if="searchTerm && firstSuggestion"
+                  lines="none"
+                >
+                  <ion-label>
+                    <p>Press enter to add the first match.</p>
+                  </ion-label>
+                </ion-item>
+                <ion-item
+                  v-if="searchTerm && searchSuggestions.length > 1"
+                  lines="none"
+                  button
+                  detail
+                  @click="openSearchResultsModal"
+                >
+                  <ion-label>
+                    View more results ({{ searchSuggestions.length - 1 }} more)
+                  </ion-label>
+                </ion-item>
+                <ion-item
+                  v-if="searchTerm && !firstSuggestion"
+                  lines="none"
+                >
+                  <ion-label>
+                    <p>No catalog match for "{{ searchTerm }}".</p>
+                  </ion-label>
+                </ion-item>
+              </ion-card-content>
+            </ion-card>
+          </div>
+
+          <ion-list
+            v-if="visibleRelationships.length"
+            lines="full"
+          >
+            <ion-item
+              v-for="(relationship, index) in visibleRelationships"
+              :key="relationshipKey(relationship)"
+              :class="{ 'relationship-row--expired': !relationship.active }"
+            >
+              <div
+                class="reorder-handle"
+              >
+                <button
+                  :disabled="index === 0"
+                  :aria-label="`Move ${relationship.relatedName} up`"
+                  @click="reorder(index, index - 1)"
+                >
+                  <ion-icon :icon="chevronUpOutline" />
+                </button>
+                <span class="reorder-handle__seq">{{ relationship.sequenceNum }}</span>
+                <button
+                  :disabled="index === visibleRelationships.length - 1"
+                  :aria-label="`Move ${relationship.relatedName} down`"
+                  @click="reorder(index, index + 1)"
+                >
+                  <ion-icon :icon="chevronDownOutline" />
+                </button>
+              </div>
+
+              <ion-thumbnail
+                slot="start"
+                class="relationship-thumb"
+              >
+                <DxpShopifyImg
+                  :src="relationship.relatedImageUrl"
+                  size="small"
+                />
+              </ion-thumbnail>
+
+              <ion-label>
+                {{ relationship.relatedName || relationship.relatedProductId }}
+                <p>
+                  <span class="mono">{{ relationship.relatedProductId }}</span>
+                  <span v-if="relationship.relatedSku && relationship.relatedSku !== relationship.relatedProductId">
+                    · SKU {{ relationship.relatedSku }}
+                  </span>
+                  <span v-if="relationship.relatedTypeId">
+                    · {{ relationship.relatedTypeId }}
+                  </span>
+                </p>
+                <p class="relationship-meta">
+                  <ion-badge :color="relationship.active ? 'success' : 'medium'">
+                    {{ relationship.active ? "Active" : "Expired" }}
+                  </ion-badge>
+                  <ion-badge
+                    v-if="relationship.direction === 'incoming'"
+                    color="medium"
+                  >
+                    Incoming
+                  </ion-badge>
+                  <span class="dates">{{ relationship.fromDate || "Started today" }} → {{ relationship.thruDate || "no end" }}</span>
+                </p>
+                <div
+                  v-if="activeMeta.supportsBom"
+                  class="bom-grid"
+                >
+                  <label>
+                    <span>Qty per parent</span>
+                    <input
+                      :value="relationship.quantity"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      @change="updateField(relationship, 'quantity', ($event.target as HTMLInputElement).value)"
+                    >
+                  </label>
+                  <label>
+                    <span>Scrap factor</span>
+                    <input
+                      :value="relationship.scrapFactor"
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      @change="updateField(relationship, 'scrapFactor', ($event.target as HTMLInputElement).value)"
+                    >
+                  </label>
+                  <label class="bom-grid__wide">
+                    <span>Instruction</span>
+                    <input
+                      :value="relationship.instruction"
+                      type="text"
+                      placeholder="Assembly note for the floor"
+                      @change="updateField(relationship, 'instruction', ($event.target as HTMLInputElement).value)"
+                    >
+                  </label>
+                </div>
+              </ion-label>
 
               <div
-                v-else
-                class="empty-panel"
+                slot="end"
+                class="row-actions"
               >
-                <ion-icon :icon="gitBranchOutline" />
-                <h3>No {{ activeMeta.shortLabel.toLowerCase() }} {{ direction === "outgoing" ? "from" : "to" }} this product</h3>
-                <p>
-                  {{ emptyMessage }}
-                </p>
+                <ion-button
+                  :router-link="`/products/${relationship.relatedProductId}`"
+                  fill="clear"
+                  size="small"
+                >
+                  Open
+                  <ion-icon
+                    slot="end"
+                    :icon="openOutline"
+                  />
+                </ion-button>
+                <ion-button
+                  v-if="relationship.active"
+                  color="warning"
+                  fill="outline"
+                  size="small"
+                  @click="expire(relationship)"
+                >
+                  Expire
+                </ion-button>
+                <ion-button
+                  v-else
+                  color="success"
+                  fill="outline"
+                  size="small"
+                  @click="reactivate(relationship)"
+                >
+                  Reactivate
+                </ion-button>
               </div>
-            </ion-card-content>
-          </ion-card>
-        </div>
+            </ion-item>
+          </ion-list>
+
+          <div
+            v-else
+            class="empty-panel"
+          >
+            <ion-icon :icon="gitBranchOutline" />
+            <h3>No {{ activeMeta.shortLabel.toLowerCase() }} {{ direction === "outgoing" ? "from" : "to" }} this product</h3>
+            <p>
+              {{ emptyMessage }}
+            </p>
+          </div>
+        </template>
       </template>
 
       <ion-modal
@@ -436,7 +433,6 @@ import {
   IonList,
   IonMenuButton,
   IonModal,
-  IonNote,
   IonPage,
   IonProgressBar,
   IonRadio,
@@ -524,15 +520,17 @@ const activeTypeCount = computed(() => {
   return typeIds.size
 })
 
-const typeRail = computed(() => assocTypes.value.map((type) => {
-  const count = directionalRelationships.value.filter((relationship) => relationship.typeId === type.typeId).length
+const typeRail = computed(() => assocTypes.value
+  .map((type) => {
+    const count = directionalRelationships.value.filter((relationship) => relationship.typeId === type.typeId).length
 
-  return {
-    typeId: type.typeId,
-    label: type.shortLabel,
-    count
-  }
-}))
+    return {
+      typeId: type.typeId,
+      label: type.shortLabel,
+      count
+    }
+  })
+  .sort((first, second) => first.label.localeCompare(second.label) || first.typeId.localeCompare(second.typeId)))
 
 watch([typeRail, direction], ([rails]) => {
   if(!rails.length) {
@@ -755,19 +753,6 @@ function updateField(
   margin-top: 16px;
 }
 
-.toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.toggle-row ion-note {
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
 .verify-banner {
   display: flex;
   align-items: center;
@@ -970,21 +955,6 @@ function updateField(
   color: var(--ion-color-medium);
 }
 
-.relationship-list {
-  display: grid;
-  gap: 8px;
-}
-
-.relationship-row {
-  --background: var(--ion-card-background, #fff);
-  --padding-start: 8px;
-  --inner-padding-end: 8px;
-  border-radius: 12px;
-  border: 1px solid var(--ion-color-step-100, rgba(0, 0, 0, 0.06));
-  margin-bottom: 8px;
-  transition: opacity 0.15s ease;
-}
-
 .relationship-row--expired {
   opacity: 0.55;
 }
@@ -1119,10 +1089,6 @@ function updateField(
 
   .hero-stat {
     text-align: left;
-  }
-
-  .relationship-row {
-    --padding-start: 4px;
   }
 
   .bom-grid {

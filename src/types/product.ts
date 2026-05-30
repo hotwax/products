@@ -1,10 +1,13 @@
 export type FetchStatus = "none" | "pending" | "success" | "error"
+export type ProductSortOption = "Alphabet" | "Updated" | "Created"
 
 export interface ProductSearchParams {
   queryString?: string
   productTypeId?: string
   productKind?: "All" | "Variants" | "Virtuals"
   productStoreId?: string
+  tags?: string[]
+  sort?: ProductSortOption
   pageSize?: number
   pageIndex?: number
 }
@@ -15,10 +18,15 @@ export interface ProductSummary {
   internalName: string
   productTypeId: string
   primarySku: string
+  createdDate: string
+  updatedDate: string
   imageUrl: string
   brandName: string
   primaryProductCategoryId: string
   productStoreIds: string[]
+  groupId: string
+  tags: string[]
+  catalogCategoryTypeIds: string[]
   searchText: string
   isVirtual: boolean
   isVariant: boolean
@@ -30,6 +38,36 @@ export interface ProductSearchResult {
   total: number
   pageIndex: number
   pageSize: number
+}
+
+export interface TagFacet {
+  value: string
+  count: number
+}
+
+export type PresellState = "preorder" | "backorder" | null
+
+export interface RowSalesSpark {
+  productId: string
+  series: number[]
+  unitsSold: number
+}
+
+export interface DuplicateIdentifierGroup {
+  field: "sku" | "upc"
+  value: string
+  products: ProductSummary[]
+}
+
+export interface DuplicateIdentifierDraft {
+  productId: string
+  displayName: string
+  imageUrl: string
+  productTypeId: string
+  primarySku: string
+  createdDate: string
+  original: string
+  value: string
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -79,7 +117,6 @@ export interface ProductRelationship {
   fromDate: string
   thruDate: string
   active: boolean
-  mirrored: boolean
 }
 
 export interface StoreCatalogExposure {
@@ -98,13 +135,53 @@ export interface StoreCatalogExposure {
 }
 
 export interface ProductFeatureApplication {
+  productId: string
+  productFeatureId: string
+  productFeatureApplTypeId: string
+  applTypeDescription: string
   featureTypeId: string
   featureTypeDescription: string
-  productFeatureId: string
+  featureDescription: string
   description: string
+  abbrev: string
+  idCode: string
   sequenceNum: string
   fromDate: string
   thruDate: string
+  active: boolean
+}
+
+export interface ProductFeatureRecord {
+  productFeatureId: string
+  productFeatureTypeId: string
+  featureTypeDescription: string
+  description: string
+  abbrev: string
+  idCode: string
+}
+
+export interface ProductFeatureFamily {
+  virtualProductId: string
+  virtualProductName: string
+  virtualProductImageUrl: string
+  variants: ProductFeatureFamilyVariant[]
+  featureTypes: ProductFeatureFamilyType[]
+  selectableFeatures: ProductFeatureApplication[]
+}
+
+export interface ProductFeatureFamilyVariant {
+  productId: string
+  productName: string
+  internalName: string
+  imageUrl: string
+  primarySku: string
+  features: ProductFeatureApplication[]
+}
+
+export interface ProductFeatureFamilyType {
+  featureTypeId: string
+  featureTypeDescription: string
+  featureCount: number
 }
 
 export interface ShopifyMapping {

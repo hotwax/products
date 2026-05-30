@@ -3,8 +3,11 @@ import type { RouteRecordRaw } from "vue-router"
 import { Login, cookieHelper } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
+import DataFixDuplicates from "@/views/DataFixDuplicates.vue"
+import DataFixMissing from "@/views/DataFixMissing.vue"
 import Imports from "@/views/Imports.vue"
 import ProductDetail from "@/views/ProductDetail.vue"
+import ProductFeatures from "@/views/ProductFeatures.vue"
 import ProductRelationships from "@/views/ProductRelationships.vue"
 import ProductSection from "@/views/ProductSection.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
@@ -46,6 +49,18 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: authGuard
   },
   {
+    path: "/data-fixes/duplicates",
+    name: "DataFixDuplicates",
+    component: DataFixDuplicates,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/data-fixes/missing",
+    name: "DataFixMissing",
+    component: DataFixMissing,
+    beforeEnter: authGuard
+  },
+  {
     path: "/products/:productId",
     name: "ProductDetail",
     component: ProductDetail,
@@ -60,6 +75,13 @@ const routes: RouteRecordRaw[] = [
     path: "/products/:productId/relationships",
     name: "ProductRelationships",
     component: ProductRelationships,
+    props: true,
+    beforeEnter: authGuard
+  },
+  {
+    path: "/products/:productId/features",
+    name: "ProductFeatures",
+    component: ProductFeatures,
     props: true,
     beforeEnter: authGuard
   },

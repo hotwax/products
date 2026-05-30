@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { fetchAllProductSearchDocuments, getProductAssocTypes, getProductDetail, searchProducts } from "./product"
+import { fetchAllProductSearchDocuments, getMissingFieldCounts, getProductAssocTypes, getProductDetail, getProductsMissingField, searchProducts } from "./product"
 import { buildAssocTypeCatalog } from "@/utils/productAssocTypes"
 
 const mocks = vi.hoisted(() => ({
@@ -48,6 +48,7 @@ describe("searchProducts", () => {
       keyword: "MH09-XS-Blue-01",
       viewSize: 25,
       viewIndex: 0,
+      sort: "sort_productName asc",
       filters: {
         productTypeId: { value: "FINISHED_GOOD" },
         isVirtual: { value: [true, false], op: "OR" }
@@ -78,6 +79,7 @@ describe("searchProducts", () => {
       keyword: "MH09",
       viewSize: 10,
       viewIndex: 2,
+      sort: "sort_productName asc",
       filters: {
         productTypeId: { value: "FINISHED_GOOD" },
         productStoreId: { value: "STORE_A" },
@@ -101,6 +103,7 @@ describe("searchProducts", () => {
       keyword: undefined,
       viewSize: 10,
       viewIndex: 2,
+      sort: "sort_productName asc",
       filters: {
         productStoreId: { value: "STORE_A" },
         isVirtual: { value: true }
@@ -142,6 +145,74 @@ describe("fetchAllProductSearchDocuments", () => {
     expect(products.map((product) => product.productId)).toEqual(["SKU-1", "SKU-2", "SKU-3"])
     expect(products[0].isVariant).toBe(true)
     expect(products[1].isVirtual).toBe(true)
+  })
+})
+
+describe("missing field queries", () => {
+  beforeEach(() => {
+    mocks.runSolrQuery.mockReset()
+  })
+
+  it("counts missing UPC only against variant products", async () => {
+    mocks.runSolrQuery.mockResolvedValueOnce({
+      data: {
+        facets: {
+          count: 10,
+          upc: { count: 2 },
+          upcTotal: { count: 6 },
+          sku: { count: 1 },
+          skuTotal: { count: 10 }
+        }
+      }
+    })
+
+    const result = await getMissingFieldCounts(["upc", "sku"])
+
+    expect(mocks.runSolrQuery).toHaveBeenCalledWith({
+      json: {
+        params: { rows: 0, "q.op": "AND" },
+        query: "*:*",
+        filter: ["docType: PRODUCT"],
+        facet: {
+          upc: { type: "query", q: "isVariant: true AND -upc: *" },
+          upcTotal: { type: "query", q: "isVariant: true" },
+          sku: { type: "query", q: "-sku: *" },
+          skuTotal: { type: "query", q: "*:*" }
+        }
+      }
+    })
+    expect(result).toEqual({
+      total: 10,
+      totalByField: { upc: 6, sku: 10 },
+      missing: { upc: 2, sku: 1 }
+    })
+  })
+
+  it("lists missing UPC products from variants only", async () => {
+    mocks.runSolrQuery.mockResolvedValueOnce({
+      data: {
+        response: {
+          numFound: 1,
+          docs: [{ productId: "SKU-1", productName: "Variant", productTypeId: "FINISHED_GOOD", isVariant: true }]
+        }
+      }
+    })
+
+    const result = await getProductsMissingField("UPC", {
+      productTypeId: "All",
+      pageSize: 25,
+      pageIndex: 0
+    })
+
+    expect(mocks.runSolrQuery).toHaveBeenCalledWith({
+      json: {
+        params: { rows: 25, start: 0, "q.op": "AND" },
+        query: "*:*",
+        filter: ["docType: PRODUCT", "isVariant: true", "-upc: *"]
+      }
+    })
+    expect(result.total).toBe(1)
+    expect(result.products[0]).toMatchObject({ productId: "SKU-1", isVariant: true })
   })
 })
 

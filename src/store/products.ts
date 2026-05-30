@@ -1,21 +1,34 @@
 import { defineStore } from "pinia"
 
 import {
+  getAllProductFeatures,
+  getBatchSalesAnalytics,
   getImportHistory,
   getProductAssocTypes,
   getProductDetail,
+  getProductFeatureApplTypeCatalog,
+  getProductFeatureFamily,
+  getProductFeatureTypeCatalog,
   getProductSearchIndexMetadata,
+  getProductTagFacets,
+  getVariantCounts,
   refreshProductSearchIndex,
+  searchProductFeatures,
   searchProducts
 } from "@/services/product"
 import type { ProductIndexMetadata } from "@/services/productIndex"
 import type {
   FetchStatus,
   ProductDetail,
+  ProductFeatureFamily,
+  ProductFeatureRecord,
   ProductHistory,
   ProductRelationship,
   ProductSearchParams,
-  ProductSummary
+  ProductSortOption,
+  ProductSummary,
+  RowSalesSpark,
+  TagFacet
 } from "@/types/product"
 import type { OmsProductAssocTypeRow } from "@/utils/productAssocTypes"
 
@@ -25,6 +38,11 @@ export const useProductsStore = defineStore("products", {
     productTypeFilter: "FINISHED_GOOD",
     productKindFilter: "All" as "All" | "Variants" | "Virtuals",
     productStoreIdFilter: "",
+    sortFilter: "Alphabet" as ProductSortOption,
+    tagFilter: [] as string[],
+    tagFacets: [] as TagFacet[],
+    rowSparks: {} as Record<string, RowSalesSpark>,
+    variantCounts: {} as Record<string, number>,
     searchResults: [] as ProductSummary[],
     searchTotal: 0,
     searchPageIndex: 0,
@@ -42,7 +60,17 @@ export const useProductsStore = defineStore("products", {
     productIndexMetadata: null as ProductIndexMetadata | null,
     assocTypeCatalog: [] as OmsProductAssocTypeRow[],
     assocTypeCatalogStatus: "none" as FetchStatus,
-    assocTypeCatalogError: ""
+    assocTypeCatalogError: "",
+    featureFamily: null as ProductFeatureFamily | null,
+    featureFamilyStatus: "none" as FetchStatus,
+    featureFamilyError: "",
+    featureFamilyProductId: "",
+    featureSearchResults: [] as ProductFeatureRecord[],
+    featureSearchStatus: "none" as FetchStatus,
+    featureSearchError: "",
+    featureTypeCatalog: [] as Array<{ id: string, description: string }>,
+    featureApplTypeCatalog: [] as Array<{ id: string, description: string }>,
+    featureCatalog: [] as ProductFeatureRecord[]
   }),
   getters: {
     loading: (state) => state.searchStatus === "pending",
@@ -56,12 +84,16 @@ export const useProductsStore = defineStore("products", {
       this.searchStatus = "pending"
       this.searchError = ""
       this.searchPageIndex = 0
+      this.rowSparks = {}
+      this.variantCounts = {}
 
       try {
         const result = await searchProducts(this.searchParams())
         this.searchResults = result.products
         this.searchTotal = result.total
         this.searchStatus = "success"
+        this.loadTagFacets()
+        this.decorateRows(result.products)
       } catch (error: any) {
         this.searchResults = []
         this.searchTotal = 0
@@ -80,10 +112,31 @@ export const useProductsStore = defineStore("products", {
         this.searchResults.push(...result.products)
         this.searchTotal = result.total
         this.searchStatus = "success"
+        this.decorateRows(result.products)
       } catch (error: any) {
         this.searchError = error?.message || "Product search failed"
         this.searchStatus = "error"
       }
+    },
+    async loadTagFacets() {
+      this.tagFacets = await getProductTagFacets(this.searchParams())
+    },
+    async decorateRows(products: ProductSummary[]) {
+      if(!products.length) {return}
+
+      const [sparks, variantCounts] = await Promise.all([
+        getBatchSalesAnalytics(products.map((product) => product.productId)),
+        getVariantCounts(products.filter((product) => product.isVirtual).map((product) => product.productId))
+      ])
+
+      this.rowSparks = { ...this.rowSparks, ...Object.fromEntries(sparks) }
+      this.variantCounts = { ...this.variantCounts, ...Object.fromEntries(variantCounts) }
+    },
+    toggleTag(tag: string) {
+      this.tagFilter = this.tagFilter.includes(tag)
+        ? this.tagFilter.filter((entry) => entry !== tag)
+        : [...this.tagFilter, tag]
+      this.runSearch()
     },
     async fetchDetail(productId: string) {
       this.detailStatus = "pending"
@@ -143,6 +196,119 @@ export const useProductsStore = defineStore("products", {
         this.assocTypeCatalogStatus = "error"
       }
     },
+    async loadFeatureFamily(productId: string, force = false) {
+      if(!force && this.featureFamilyProductId === productId && this.featureFamilyStatus === "success") {return}
+
+      this.featureFamilyStatus = "pending"
+      this.featureFamilyError = ""
+      this.featureFamilyProductId = productId
+
+      try {
+        this.featureFamily = await getProductFeatureFamily(productId)
+        this.featureFamilyStatus = "success"
+      } catch (error: any) {
+        this.featureFamily = null
+        this.featureFamilyError = error?.response?.data?.errors?.[0]?.message || error?.message || "Product features failed"
+        this.featureFamilyStatus = "error"
+      }
+    },
+    async runFeatureSearch(term: string) {
+      this.featureSearchStatus = "pending"
+      this.featureSearchError = ""
+
+      try {
+        this.featureSearchResults = await searchProductFeatures(term)
+        this.featureSearchStatus = "success"
+      } catch (error: any) {
+        this.featureSearchResults = []
+        this.featureSearchError = error?.message || "Feature search failed"
+        this.featureSearchStatus = "error"
+      }
+    },
+    clearFeatureSearch() {
+      this.featureSearchResults = []
+      this.featureSearchStatus = "none"
+      this.featureSearchError = ""
+    },
+    async loadFeatureCatalogs() {
+      if(!this.featureTypeCatalog.length) {
+        this.featureTypeCatalog = await getProductFeatureTypeCatalog().catch(() => [])
+      }
+      if(!this.featureApplTypeCatalog.length) {
+        this.featureApplTypeCatalog = await getProductFeatureApplTypeCatalog().catch(() => [])
+      }
+      if(!this.featureCatalog.length) {
+        this.featureCatalog = await getAllProductFeatures().catch(() => [])
+      }
+    },
+    addFeatureApplication(payload: {
+      productId: string
+      record: ProductFeatureRecord
+      productFeatureApplTypeId: string
+      applTypeDescription: string
+    }) {
+      if(!this.featureFamily) {return}
+
+      const today = new Date().toLocaleDateString()
+      const newAppl = {
+        productId: payload.productId,
+        productFeatureId: payload.record.productFeatureId,
+        productFeatureApplTypeId: payload.productFeatureApplTypeId,
+        applTypeDescription: payload.applTypeDescription,
+        featureTypeId: payload.record.productFeatureTypeId,
+        featureTypeDescription: payload.record.featureTypeDescription,
+        featureDescription: payload.record.description,
+        description: payload.record.description || payload.record.productFeatureId,
+        abbrev: payload.record.abbrev,
+        idCode: payload.record.idCode,
+        sequenceNum: "",
+        fromDate: today,
+        thruDate: "",
+        active: true
+      }
+      const family = this.featureFamily
+
+      if(payload.productFeatureApplTypeId === "STANDARD_FEATURE") {
+        const variant = family.variants.find((entry) => entry.productId === payload.productId)
+        if(variant) {
+          variant.features = [...variant.features, newAppl]
+        }
+      } else if(payload.productId === family.virtualProductId) {
+        family.selectableFeatures = [...family.selectableFeatures, newAppl]
+      } else {
+        const variant = family.variants.find((entry) => entry.productId === payload.productId)
+        if(variant) {
+          variant.features = [...variant.features, newAppl]
+        }
+      }
+
+      const knownType = family.featureTypes.find((entry) => entry.featureTypeId === payload.record.productFeatureTypeId)
+      if(knownType) {
+        knownType.featureCount += 1
+      } else if(payload.record.productFeatureTypeId) {
+        family.featureTypes = [
+          ...family.featureTypes,
+          {
+            featureTypeId: payload.record.productFeatureTypeId,
+            featureTypeDescription: payload.record.featureTypeDescription || payload.record.productFeatureTypeId,
+            featureCount: 1
+          }
+        ].sort((a, b) => a.featureTypeDescription.localeCompare(b.featureTypeDescription))
+      }
+    },
+    removeFeatureApplication(payload: { productId: string, productFeatureId: string, productFeatureApplTypeId: string }) {
+      if(!this.featureFamily) {return}
+      const family = this.featureFamily
+
+      if(payload.productFeatureApplTypeId === "STANDARD_FEATURE" || payload.productId !== family.virtualProductId) {
+        const variant = family.variants.find((entry) => entry.productId === payload.productId)
+        if(variant) {
+          variant.features = variant.features.filter((appl) => appl.productFeatureId !== payload.productFeatureId || appl.productFeatureApplTypeId !== payload.productFeatureApplTypeId)
+        }
+      } else {
+        family.selectableFeatures = family.selectableFeatures.filter((appl) => appl.productFeatureId !== payload.productFeatureId)
+      }
+    },
     addRelationship(payload: {
       typeId: string
       related: ProductSummary
@@ -176,8 +342,7 @@ export const useProductsStore = defineStore("products", {
         sequenceNum: String(nextSequence),
         fromDate: today,
         thruDate: "",
-        active: true,
-        mirrored: false
+        active: true
       }
 
       this.detail.relationships = [...this.detail.relationships, relationship]
@@ -248,6 +413,8 @@ export const useProductsStore = defineStore("products", {
         productTypeId: this.productTypeFilter,
         productKind: this.productKindFilter,
         productStoreId: this.productStoreIdFilter,
+        tags: this.tagFilter,
+        sort: this.sortFilter,
         pageSize: this.pageSize,
         pageIndex: this.searchPageIndex
       }
