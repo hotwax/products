@@ -178,7 +178,7 @@ const coverageTiles = computed(() => suggestions
     const missing = missingCounts.value[suggestion.field] ?? 0
     const eligibleTotal = totalByField.value[suggestion.field] ?? catalogTotal.value
     const pctComplete = eligibleTotal
-      ? Math.round(((eligibleTotal - missing) / eligibleTotal) * 100)
+      ? Math.floor(((eligibleTotal - missing) / eligibleTotal) * 100)
       : 100
 
     return { ...suggestion, missing, eligibleTotal, pctComplete }

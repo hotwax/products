@@ -1279,7 +1279,9 @@ export async function getMissingFieldCounts(fields: string[]): Promise<{ total: 
   const facet: Record<string, unknown> = {}
   safeFields.forEach((field) => {
     facet[field] = { type: "query", q: missingFieldQuery(field) }
-    facet[`${field}Total`] = { type: "query", q: missingFieldEligibilityQuery(field) }
+    if(missingFieldEligibilityFilters(field).length) {
+      facet[`${field}Total`] = { type: "query", q: missingFieldEligibilityQuery(field) }
+    }
   })
 
   try {
@@ -1298,7 +1300,9 @@ export async function getMissingFieldCounts(fields: string[]): Promise<{ total: 
     const totalByField: Record<string, number> = {}
     safeFields.forEach((field) => {
       missing[field] = Number(facets[field]?.count) || 0
-      totalByField[field] = Number(facets[`${field}Total`]?.count) || total
+      totalByField[field] = missingFieldEligibilityFilters(field).length
+        ? Number(facets[`${field}Total`]?.count) || 0
+        : total
     })
 
     return { total, totalByField, missing }
@@ -1341,7 +1345,7 @@ function canonicalMissingField(field: string): string {
 }
 
 function missingFieldEligibilityFilters(field: string): string[] {
-  return field === "upc" ? ["isVariant: true"] : []
+  return field === "upc" ? ["isVariant:true"] : []
 }
 
 function missingFieldEligibilityQuery(field: string): string {
@@ -1349,11 +1353,11 @@ function missingFieldEligibilityQuery(field: string): string {
 }
 
 function missingFieldQuery(field: string): string {
-  return [...missingFieldEligibilityFilters(field), `-${field}: *`].join(" AND ")
+  return [...missingFieldEligibilityFilters(field), `-${field}:*`].join(" AND ")
 }
 
 function missingFieldFilterStrings(field: string): string[] {
-  return [...missingFieldEligibilityFilters(field), `-${field}: *`]
+  return [...missingFieldEligibilityFilters(field), `-${field}:*`]
 }
 
 // Optimistic write: the OMS endpoint for updating a product identifier is not connected yet, so

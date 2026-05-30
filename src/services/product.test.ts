@@ -174,10 +174,9 @@ describe("missing field queries", () => {
         query: "*:*",
         filter: ["docType: PRODUCT"],
         facet: {
-          upc: { type: "query", q: "isVariant: true AND -upc: *" },
-          upcTotal: { type: "query", q: "isVariant: true" },
-          sku: { type: "query", q: "-sku: *" },
-          skuTotal: { type: "query", q: "*:*" }
+          upc: { type: "query", q: "isVariant:true AND -upc:*" },
+          upcTotal: { type: "query", q: "isVariant:true" },
+          sku: { type: "query", q: "-sku:*" }
         }
       }
     })
@@ -208,7 +207,7 @@ describe("missing field queries", () => {
       json: {
         params: { rows: 25, start: 0, "q.op": "AND" },
         query: "*:*",
-        filter: ["docType: PRODUCT", "isVariant: true", "-upc: *"]
+        filter: ["docType: PRODUCT", "isVariant:true", "-upc:*"]
       }
     })
     expect(result.total).toBe(1)
