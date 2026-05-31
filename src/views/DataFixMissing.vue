@@ -15,42 +15,31 @@
     </ion-header>
 
     <ion-content>
-      <ion-card class="coverage-card">
-        <ion-card-header>
-          <ion-card-subtitle>Catalog coverage</ion-card-subtitle>
-          <ion-card-title>{{ coverageTitle }}</ion-card-title>
-          <p class="hint">
-            Where your catalog has holes, worst first. Pick a gap to see the products and fix them.
-          </p>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="coverage-grid">
-            <ion-item
-              v-for="tile in coverageTiles"
-              :key="tile.field"
-              button
-              :detail="false"
-              lines="none"
-              :class="['coverage-tile', { 'coverage-tile--active': activeField === tile.field }]"
-              @click="runForField(tile.field)"
-            >
-              <ion-label>
-                <div class="coverage-tile__head">
-                  <span>{{ tile.label }}</span>
-                  <ion-badge :color="tile.missing ? 'danger' : 'success'">
-                    {{ tile.missing ? `${tile.missing.toLocaleString()} ${tile.scopeLabel} missing` : "Complete" }}
-                  </ion-badge>
-                </div>
-                <ion-progress-bar
-                  :value="tile.pctComplete / 100"
-                  :color="tile.missing ? 'primary' : 'success'"
-                />
-                <ion-note>{{ tile.pctComplete }}% of {{ tile.scopeLabel }} have a value</ion-note>
-              </ion-label>
-            </ion-item>
+    <div class="coverage">
+      <ion-item
+        v-for="tile in coverageTiles"
+        :key="tile.field"
+        button
+        :detail="false"
+        lines="none"
+        :class="['coverage-tile', { 'coverage-tile--active': activeField === tile.field }]"
+        @click="runForField(tile.field)"
+      >
+        <ion-label>
+          <div class="coverage-tile__head">
+            <span>{{ tile.label }}</span>
+            <ion-badge :color="tile.missing ? 'danger' : 'success'">
+              {{ tile.missing ? `${tile.missing.toLocaleString()} ${tile.scopeLabel} missing` : "Complete" }}
+            </ion-badge>
           </div>
-        </ion-card-content>
-      </ion-card>
+          <ion-progress-bar
+            :value="tile.pctComplete / 100"
+            :color="tile.missing ? 'primary' : 'success'"
+          />
+          <ion-note>{{ tile.pctComplete }}% of {{ tile.scopeLabel }} have a value</ion-note>
+        </ion-label>
+      </ion-item>
+    </div>
 
       <ion-card>
         <ion-card-content>
@@ -267,10 +256,11 @@ async function loadMore(event: CustomEvent) {
   margin: 8px 0 0;
 }
 
-.coverage-grid {
+.coverage {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  gap: var(--spacer-sm);
+  padding: var(--spacer-base);
 }
 
 .coverage-tile {
