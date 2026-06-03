@@ -7,9 +7,6 @@ import DataFixDuplicates from "@/views/DataFixDuplicates.vue"
 import DataFixMissing from "@/views/DataFixMissing.vue"
 import Imports from "@/views/Imports.vue"
 import ProductDetail from "@/views/ProductDetail.vue"
-import ProductFeatures from "@/views/ProductFeatures.vue"
-import ProductRelationships from "@/views/ProductRelationships.vue"
-import ProductSection from "@/views/ProductSection.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
 import { useUserStore } from "@/store/user"
@@ -68,29 +65,9 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: authGuard
   },
   {
-    path: "/products/:productId/identifiers",
-    redirect: (to) => `/products/${to.params.productId}`
-  },
-  {
-    path: "/products/:productId/relationships",
-    name: "ProductRelationships",
-    component: ProductRelationships,
-    props: true,
-    beforeEnter: authGuard
-  },
-  {
-    path: "/products/:productId/features",
-    name: "ProductFeatures",
-    component: ProductFeatures,
-    props: true,
-    beforeEnter: authGuard
-  },
-  {
+    // identifiers/relationships/features/sections all folded into the detail editor
     path: "/products/:productId/:section",
-    name: "ProductSection",
-    component: ProductSection,
-    props: true,
-    beforeEnter: authGuard
+    redirect: (to) => `/products/${to.params.productId}`
   },
   {
     path: "/imports",

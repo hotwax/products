@@ -21,13 +21,19 @@ export async function fetchDataDocument(
   return response.entityValueList ?? responseList(response)
 }
 
-/** Field-level audit trail (GoodIdentification.idValue carries enable-audit-log upstream). */
+/** Field-level audit trail. Upstream only GoodIdentification.idValue carries enable-audit-log,
+ *  so identifier changes (incl. dedup fixes) are the recorded history. */
 export async function fetchEntityAuditLogs(productId: string, pageSize = 50): Promise<Raw[]> {
   return responseList(
     await request({
       url: "admin/entityAuditLogs",
       method: "get",
-      params: { pkPrimaryValue: productId, pageSize, orderByField: "-changedDate" }
+      params: {
+        changedEntityName: "org.apache.ofbiz.product.product.GoodIdentification",
+        pkPrimaryValue: productId,
+        pageSize,
+        orderByField: "-changedDate"
+      }
     })
   )
 }
