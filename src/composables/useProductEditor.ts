@@ -1,4 +1,4 @@
-import { computed, type ComputedRef, type Ref } from "vue"
+import { type ComputedRef, type Ref, computed } from "vue"
 import { useQueryClient } from "@tanstack/vue-query"
 import { productCoreOptions } from "@/queries/productDetail"
 import { useUpdateProductFields } from "@/mutations/useProductMutations"
@@ -14,7 +14,8 @@ import type { ProductFieldsPatch } from "@/domain/types/pim"
 
 const toIndicator = (value: unknown): "Y" | "N" => (value ? "Y" : "N")
 const toDateField = (value: unknown): string => {
-  if (!value) return ""
+  if(!value) {return ""}
+
   return String(value).slice(0, 10) // ISO yyyy-mm-dd for ion-input[type=date]
 }
 
@@ -77,7 +78,7 @@ export function useProductEditor(editingProductId: Ref<string>, core: ComputedRe
     toPatch: (diff: Record<string, any>) => ProductFieldsPatch
   ) => {
     const diff = card.changes()
-    if (!Object.keys(diff).length) return
+    if(!Object.keys(diff).length) {return}
     try {
       await updateMutation.mutateAsync(toPatch(diff))
       toast.success(translate("Saved"))
@@ -90,9 +91,10 @@ export function useProductEditor(editingProductId: Ref<string>, core: ComputedRe
 
   const indicatorPatch = (diff: Record<string, any>): ProductFieldsPatch => {
     const patch: Record<string, any> = {}
-    for (const [key, value] of Object.entries(diff)) {
+    for(const [key, value] of Object.entries(diff)) {
       patch[key] = typeof value === "boolean" ? toIndicator(value) : value
     }
+
     return patch
   }
 
@@ -103,10 +105,10 @@ export function useProductEditor(editingProductId: Ref<string>, core: ComputedRe
 
   /** Copy parent's values into the given card's draft — populate, review, then Save. */
   const copyFromParent = async (card: "dates" | "shipping") => {
-    if (!parentProductId.value) return
+    if(!parentProductId.value) {return}
     const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
-    if (card === "dates") Object.assign(dates.draft, datesSlice(parent))
-    if (card === "shipping") {
+    if(card === "dates") {Object.assign(dates.draft, datesSlice(parent))}
+    if(card === "shipping") {
       const slice = shippingSlice(parent)
       Object.assign(shipping.draft, { ...slice })
     }

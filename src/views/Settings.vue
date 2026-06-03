@@ -90,29 +90,24 @@
             <ion-card-title>{{ translate("Product data") }}</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            {{ translate("Refresh the local product search index when product results look stale or empty.") }}
+            {{ translate("Rebuild the product search index when results look stale or empty.") }}
           </ion-card-content>
           <ion-item lines="full">
             <ion-label>
               <p>{{ translate("Indexed products") }}</p>
-              {{ productIndexCount }}
+              {{ indexStatus?.productCount ?? "—" }}
             </ion-label>
           </ion-item>
           <ion-item lines="none">
             <ion-label>
-              <p>{{ translate("Last refreshed") }}</p>
-              {{ productIndexSyncedAt }}
+              <p>{{ translate("Search index") }}</p>
+              {{ indexStatus ? (indexStatus.reachable ? `${indexStatus.core} · ${translate("reachable")}` : translate("unreachable")) : "—" }}
             </ion-label>
           </ion-item>
-          <ion-item v-if="productIndexError" lines="none">
-            <ion-label color="danger">
-              {{ productIndexError }}
-            </ion-label>
-          </ion-item>
-          <ion-button fill="outline" :disabled="productIndexLoading" @click="refreshProductData()">
-            <ion-spinner v-if="productIndexLoading" slot="start" name="crescent" />
+          <ion-button fill="outline" :disabled="reindexing" @click="refreshProductData()">
+            <ion-spinner v-if="reindexing" slot="start" name="crescent" />
             <ion-icon v-else slot="start" :icon="refreshOutline" />
-            {{ translate("Refetch product data") }}
+            {{ translate("Rebuild search index") }}
           </ion-button>
         </ion-card>
 
@@ -256,7 +251,10 @@ import { computed, onBeforeMount, ref } from "vue"
 import { commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
-import { useProductsStore } from "@/store/products"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query"
+import { fetchIndexStatus, reindexProducts } from "@/api/pim"
+import { qk } from "@/queries/keys"
+import { useToast } from "@/composables/useToast"
 import { useUserStore } from "@/store/user"
 
 const props = defineProps({
@@ -275,7 +273,24 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
-const productsStore = useProductsStore()
+const queryClient = useQueryClient()
+const toast = useToast()
+
+const indexStatusQuery = useQuery({ queryKey: qk.indexStatus, queryFn: fetchIndexStatus, staleTime: 30_000 })
+const indexStatus = computed(() => indexStatusQuery.data.value ?? null)
+const reindexMutation = useMutation({
+  mutationFn: () => reindexProducts(),
+  onSuccess: async ({ indexedCount }) => {
+    toast.success(`${indexedCount} ${translate("products indexed")}`)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: qk.indexStatus }),
+      queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" }),
+      queryClient.invalidateQueries({ queryKey: qk.quality.all, refetchType: "active" })
+    ])
+  },
+  onError: (error) => toast.error(error, translate("Could not rebuild the index"))
+})
+const reindexing = computed(() => reindexMutation.isPending.value)
 const userProfile = computed(() => userStore.getUserProfile)
 const currentProductStore = computed(() => userStore.getCurrentProductStore)
 const productStores = computed(() => userProfile.value?.stores || [])
@@ -289,10 +304,6 @@ const appVersion = computed(() => {
   return appInfo.tag || appInfo.version || "0.1.0"
 })
 const builtDateTime = computed(() => appInfo.builtTime ? DateTime.fromMillis(appInfo.builtTime).setZone(currentTimeZone.value).toLocaleString(DateTime.DATETIME_MED) : "")
-const productIndexCount = computed(() => productsStore.productIndexMetadata?.count ?? 0)
-const productIndexSyncedAt = computed(() => productsStore.productIndexMetadata?.syncedAt ? DateTime.fromISO(productsStore.productIndexMetadata.syncedAt).setZone(currentTimeZone.value).toLocaleString(DateTime.DATETIME_MED) : translate("Never"))
-const productIndexLoading = computed(() => productsStore.productIndexLoading)
-const productIndexError = computed(() => productsStore.productIndexError)
 const userInitials = computed(() => {
   const name = userProfile.value?.userFullName || userProfile.value?.partyId || userProfile.value?.userId || ""
 
@@ -311,7 +322,6 @@ const browserTimeZone = ref({
 
 onBeforeMount(async () => {
   isLoading.value = true
-  await productsStore.loadProductIndexMetadata()
   await userStore.fetchAvailableTimeZones()
   timeZoneId.value = currentTimeZone.value
 
@@ -324,7 +334,7 @@ onBeforeMount(async () => {
 })
 
 async function refreshProductData() {
-  await productsStore.refreshProductIndex()
+  await reindexMutation.mutateAsync()
 }
 
 function setCurrentProductStore(event: CustomEvent) {

@@ -12,7 +12,9 @@
     <ion-label>
       <h3>
         {{ association.relatedName || association.relatedProductId }}
-        <template v-if="quantityLabel"> {{ quantityLabel }}</template>
+        <template v-if="quantityLabel">
+          {{ quantityLabel }}
+        </template>
       </h3>
       <p>{{ association.relatedSku || association.relatedProductId }}</p>
       <ion-note
@@ -62,13 +64,13 @@ defineEmits<{
 }>()
 
 const quantityLabel = computed(() =>
-  props.showQuantity && props.association.quantity ? `× ${props.association.quantity}` : ""
-)
+  props.showQuantity && props.association.quantity ? `× ${props.association.quantity}` : "")
 
 const expiryLabel = computed(() => {
   const days = expiresInDays(props.association)
-  if (days === null) return ""
-  if (days === 0) return translate("Expired")
+  if(days === null) {return ""}
+  if(days === 0) {return translate("Expired")}
+
   return `${translate("expires in")} ${days} ${days === 1 ? translate("day") : translate("days")}`
 })
 </script>

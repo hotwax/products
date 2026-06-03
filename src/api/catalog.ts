@@ -18,34 +18,31 @@ export async function fetchDataDocument(
     customParametersMap
   }
   const response = await request<{ entityValueList?: Raw[] }>({ url: "oms/dataDocumentView", method: "post", data })
+
   return response.entityValueList ?? responseList(response)
 }
 
 /** Field-level audit trail. Upstream only GoodIdentification.idValue carries enable-audit-log,
  *  so identifier changes (incl. dedup fixes) are the recorded history. */
 export async function fetchEntityAuditLogs(productId: string, pageSize = 50): Promise<Raw[]> {
-  return responseList(
-    await request({
-      url: "admin/entityAuditLogs",
-      method: "get",
-      params: {
-        changedEntityName: "org.apache.ofbiz.product.product.GoodIdentification",
-        pkPrimaryValue: productId,
-        pageSize,
-        orderByField: "-changedDate"
-      }
-    })
-  )
+  return responseList(await request({
+    url: "admin/entityAuditLogs",
+    method: "get",
+    params: {
+      changedEntityName: "org.apache.ofbiz.product.product.GoodIdentification",
+      pkPrimaryValue: productId,
+      pageSize,
+      orderByField: "-changedDate"
+    }
+  }))
 }
 
 export async function fetchImportHistories(pageSize = 50): Promise<Raw[]> {
-  return responseList(
-    await request({
-      url: "oms/products/productUpdateHistories",
-      method: "get",
-      params: { pageSize, orderByField: "-lastUpdatedStamp" }
-    })
-  )
+  return responseList(await request({
+    url: "oms/products/productUpdateHistories",
+    method: "get",
+    params: { pageSize, orderByField: "-lastUpdatedStamp" }
+  }))
 }
 
 export async function fetchProductStores(): Promise<Raw[]> {

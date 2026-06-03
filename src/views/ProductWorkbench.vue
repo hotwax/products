@@ -166,8 +166,7 @@ const {
 const isTagModalOpen = ref(false)
 
 const resultsLabel = computed(() =>
-  total.value === 1 ? translate("1 result") : `${total.value} ${translate("results")}`
-)
+  total.value === 1 ? translate("1 result") : `${total.value} ${translate("results")}`)
 const errorText = computed(() => errorMessage(error.value, translate("Search is unavailable")))
 
 const onInfinite = (event: CustomEvent) => loadMore(() => (event.target as any)?.complete())

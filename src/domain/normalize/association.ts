@@ -18,6 +18,7 @@ export function normalizeAssociation(record: Raw, viewedProductId: string): Prod
   const relatedProductId = direction === "outgoing" ? productIdTo : productId
   const fromDate = isoDate(record.fromDate) ?? ""
   const thruDate = isoDate(record.thruDate)
+
   return {
     productId,
     productIdTo,
@@ -32,15 +33,11 @@ export function normalizeAssociation(record: Raw, viewedProductId: string): Prod
     instruction: textValue(record.instruction),
     reason: textValue(record.reason),
     relatedProductId,
-    relatedName: textValue(
-      direction === "outgoing"
-        ? record.toProductName ?? record.productToName ?? record.relatedProductName
-        : record.mainProductName ?? record.productName ?? record.relatedProductName
-    ),
+    relatedName: textValue(direction === "outgoing"
+      ? record.toProductName ?? record.productToName ?? record.relatedProductName
+      : record.mainProductName ?? record.productName ?? record.relatedProductName),
     relatedSku: textValue(direction === "outgoing" ? record.toSku ?? record.relatedSku : record.sku ?? record.relatedSku),
-    relatedImageUrl: textValue(
-      direction === "outgoing" ? record.toImageUrl ?? record.relatedImageUrl : record.imageUrl ?? record.relatedImageUrl
-    )
+    relatedImageUrl: textValue(direction === "outgoing" ? record.toImageUrl ?? record.relatedImageUrl : record.imageUrl ?? record.relatedImageUrl)
   }
 }
 
@@ -53,25 +50,27 @@ export function normalizeAssociations(records: Raw[], viewedProductId: string): 
 /** Split outgoing associations into the groups the detail page renders as cards. */
 export function groupAssociations(associations: ProductAssociation[]): AssociationGroups {
   const groups: AssociationGroups = { variants: [], components: [], substitutes: [], other: [] }
-  for (const assoc of associations) {
-    if (assoc.direction !== "outgoing") {
+  for(const assoc of associations) {
+    if(assoc.direction !== "outgoing") {
       groups.other.push(assoc)
-    } else if (assoc.productAssocTypeId === ASSOC_TYPE.variant) {
+    } else if(assoc.productAssocTypeId === ASSOC_TYPE.variant) {
       groups.variants.push(assoc)
-    } else if (assoc.productAssocTypeId === ASSOC_TYPE.component) {
+    } else if(assoc.productAssocTypeId === ASSOC_TYPE.component) {
       groups.components.push(assoc)
-    } else if (assoc.productAssocTypeId === ASSOC_TYPE.substitute) {
+    } else if(assoc.productAssocTypeId === ASSOC_TYPE.substitute) {
       groups.substitutes.push(assoc)
     } else {
       groups.other.push(assoc)
     }
   }
+
   return groups
 }
 
 /** "expires in N days" helper for scheduled-expiry badges. null = no thruDate, 0 = expired. */
 export function expiresInDays(assoc: ProductAssociation, now = Date.now()): number | null {
-  if (!assoc.thruDate) return null
+  if(!assoc.thruDate) {return null}
   const diff = new Date(assoc.thruDate).getTime() - now
+
   return diff <= 0 ? 0 : Math.ceil(diff / 86_400_000)
 }

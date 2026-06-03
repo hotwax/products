@@ -7,7 +7,9 @@
     <ion-card-content>
       <div class="tile-head">
         <span class="tile-label">{{ rule.label }}</span>
-        <ion-badge :color="badgeColor">{{ badgeText }}</ion-badge>
+        <ion-badge :color="badgeColor">
+          {{ badgeText }}
+        </ion-badge>
       </div>
       <ion-progress-bar
         :value="(coverage?.pctComplete ?? 0) / 100"
@@ -39,6 +41,7 @@ const badgeColor = computed(() => (missing.value === 0 ? "success" : "danger"))
 const badgeText = computed(() => (missing.value === 0 ? translate("Complete") : `${missing.value} ${translate("missing")}`))
 const captionText = computed(() => {
   const scopeLabel = props.rule.scope === "variants" ? translate("variants") : props.rule.scope === "virtuals" ? translate("virtuals") : translate("products")
+
   return `${props.coverage?.pctComplete ?? 0}% ${translate("complete")} · ${props.coverage?.eligibleTotal ?? 0} ${scopeLabel}`
 })
 </script>

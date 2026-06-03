@@ -11,7 +11,7 @@ export interface SolrResponse {
   grouped?: Record<string, unknown>
 }
 
-export async function runProductSolrQuery(json: SolrJsonQuery): Promise<SolrResponse> {
+export function runProductSolrQuery(json: SolrJsonQuery): Promise<SolrResponse> {
   return request<SolrResponse>({ url: "pim/runSolrQuery", method: "post", data: { json } })
 }
 

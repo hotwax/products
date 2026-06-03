@@ -8,6 +8,7 @@ import { qk } from "@/queries/keys"
  *  (pim reindexes the product server-side as part of the update). */
 export function useUpdateProductFields(productId: () => string) {
   const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (patch: ProductFieldsPatch) => updateProductFields(productId(), patch),
     onSuccess: async () => {

@@ -94,7 +94,7 @@
 <script setup lang="ts">
 import {
   IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonContent, IonHeader,
-  IonInfiniteScroll, IonInfiniteScrollContent, IonInput, IonItem, IonLabel, IonList, IonListHeader, IonMenuButton,
+  IonInfiniteScroll, IonInfiniteScrollContent, IonInput, IonLabel, IonList, IonListHeader, IonMenuButton,
   IonPage, IonProgressBar, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, ref } from "vue"
@@ -114,8 +114,9 @@ const {
 const lookupInput = ref("")
 
 const scopeLabel = computed(() => {
-  if (activeRule.value?.scope === "variants") return translate("variants")
-  if (activeRule.value?.scope === "virtuals") return translate("virtuals")
+  if(activeRule.value?.scope === "variants") {return translate("variants")}
+  if(activeRule.value?.scope === "virtuals") {return translate("virtuals")}
+
   return translate("products")
 })
 

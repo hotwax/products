@@ -31,17 +31,19 @@ export function productSort(sort: ProductSortOption): string {
 /** Filter strings for the current workbench scope (everything except the text query). */
 export function productScopeFilters(params: Partial<ProductSearchParams>): string[] {
   const filters = ["docType:PRODUCT"]
-  if (params.productTypeId && params.productTypeId !== "All") filters.push(`productTypeId:${escapeSolrValue(params.productTypeId)}`)
-  if (params.productKind === "Variants") filters.push("isVariant:true")
-  if (params.productKind === "Virtuals") filters.push("isVirtual:true")
-  if (params.productStoreId && params.productStoreId !== "All") filters.push(`productStoreIds:${escapeSolrValue(params.productStoreId)}`)
-  for (const tag of params.tags ?? []) filters.push(`tags:"${tag.replace(/"/g, '\\"')}"`)
+  if(params.productTypeId && params.productTypeId !== "All") {filters.push(`productTypeId:${escapeSolrValue(params.productTypeId)}`)}
+  if(params.productKind === "Variants") {filters.push("isVariant:true")}
+  if(params.productKind === "Virtuals") {filters.push("isVirtual:true")}
+  if(params.productStoreId && params.productStoreId !== "All") {filters.push(`productStoreIds:${escapeSolrValue(params.productStoreId)}`)}
+  for(const tag of params.tags ?? []) {filters.push(`tags:"${tag.replace(/"/g, "\\\"")}"`)}
+
   return filters
 }
 
 export function productSearchQueryText(queryString: string): string {
   const tokens = queryString.trim().split(/\s+/).filter(Boolean).map(escapeSolrValue)
-  if (!tokens.length) return "*:*"
+  if(!tokens.length) {return "*:*"}
+
   return `searchText:(${tokens.join(" ")})`
 }
 

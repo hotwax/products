@@ -7,6 +7,7 @@ export function normalizeIdentification(record: Raw, typeLabels: Map<string, str
   const typeId = textValue(record.goodIdentificationTypeId)
   const fromDate = isoDate(record.fromDate) ?? ""
   const thruDate = isoDate(record.thruDate)
+
   return {
     productId: textValue(record.productId),
     goodIdentificationTypeId: typeId,
@@ -27,11 +28,13 @@ export function normalizeIdentifications(records: Raw[], typeLabels?: Map<string
 /** Pick the active value for a type (SKU, UPCA, ...), preferring the earliest active row. */
 export function activeIdentificationValue(identifications: ProductIdentification[], typeId: string): string {
   const match = identifications.find((row) => row.active && row.goodIdentificationTypeId === typeId)
+
   return match?.idValue ?? ""
 }
 
 export function normalizeCatalogOption(record: Raw, idField: string, labelField = "description"): CatalogOption {
   const id = textValue(record[idField])
+
   return { id, label: textValue(record[labelField]) || id }
 }
 

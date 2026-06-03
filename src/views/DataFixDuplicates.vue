@@ -113,11 +113,9 @@ const openResolve = (group: DuplicateGroup) => {
 
 const saveResolution = async (changes: DuplicateDraft[]) => {
   const typeId = activeRule.value?.resolution?.goodIdentificationTypeId
-  if (!typeId || !changes.length) return
+  if(!typeId || !changes.length) {return}
   try {
-    await resolveMutation.mutateAsync(
-      changes.map((change) => ({ productId: change.productId, goodIdentificationTypeId: typeId, idValue: change.value.trim() }))
-    )
+    await resolveMutation.mutateAsync(changes.map((change) => ({ productId: change.productId, goodIdentificationTypeId: typeId, idValue: change.value.trim() })))
     resolveOpen.value = false
     toast.success(`${changes.length} ${changes.length === 1 ? translate("identifier updated") : translate("identifiers updated")}`)
   } catch (err) {

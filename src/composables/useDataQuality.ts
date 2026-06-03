@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from "vue"
+import { type Ref, computed, ref } from "vue"
 import { useInfiniteQuery, useQuery } from "@tanstack/vue-query"
 import { coverageOptions, duplicateGroupsOptions, missingProductsOptions } from "@/queries/quality"
 import { adHocRequiredRule, ruleById, rulesByKind } from "@/domain/quality/rules"
@@ -33,15 +33,15 @@ export function useMissingValues() {
 
   const coverageQuery = useQuery(coverageOptions(requiredRules))
 
-  const drillQuery = useInfiniteQuery(
-    computed(() => {
-      const rule = activeRule.value ?? requiredRules[0]
-      return { ...missingProductsOptions(rule), enabled: activeRule.value != null }
-    })
-  )
+  const drillQuery = useInfiniteQuery(computed(() => {
+    const rule = activeRule.value ?? requiredRules[0]
+
+    return { ...missingProductsOptions(rule), enabled: activeRule.value != null }
+  }))
 
   const coverageByRule = computed(() => {
     const map = new Map((coverageQuery.data.value ?? []).map((coverage) => [coverage.ruleId, coverage]))
+
     return requiredRules
       .map((rule) => ({ rule, coverage: map.get(rule.id) }))
       .sort((a, b) => (b.coverage?.missing ?? 0) - (a.coverage?.missing ?? 0))
@@ -53,7 +53,7 @@ export function useMissingValues() {
 
   const lookupField = (field: string) => {
     const cleaned = field.trim()
-    if (!cleaned) return
+    if(!cleaned) {return}
     activeRule.value = ruleById(cleaned) ?? adHocRequiredRule(cleaned)
   }
 
@@ -73,7 +73,7 @@ export function useMissingValues() {
     hasNextPage: drillQuery.hasNextPage,
     loadMore: async (done: () => void) => {
       try {
-        if (drillQuery.hasNextPage.value && !drillQuery.isFetchingNextPage.value) await drillQuery.fetchNextPage()
+        if(drillQuery.hasNextPage.value && !drillQuery.isFetchingNextPage.value) {await drillQuery.fetchNextPage()}
       } finally {
         done()
       }

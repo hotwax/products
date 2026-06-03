@@ -2,11 +2,10 @@ import { queryOptions } from "@tanstack/vue-query"
 import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductRecord } from "@/api/pim"
 import { fetchEntityAuditLogs } from "@/api/catalog"
 import { normalizeProductCore } from "@/domain/normalize/product"
-import { normalizeIdentifications } from "@/domain/normalize/identification"
+import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
 import { normalizeAuditEntry } from "@/domain/normalize/history"
-import { catalogOptionMap } from "@/domain/normalize/identification"
 import { qk } from "./keys"
 import { featureTypesOptions, identificationTypesOptions } from "./catalog"
 import { queryClient } from "@/app/queryClient"
@@ -30,6 +29,7 @@ export function identificationsOptions(productId: string) {
         fetchIdentifications(productId),
         queryClient.ensureQueryData(identificationTypesOptions())
       ])
+
       return normalizeIdentifications(rows, catalogOptionMap(types))
     }
   })
@@ -53,6 +53,7 @@ export function featureApplicationsOptions(productId: string) {
       ])
       const features = featureCatalogMap(catalog)
       const typeLabels = catalogOptionMap(types)
+
       return rows.map((row) => normalizeFeatureApplication(row, features, typeLabels))
     }
   })

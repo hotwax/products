@@ -9,89 +9,89 @@ import { request, responseList } from "./http"
 type Raw = Record<string, unknown>
 
 // ---------- product ----------
-export async function fetchProductRecord(productId: string): Promise<Raw> {
+export function fetchProductRecord(productId: string): Promise<Raw> {
   return request<Raw>({ url: `pim/products/${productId}`, method: "get" })
 }
 
-export async function updateProductFields(productId: string, patch: ProductFieldsPatch): Promise<void> {
-  await request({ url: `pim/products/${productId}`, method: "put", data: patch })
+export function updateProductFields(productId: string, patch: ProductFieldsPatch): Promise<unknown> {
+  return request({ url: `pim/products/${productId}`, method: "put", data: patch })
 }
 
 // ---------- identifications ----------
-export async function fetchIdentifications(productId: string): Promise<Raw[]> {
-  return responseList(await request({ url: `pim/products/${productId}/identifications`, method: "get", params: { pageSize: 200 } }))
+export function fetchIdentifications(productId: string): Promise<Raw[]> {
+  return request({ url: `pim/products/${productId}/identifications`, method: "get", params: { pageSize: 200 } }).then(responseList)
 }
 
-export async function createIdentification(productId: string, payload: IdentificationCreate): Promise<void> {
-  await request({ url: `pim/products/${productId}/identifications`, method: "post", data: payload })
+export function createIdentification(productId: string, payload: IdentificationCreate): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/identifications`, method: "post", data: payload })
 }
 
-export async function updateIdentification(productId: string, key: IdentificationKey, idValue: string): Promise<void> {
-  await request({ url: `pim/products/${productId}/identifications`, method: "put", data: { ...key, idValue } })
+export function updateIdentification(productId: string, key: IdentificationKey, idValue: string): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/identifications`, method: "put", data: { ...key, idValue } })
 }
 
-export async function expireIdentification(productId: string, key: IdentificationKey): Promise<void> {
-  await request({ url: `pim/products/${productId}/identifications/expire`, method: "post", data: key })
+export function expireIdentification(productId: string, key: IdentificationKey): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/identifications/expire`, method: "post", data: key })
 }
 
 // ---------- associations ----------
-export async function fetchAssociations(productId: string): Promise<Raw[]> {
-  return responseList(await request({ url: `pim/products/${productId}/associations`, method: "get", params: { pageSize: 500 } }))
+export function fetchAssociations(productId: string): Promise<Raw[]> {
+  return request({ url: `pim/products/${productId}/associations`, method: "get", params: { pageSize: 500 } }).then(responseList)
 }
 
-export async function createAssociation(productId: string, payload: AssociationCreate): Promise<void> {
-  await request({ url: `pim/products/${productId}/associations`, method: "post", data: payload })
+export function createAssociation(productId: string, payload: AssociationCreate): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/associations`, method: "post", data: payload })
 }
 
-export async function updateAssociation(productId: string, payload: AssociationUpdate): Promise<void> {
-  await request({ url: `pim/products/${productId}/associations`, method: "put", data: payload })
+export function updateAssociation(productId: string, payload: AssociationUpdate): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/associations`, method: "put", data: payload })
 }
 
-export async function expireAssociation(productId: string, key: AssociationKey, thruDate?: string): Promise<void> {
-  await request({ url: `pim/products/${productId}/associations/expire`, method: "post", data: { ...key, thruDate } })
+export function expireAssociation(productId: string, key: AssociationKey, thruDate?: string): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/associations/expire`, method: "post", data: { ...key, thruDate } })
 }
 
-export async function reactivateAssociation(productId: string, key: AssociationKey): Promise<void> {
-  await request({ url: `pim/products/${productId}/associations/reactivate`, method: "post", data: key })
+export function reactivateAssociation(productId: string, key: AssociationKey): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/associations/reactivate`, method: "post", data: key })
 }
 
-export async function resequenceAssociations(productId: string, items: (AssociationKey & { sequenceNum: number })[]): Promise<void> {
-  await request({ url: `pim/products/${productId}/associations/resequence`, method: "post", data: { items } })
+export function resequenceAssociations(productId: string, items: (AssociationKey & { sequenceNum: number })[]): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/associations/resequence`, method: "post", data: { items } })
 }
 
 // ---------- features ----------
-export async function fetchFeatureApplications(productId: string): Promise<Raw[]> {
-  return responseList(await request({ url: `pim/products/${productId}/features`, method: "get", params: { pageSize: 500 } }))
+export function fetchFeatureApplications(productId: string): Promise<Raw[]> {
+  return request({ url: `pim/products/${productId}/features`, method: "get", params: { pageSize: 500 } }).then(responseList)
 }
 
-export async function applyFeature(productId: string, payload: FeatureApply): Promise<void> {
-  await request({ url: `pim/products/${productId}/features`, method: "post", data: payload })
+export function applyFeature(productId: string, payload: FeatureApply): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/features`, method: "post", data: payload })
 }
 
-export async function removeFeatureApplication(productId: string, productFeatureId: string, fromDate: string): Promise<void> {
-  await request({ url: `pim/products/${productId}/features/remove`, method: "post", data: { productFeatureId, fromDate } })
+export function removeFeatureApplication(productId: string, productFeatureId: string, fromDate: string): Promise<unknown> {
+  return request({ url: `pim/products/${productId}/features/remove`, method: "post", data: { productFeatureId, fromDate } })
 }
 
-export async function createFeature(payload: FeatureCreate): Promise<{ productFeatureId: string }> {
+export function createFeature(payload: FeatureCreate): Promise<{ productFeatureId: string }> {
   return request({ url: "pim/features", method: "post", data: payload })
 }
 
 // ---------- reference catalogs ----------
-export async function fetchFeatureCatalog(): Promise<Raw[]> {
-  return responseList(await request({ url: "pim/features", method: "get", params: { pageSize: 500, orderByField: "description" } }))
+export function fetchFeatureCatalog(): Promise<Raw[]> {
+  return request({ url: "pim/features", method: "get", params: { pageSize: 500, orderByField: "description" } }).then(responseList)
 }
 
-export async function fetchCatalogList(resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "identificationTypes" | "boxTypes"): Promise<Raw[]> {
-  return responseList(await request({ url: `pim/${resource}`, method: "get", params: { pageSize: 200 } }))
+export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "identificationTypes" | "boxTypes"): Promise<Raw[]> {
+  return request({ url: `pim/${resource}`, method: "get", params: { pageSize: 200 } }).then(responseList)
 }
 
 // ---------- data quality ----------
-export async function resolveDuplicateIdentifiers(changes: DedupChange[]): Promise<{ updatedCount: number }> {
+export function resolveDuplicateIdentifiers(changes: DedupChange[]): Promise<{ updatedCount: number }> {
   return request({ url: "pim/dedup/resolveIdentifiers", method: "post", data: { changes } })
 }
 
 // ---------- index ----------
-export async function reindexProducts(productIds?: string[]): Promise<{ indexedCount: number }> {
+export function reindexProducts(productIds?: string[]): Promise<{ indexedCount: number }> {
   return request({ url: "pim/reindex", method: "post", data: productIds?.length ? { productIds } : {} })
 }
 
@@ -103,6 +103,6 @@ export interface PimIndexStatus {
   productCount: number | null
 }
 
-export async function fetchIndexStatus(): Promise<PimIndexStatus> {
+export function fetchIndexStatus(): Promise<PimIndexStatus> {
   return request({ url: "pim/indexStatus", method: "get" })
 }

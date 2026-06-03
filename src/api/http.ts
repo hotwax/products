@@ -16,12 +16,14 @@ export interface HttpRequest {
 
 export async function request<T = any>(config: HttpRequest): Promise<T> {
   const response = await api(config)
+
   return response.data as T
 }
 
 /** Server error → a single human message. Moqui REST errors arrive as {errorCode, errors}. */
 export function errorMessage(error: unknown, fallback = "Something went wrong"): string {
   const err = error as any
+
   return (
     err?.response?.data?.errors ||
     err?.response?.data?.errorMessage ||
@@ -33,11 +35,12 @@ export function errorMessage(error: unknown, fallback = "Something went wrong"):
 
 /** Moqui entity-list REST responses are either bare arrays or {listName: [...]}-style wrappers. */
 export function responseList(data: unknown): Record<string, unknown>[] {
-  if (Array.isArray(data)) return data as Record<string, unknown>[]
-  if (data && typeof data === "object") {
-    for (const value of Object.values(data)) {
-      if (Array.isArray(value)) return value as Record<string, unknown>[]
+  if(Array.isArray(data)) {return data as Record<string, unknown>[]}
+  if(data && typeof data === "object") {
+    for(const value of Object.values(data)) {
+      if(Array.isArray(value)) {return value as Record<string, unknown>[]}
     }
   }
+
   return []
 }

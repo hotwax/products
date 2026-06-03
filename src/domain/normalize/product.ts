@@ -58,13 +58,21 @@ export function normalizeProductCore(record: Raw): ProductCore {
     productHeight: numberValue(record.productHeight ?? record.shippingHeight),
     productWidth: numberValue(record.productWidth ?? record.shippingWidth),
     productDepth: numberValue(record.productDepth ?? record.shippingDepth),
-    imageUrl: textValue(
-      record.smallImageUrl ?? record.mediumImageUrl ?? record.largeImageUrl ?? record.detailImageUrl ?? record.originalImageUrl
-    ),
+    imageUrl: firstText(record.smallImageUrl, record.mediumImageUrl, record.largeImageUrl, record.detailImageUrl, record.originalImageUrl),
     createdDate: isoDate(record.createdDate),
     lastModifiedDate: isoDate(record.lastModifiedDate ?? record.lastUpdatedStamp),
     lastModifiedByUserLogin: textValue(record.lastModifiedByUserLogin)
   }
+}
+
+/** First non-empty text among candidates ("" must fall through, so ?? alone won't do). */
+function firstText(...candidates: unknown[]): string {
+  for(const candidate of candidates) {
+    const text = textValue(candidate)
+    if(text) {return text}
+  }
+
+  return ""
 }
 
 /** Display-name fallback chain used everywhere a product is shown. */

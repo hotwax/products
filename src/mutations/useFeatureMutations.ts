@@ -17,6 +17,7 @@ export function useFeatureMutations(productId: () => string) {
 
   const snapshot = async () => {
     await queryClient.cancelQueries({ queryKey: listKey() })
+
     return queryClient.getQueryData<ProductFeatureApplication[]>(listKey())
   }
 
@@ -40,6 +41,7 @@ export function useFeatureMutations(productId: () => string) {
           sequenceNum: payload.sequenceNum ?? null
         }
       ])
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -55,9 +57,8 @@ export function useFeatureMutations(productId: () => string) {
         rows.map((row) =>
           row.productFeatureId === productFeatureId && row.fromDate === fromDate
             ? { ...row, thruDate: new Date().toISOString(), active: false }
-            : row
-        )
-      )
+            : row))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -69,6 +70,7 @@ export function useFeatureMutations(productId: () => string) {
     mutationFn: async (payload: FeatureCreate & { productFeatureApplTypeId?: string }) => {
       const { productFeatureId } = await createFeature(payload)
       await applyFeature(productId(), { productFeatureId, productFeatureApplTypeId: payload.productFeatureApplTypeId })
+
       return productFeatureId
     },
     onSettled: () => {

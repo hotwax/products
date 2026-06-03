@@ -12,6 +12,7 @@ export function workbenchSearchOptions(params: ProductSearchParams) {
     queryKey: qk.products.search(params),
     queryFn: async ({ pageParam }): Promise<ProductSearchPage> => {
       const response = await runProductSolrQuery(workbenchSearchPayload(params, pageParam))
+
       return {
         products: solrDocs(response).map(normalizeProductSummary),
         total: solrTotal(response),
@@ -21,18 +22,22 @@ export function workbenchSearchOptions(params: ProductSearchParams) {
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) => {
       const loaded = pages.reduce((count, page) => count + page.products.length, 0)
+
       return loaded < lastPage.total ? pages.length : undefined
     }
   })
 }
 
 export function tagFacetsOptions(params: ProductSearchParams) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { tags: _tags, ...scope } = params
+
   return queryOptions({
     queryKey: qk.products.tagFacets(scope),
     queryFn: async (): Promise<TagFacet[]> => {
       const response = await runProductSolrQuery(tagFacetPayload(params))
       const buckets: any[] = response.facets?.tags?.buckets ?? []
+
       return buckets.map((bucket) => ({ value: String(bucket.val), count: Number(bucket.count) }))
     },
     staleTime: 5 * 60_000

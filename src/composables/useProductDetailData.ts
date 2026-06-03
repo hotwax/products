@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from "vue"
+import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
 import {
   associationsOptions, auditHistoryOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
@@ -20,12 +20,11 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
   const parentProductId = computed(() => {
     const core = routeCoreQuery.data.value
-    if (!core) return ""
-    if (core.isVirtual) return core.productId
-    if (!core.isVariant) return ""
-    const incoming = (routeAssociationsQuery.data.value ?? []).find(
-      (assoc) => assoc.direction === "incoming" && assoc.productAssocTypeId === ASSOC_TYPE.variant && assoc.active
-    )
+    if(!core) {return ""}
+    if(core.isVirtual) {return core.productId}
+    if(!core.isVariant) {return ""}
+    const incoming = (routeAssociationsQuery.data.value ?? []).find((assoc) => assoc.direction === "incoming" && assoc.productAssocTypeId === ASSOC_TYPE.variant && assoc.active)
+
     return incoming?.productId ?? ""
   })
 
@@ -34,12 +33,11 @@ export function useProductDetailData(routeProductId: Ref<string>) {
   watch(routeProductId, (next) => (editingProductId.value = next))
 
   const segment = computed<"parent" | "variant">(() =>
-    editingProductId.value === parentProductId.value && parentProductId.value ? "parent" : "variant"
-  )
+    editingProductId.value === parentProductId.value && parentProductId.value ? "parent" : "variant")
 
   const setSegment = (target: "parent" | "variant") => {
-    if (target === "parent" && parentProductId.value) editingProductId.value = parentProductId.value
-    if (target === "variant") editingProductId.value = routeProductId.value
+    if(target === "parent" && parentProductId.value) {editingProductId.value = parentProductId.value}
+    if(target === "variant") {editingProductId.value = routeProductId.value}
   }
 
   // per-slice queries bound to the product being edited

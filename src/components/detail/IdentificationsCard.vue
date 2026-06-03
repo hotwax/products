@@ -15,7 +15,9 @@
         <ion-label>
           <p>{{ translate("Product ID") }}</p>
         </ion-label>
-        <ion-note slot="end">{{ productId }}</ion-note>
+        <ion-note slot="end">
+          {{ productId }}
+        </ion-note>
       </ion-item>
 
       <template v-if="!editing">
@@ -26,10 +28,14 @@
           <ion-label>
             <p>{{ row.typeDescription }}</p>
           </ion-label>
-          <ion-note slot="end">{{ row.idValue }}</ion-note>
+          <ion-note slot="end">
+            {{ row.idValue }}
+          </ion-note>
         </ion-item>
         <ion-item v-if="!activeRows.length">
-          <ion-label color="medium">{{ translate("No identifications yet") }}</ion-label>
+          <ion-label color="medium">
+            {{ translate("No identifications yet") }}
+          </ion-label>
         </ion-item>
       </template>
 
@@ -120,18 +126,19 @@ const rowKey = (row: ProductIdentification) => `${row.goodIdentificationTypeId}|
 
 const availableTypes = computed(() => {
   const used = new Set(activeRows.value.map((row) => row.goodIdentificationTypeId))
+
   return props.identificationTypes.filter((option) => !used.has(option.id))
 })
 
 const commitValue = (row: ProductIdentification) => {
   const value = (drafts[rowKey(row)] ?? row.idValue).trim()
-  if (value && value !== row.idValue) {
+  if(value && value !== row.idValue) {
     emit("updateValue", { key: { goodIdentificationTypeId: row.goodIdentificationTypeId, fromDate: row.fromDate }, idValue: value })
   }
 }
 
 const addNew = () => {
-  if (!newTypeId.value || !newValue.value.trim()) return
+  if(!newTypeId.value || !newValue.value.trim()) {return}
   emit("add", { goodIdentificationTypeId: newTypeId.value, idValue: newValue.value.trim() })
   newTypeId.value = ""
   newValue.value = ""

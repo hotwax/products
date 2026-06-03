@@ -20,6 +20,7 @@ export function normalizeFeatureApplication(
   const featureTypeId = feature?.featureTypeId ?? ""
   const fromDate = isoDate(record.fromDate) ?? ""
   const thruDate = isoDate(record.thruDate)
+
   return {
     productId: textValue(record.productId),
     productFeatureId,
@@ -36,30 +37,32 @@ export function normalizeFeatureApplication(
 
 export function featureCatalogMap(records: Raw[]): Map<string, { description: string; featureTypeId: string }> {
   const map = new Map<string, { description: string; featureTypeId: string }>()
-  for (const record of records) {
+  for(const record of records) {
     map.set(textValue(record.productFeatureId), {
       description: textValue(record.description) || textValue(record.productFeatureId),
       featureTypeId: textValue(record.productFeatureTypeId)
     })
   }
+
   return map
 }
 
 /** Group active applications by feature type → the axes the Features section renders as chip rows. */
 export function buildFeatureAxes(applications: ProductFeatureApplication[]): FeatureAxis[] {
   const byType = new Map<string, FeatureAxis>()
-  for (const appl of applications) {
-    if (!appl.active) continue
+  for(const appl of applications) {
+    if(!appl.active) {continue}
     let axis = byType.get(appl.featureTypeId)
-    if (!axis) {
+    if(!axis) {
       axis = { featureTypeId: appl.featureTypeId, featureTypeDescription: appl.featureTypeDescription, applications: [] }
       byType.set(appl.featureTypeId, axis)
     }
     axis.applications.push(appl)
   }
-  for (const axis of byType.values()) {
+  for(const axis of byType.values()) {
     axis.applications.sort((a, b) => (a.sequenceNum ?? 0) - (b.sequenceNum ?? 0) || a.description.localeCompare(b.description))
   }
+
   return [...byType.values()].sort((a, b) => a.featureTypeDescription.localeCompare(b.featureTypeDescription))
 }
 
@@ -70,6 +73,7 @@ export function availableFeatureOptions(
   applied: ProductFeatureApplication[]
 ): CatalogOption[] {
   const appliedIds = new Set(applied.filter((appl) => appl.active).map((appl) => appl.productFeatureId))
+
   return catalog
     .filter((record) => textValue(record.productFeatureTypeId) === featureTypeId)
     .filter((record) => !appliedIds.has(textValue(record.productFeatureId)))

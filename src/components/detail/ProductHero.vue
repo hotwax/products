@@ -76,12 +76,14 @@ const props = defineProps<{
 
 const typeLabel = computed(() => {
   const typeId = props.core?.productTypeId ?? ""
+
   return props.productTypes.find((option) => option.id === typeId)?.label || typeId || "—"
 })
 
 const kindBadge = computed(() => {
-  if (props.core?.isVirtual) return translate("Virtual")
-  if (props.core?.isVariant) return translate("Variant")
+  if(props.core?.isVirtual) {return translate("Virtual")}
+  if(props.core?.isVariant) {return translate("Variant")}
+
   return ""
 })
 </script>

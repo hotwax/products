@@ -16,25 +16,27 @@ export const PRESELL_TAG = {
 
 export function getPresellState(product: { tags?: string[]; catalogCategoryTypeIds?: string[] }): PresellState {
   const categories = product.catalogCategoryTypeIds ?? []
-  if (categories.includes(PRESELL_CATEGORY.preorder)) return "preorder"
-  if (categories.includes(PRESELL_CATEGORY.backorder)) return "backorder"
+  if(categories.includes(PRESELL_CATEGORY.preorder)) {return "preorder"}
+  if(categories.includes(PRESELL_CATEGORY.backorder)) {return "backorder"}
 
   const tags = product.tags ?? []
-  if (tags.includes(PRESELL_TAG.preorder)) return "preorder"
-  if (tags.includes(PRESELL_TAG.backorder)) return "backorder"
+  if(tags.includes(PRESELL_TAG.preorder)) {return "preorder"}
+  if(tags.includes(PRESELL_TAG.backorder)) {return "backorder"}
 
   return null
 }
 
 export function presellLabel(state: PresellState): string {
-  if (state === "preorder") return "Pre-order"
-  if (state === "backorder") return "Back-order"
+  if(state === "preorder") {return "Pre-order"}
+  if(state === "backorder") {return "Back-order"}
+
   return ""
 }
 
 export function presellColor(state: PresellState): string {
-  if (state === "preorder") return "tertiary"
-  if (state === "backorder") return "warning"
+  if(state === "preorder") {return "tertiary"}
+  if(state === "backorder") {return "warning"}
+
   return "medium"
 }
 

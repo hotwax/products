@@ -157,11 +157,11 @@ import { useIdentificationMutations } from "@/mutations/useIdentificationMutatio
 import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
 import { useToast } from "@/composables/useToast"
-import { identificationTypesOptions, featureTypesOptions } from "@/queries/catalog"
+import { featureTypesOptions, identificationTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { ProductAssociation, ProductSummary, FeatureAxis, ProductFeatureApplication } from "@/domain/types/product"
+import type { FeatureAxis, ProductAssociation, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 
 const props = defineProps<{ productId: string }>()
@@ -193,7 +193,8 @@ const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 
 const parentLink = computed(() => {
-  if (!hasParent.value || !routeCore.value?.isVariant) return null
+  if(!hasParent.value || !routeCore.value?.isVariant) {return null}
+
   return { productId: parentProductId.value, name: translate("View parent product") }
 })
 
@@ -208,18 +209,16 @@ const onExpireIdentification = (key: IdentificationKey) =>
   identificationMutations.expire.mutateAsync(key).catch((error) => toast.error(error, translate("Could not expire identification")))
 
 // ---------- features ----------
-const appliedFeatureIds = computed(
-  () => new Set(editingFeatureAxes.value.flatMap((axis: FeatureAxis) => axis.applications.map((appl) => appl.productFeatureId)))
-)
+const appliedFeatureIds = computed(() => new Set(editingFeatureAxes.value.flatMap((axis: FeatureAxis) => axis.applications.map((appl) => appl.productFeatureId))))
 
 const onToggleFeature = (payload: { axis: FeatureAxis; application: ProductFeatureApplication; applied: boolean }) => {
   const editingParent = segment.value === "parent" || !hasParent.value
   const applType = editingParent ? FEATURE_APPL_TYPE.selectable : FEATURE_APPL_TYPE.standard
-  if (payload.applied) {
+  if(payload.applied) {
     const existing = editingFeatureAxes.value
       .flatMap((axis: FeatureAxis) => axis.applications)
       .find((appl: ProductFeatureApplication) => appl.productFeatureId === payload.application.productFeatureId)
-    if (!existing) return
+    if(!existing) {return}
     featureMutations.remove
       .mutateAsync({ productFeatureId: existing.productFeatureId, fromDate: existing.fromDate })
       .catch((error) => toast.error(error, translate("Could not remove feature")))
@@ -289,7 +288,7 @@ const onReactivateAssociation = (assoc: ProductAssociation) =>
 
 // ---------- unsaved-changes guard ----------
 onBeforeRouteLeave(async () => {
-  if (!editor.anyDirty.value) return true
+  if(!editor.anyDirty.value) {return true}
   const alert = await alertController.create({
     header: translate("Discard changes?"),
     message: translate("You have unsaved edits on this product."),
@@ -300,6 +299,7 @@ onBeforeRouteLeave(async () => {
   })
   await alert.present()
   const { role } = await alert.onDidDismiss()
+
   return role === "destructive"
 })
 </script>

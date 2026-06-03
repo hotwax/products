@@ -15,12 +15,13 @@ export function useAssociationMutations(productId: () => string) {
 
   const invalidate = (relatedProductId?: string) => {
     queryClient.invalidateQueries({ queryKey: listKey() })
-    if (relatedProductId) queryClient.invalidateQueries({ queryKey: qk.product.associations(relatedProductId) })
+    if(relatedProductId) {queryClient.invalidateQueries({ queryKey: qk.product.associations(relatedProductId) })}
     queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
   }
 
   const snapshot = async () => {
     await queryClient.cancelQueries({ queryKey: listKey() })
+
     return queryClient.getQueryData<ProductAssociation[]>(listKey())
   }
 
@@ -50,6 +51,7 @@ export function useAssociationMutations(productId: () => string) {
           relatedImageUrl: payload.relatedImageUrl ?? ""
         }
       ])
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -61,8 +63,8 @@ export function useAssociationMutations(productId: () => string) {
     onMutate: async (payload) => {
       const previous = await snapshot()
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) =>
-        rows.map((row) => (sameRow(row, payload) ? { ...row, ...payload } : row))
-      )
+        rows.map((row) => (sameRow(row, payload) ? { ...row, ...payload } : row)))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -77,9 +79,8 @@ export function useAssociationMutations(productId: () => string) {
       const effective = thruDate ?? new Date().toISOString()
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) =>
         rows.map((row) =>
-          sameRow(row, key) ? { ...row, thruDate: effective, active: new Date(effective).getTime() > Date.now() } : row
-        )
-      )
+          sameRow(row, key) ? { ...row, thruDate: effective, active: new Date(effective).getTime() > Date.now() } : row))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -91,8 +92,8 @@ export function useAssociationMutations(productId: () => string) {
     onMutate: async (key) => {
       const previous = await snapshot()
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) =>
-        rows.map((row) => (sameRow(row, key) ? { ...row, thruDate: null, active: true } : row))
-      )
+        rows.map((row) => (sameRow(row, key) ? { ...row, thruDate: null, active: true } : row)))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -106,9 +107,10 @@ export function useAssociationMutations(productId: () => string) {
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) =>
         rows.map((row) => {
           const item = items.find((entry) => sameRow(row, entry))
+
           return item ? { ...row, sequenceNum: item.sequenceNum } : row
-        })
-      )
+        }))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),

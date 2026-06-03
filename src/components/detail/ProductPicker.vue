@@ -7,7 +7,9 @@
       <ion-toolbar>
         <ion-title>{{ title }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="$emit('dismiss')">{{ translate("Close") }}</ion-button>
+          <ion-button @click="$emit('dismiss')">
+            {{ translate("Close") }}
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
       <ion-toolbar>
@@ -88,6 +90,7 @@ const pickerQuery = useQuery({
       sort: "productName asc",
       params: { "q.op": "AND" }
     })
+
     return solrDocs(response).map(normalizeProductSummary)
   },
   enabled: computed(() => props.isOpen),
@@ -96,6 +99,7 @@ const pickerQuery = useQuery({
 
 const candidates = computed(() => {
   const excluded = new Set(props.excludeProductIds)
+
   return (pickerQuery.data.value ?? []).filter((product) => !excluded.has(product.productId))
 })
 const isLoading = pickerQuery.isLoading

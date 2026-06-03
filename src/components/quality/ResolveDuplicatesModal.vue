@@ -7,7 +7,9 @@
       <ion-toolbar>
         <ion-title>{{ translate("Resolve") }} {{ rule?.label }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="$emit('dismiss')">{{ translate("Close") }}</ion-button>
+          <ion-button @click="$emit('dismiss')">
+            {{ translate("Close") }}
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -33,7 +35,11 @@
           </ion-thumbnail>
           <ion-label>
             <h2>{{ productLabel(draft.productId) }}</h2>
-            <p>{{ draft.productId }}<template v-if="createdLabel(draft.productId)"> · {{ createdLabel(draft.productId) }}</template></p>
+            <p>
+              {{ draft.productId }}<template v-if="createdLabel(draft.productId)">
+                · {{ createdLabel(draft.productId) }}
+              </template>
+            </p>
             <ion-input
               :value="draft.value"
               :label="rule?.label"
@@ -95,6 +101,7 @@ watch(
   (group) => {
     drafts.value = (group?.products ?? []).map((product) => {
       const original = props.rule?.solrField === "upc" ? product.upc : product.sku
+
       return { productId: product.productId, original, value: original }
     })
   },
@@ -107,10 +114,12 @@ const changedCount = computed(() => changedDrafts.value.length)
 const productById = (productId: string) => props.group?.products.find((product) => product.productId === productId)
 const productLabel = (productId: string) => {
   const product = productById(productId)
+
   return product ? productDisplayName(product) : productId
 }
 const createdLabel = (productId: string) => {
   const created = productById(productId)?.createdDate
+
   return created ? `${translate("created")} ${new Date(created).toLocaleDateString()}` : ""
 }
 

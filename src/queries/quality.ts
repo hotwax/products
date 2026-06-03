@@ -17,6 +17,7 @@ export function coverageOptions(rules: QualityRule[]) {
     queryKey: qk.quality.coverage(rules.map((rule) => rule.id)),
     queryFn: async (): Promise<RuleCoverage[]> => {
       const response = await runProductSolrQuery(coveragePayload(rules))
+
       return coverageFromFacets(rules, response.facets ?? {})
     },
     staleTime: 60_000
@@ -30,8 +31,9 @@ export function duplicateGroupsOptions(rule: QualityRule) {
     queryFn: async (): Promise<DuplicateGroup[]> => {
       const facetResponse = await runProductSolrQuery(duplicateValuesPayload(rule))
       const values = duplicateValuesFromFacets(facetResponse.facets ?? {}).map((bucket) => bucket.value)
-      if (!values.length) return []
+      if(!values.length) {return []}
       const docsResponse = await runProductSolrQuery(duplicateProductsPayload(rule, values))
+
       return groupDuplicateDocs(rule, solrDocs(docsResponse))
     }
   })
@@ -43,11 +45,13 @@ export function missingProductsOptions(rule: QualityRule) {
     queryKey: qk.quality.missing(rule.id),
     queryFn: async ({ pageParam }): Promise<ProductSearchPage> => {
       const response = await runProductSolrQuery(missingProductsPayload(rule, pageParam, MISSING_PAGE_SIZE))
+
       return { products: solrDocs(response).map(normalizeProductSummary), total: solrTotal(response), pageIndex: pageParam }
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage, pages) => {
       const loaded = pages.reduce((count, page) => count + page.products.length, 0)
+
       return loaded < lastPage.total ? pages.length : undefined
     }
   })

@@ -21,7 +21,11 @@
 
     <ion-label>
       <h2>{{ displayName }}</h2>
-      <p>{{ product.sku || product.productId }}<template v-if="secondaryLine"> · {{ secondaryLine }}</template></p>
+      <p>
+        {{ product.sku || product.productId }}<template v-if="secondaryLine">
+          · {{ secondaryLine }}
+        </template>
+      </p>
       <div
         v-if="product.isVirtual || presellState || visibleTags.length"
         class="row-badges"
@@ -80,12 +84,12 @@ const displayName = computed(() => productDisplayName(props.product))
 const presellState = computed(() => getPresellState(props.product))
 const visibleTags = computed(() => displayableTags(props.product.tags).slice(0, props.maxTags))
 const secondaryLine = computed(() => {
-  if (props.product.isVariant && props.product.parentProductName) return props.product.parentProductName
+  if(props.product.isVariant && props.product.parentProductName) {return props.product.parentProductName}
+
   return props.product.brandName || props.product.productTypeId
 })
 const variantCountLabel = computed(() =>
-  props.product.variantCount === 1 ? translate("1 variant") : `${props.product.variantCount} ${translate("variants")}`
-)
+  props.product.variantCount === 1 ? translate("1 variant") : `${props.product.variantCount} ${translate("variants")}`)
 </script>
 
 <style scoped>

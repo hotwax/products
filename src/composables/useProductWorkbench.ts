@@ -21,13 +21,11 @@ export function useProductWorkbench() {
   const products = computed(() => searchQuery.data.value?.pages.flatMap((page) => page.products) ?? [])
   const total = computed(() => searchQuery.data.value?.pages[0]?.total ?? 0)
   const selectedSet = computed(() => new Set(selectedProductIds.value))
-  const allVisibleSelected = computed(
-    () => products.value.length > 0 && products.value.every((product) => selectedSet.value.has(product.productId))
-  )
+  const allVisibleSelected = computed(() => products.value.length > 0 && products.value.every((product) => selectedSet.value.has(product.productId)))
 
   const loadMore = async (done: () => void) => {
     try {
-      if (searchQuery.hasNextPage.value && !searchQuery.isFetchingNextPage.value) {
+      if(searchQuery.hasNextPage.value && !searchQuery.isFetchingNextPage.value) {
         await searchQuery.fetchNextPage()
       }
     } finally {
@@ -36,8 +34,7 @@ export function useProductWorkbench() {
   }
 
   const toggleSelectAll = () => {
-    if (allVisibleSelected.value) workbench.clearSelection()
-    else workbench.selectAll(products.value.map((product) => product.productId))
+    if(allVisibleSelected.value) {workbench.clearSelection()} else {workbench.selectAll(products.value.map((product) => product.productId))}
   }
 
   return {

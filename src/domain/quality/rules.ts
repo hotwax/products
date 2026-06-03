@@ -91,6 +91,7 @@ export function rulesByKind(kind: QualityRule["kind"]): QualityRule[] {
 /** "Look up another field" support: a transient rule flowing through the same engine/queries. */
 export function adHocRequiredRule(solrField: string): QualityRule {
   const field = solrField.trim().replace(/[^A-Za-z0-9_]/g, "")
+
   return {
     id: `adhoc:${field}`,
     label: field,

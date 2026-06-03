@@ -17,16 +17,18 @@ export function normalizeAuditEntry(record: Raw): ProductHistoryEntry {
   }
 }
 
-/** oms/products/productUpdateHistories row → ImportHistoryEntry (imports page). */
+/** oms/products/productUpdateHistories row → ImportHistoryEntry. ProductUpdateHistory is the
+ *  Shopify-sync state table keyed by (productId, shopId): hashes, price, assoc snapshot and the
+ *  system message that produced it. */
 export function normalizeImportEntry(record: Raw): ImportHistoryEntry {
   return {
-    id: textValue(record.productUpdateHistoryId ?? `${record.productId}-${record.createdDate}`),
+    id: `${textValue(record.productId)}@${textValue(record.shopId)}`,
     productId: textValue(record.productId),
     shopId: textValue(record.shopId),
     parentProductId: textValue(record.parentProductId),
     sku: textValue(record.sku ?? record.shopifyProductSku),
-    status: textValue(record.status ?? record.statusId) || "Recorded",
-    message: textValue(record.message ?? record.comments ?? record.description),
+    status: textValue(record.systemMessageId) ? "Synced" : "Recorded",
+    message: textValue(record.systemMessageId) ? `System message ${textValue(record.systemMessageId)}` : "",
     createdDate: isoDate(record.createdDate ?? record.lastUpdatedStamp) ?? ""
   }
 }

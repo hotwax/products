@@ -70,7 +70,9 @@
         <ion-toolbar>
           <ion-title>{{ translate("Add feature axis") }}</ion-title>
           <ion-buttons slot="end">
-            <ion-button @click="addAxisOpen = false">{{ translate("Close") }}</ion-button>
+            <ion-button @click="addAxisOpen = false">
+              {{ translate("Close") }}
+            </ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>
@@ -118,6 +120,7 @@ const isApplied = (productFeatureId: string) => props.appliedFeatureIds.has(prod
 
 const unusedFeatureTypes = computed(() => {
   const used = new Set(props.familyAxes.map((axis) => axis.featureTypeId))
+
   return props.featureTypes.filter((option) => !used.has(option.id))
 })
 
@@ -136,7 +139,7 @@ const addValueButtons = computed(() => [
     text: translate("Add"),
     handler: (data: { value?: string }) => {
       const description = data.value?.trim()
-      if (description && addValueAxis.value) {
+      if(description && addValueAxis.value) {
         emit("createValue", { featureTypeId: addValueAxis.value.id, description })
       }
     }

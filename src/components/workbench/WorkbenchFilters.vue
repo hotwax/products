@@ -11,7 +11,9 @@
       interface="popover"
       @ion-change="$emit('update:productTypeId', $event.detail.value)"
     >
-      <ion-select-option value="All">{{ translate("All types") }}</ion-select-option>
+      <ion-select-option value="All">
+        {{ translate("All types") }}
+      </ion-select-option>
       <ion-select-option
         v-for="option in productTypes"
         :key="option.id"
@@ -27,7 +29,9 @@
       interface="popover"
       @ion-change="$emit('update:productStoreId', $event.detail.value)"
     >
-      <ion-select-option value="All">{{ translate("All stores") }}</ion-select-option>
+      <ion-select-option value="All">
+        {{ translate("All stores") }}
+      </ion-select-option>
       <ion-select-option
         v-for="option in productStores"
         :key="option.id"
@@ -43,9 +47,15 @@
       interface="popover"
       @ion-change="$emit('update:productKind', $event.detail.value)"
     >
-      <ion-select-option value="All">{{ translate("All products") }}</ion-select-option>
-      <ion-select-option value="Virtuals">{{ translate("Virtuals") }}</ion-select-option>
-      <ion-select-option value="Variants">{{ translate("Variants") }}</ion-select-option>
+      <ion-select-option value="All">
+        {{ translate("All products") }}
+      </ion-select-option>
+      <ion-select-option value="Virtuals">
+        {{ translate("Virtuals") }}
+      </ion-select-option>
+      <ion-select-option value="Variants">
+        {{ translate("Variants") }}
+      </ion-select-option>
     </ion-select>
 
     <ion-select
@@ -54,9 +64,15 @@
       interface="popover"
       @ion-change="$emit('update:sort', $event.detail.value)"
     >
-      <ion-select-option value="Alphabet">{{ translate("Alphabetical") }}</ion-select-option>
-      <ion-select-option value="Updated">{{ translate("Recently updated") }}</ion-select-option>
-      <ion-select-option value="Created">{{ translate("Recently created") }}</ion-select-option>
+      <ion-select-option value="Alphabet">
+        {{ translate("Alphabetical") }}
+      </ion-select-option>
+      <ion-select-option value="Updated">
+        {{ translate("Recently updated") }}
+      </ion-select-option>
+      <ion-select-option value="Created">
+        {{ translate("Recently created") }}
+      </ion-select-option>
     </ion-select>
 
     <ion-button
@@ -98,6 +114,5 @@ defineEmits<{
 }>()
 
 const tagsLabel = computed(() =>
-  props.tags.length ? `${translate("Tags")} (${props.tags.length})` : translate("All tags")
-)
+  props.tags.length ? `${translate("Tags")} (${props.tags.length})` : translate("All tags"))
 </script>

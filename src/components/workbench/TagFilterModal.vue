@@ -7,7 +7,9 @@
       <ion-toolbar>
         <ion-title>{{ translate("Filter by tags") }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="$emit('dismiss')">{{ translate("Close") }}</ion-button>
+          <ion-button @click="$emit('dismiss')">
+            {{ translate("Close") }}
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>

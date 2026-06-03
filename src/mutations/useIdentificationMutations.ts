@@ -18,6 +18,7 @@ export function useIdentificationMutations(productId: () => string) {
 
   const snapshot = async () => {
     await queryClient.cancelQueries({ queryKey: listKey() })
+
     return queryClient.getQueryData<ProductIdentification[]>(listKey())
   }
 
@@ -37,6 +38,7 @@ export function useIdentificationMutations(productId: () => string) {
           active: true
         }
       ])
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -52,9 +54,8 @@ export function useIdentificationMutations(productId: () => string) {
         rows.map((row) =>
           row.goodIdentificationTypeId === key.goodIdentificationTypeId && row.fromDate === key.fromDate
             ? { ...row, idValue }
-            : row
-        )
-      )
+            : row))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
@@ -69,9 +70,8 @@ export function useIdentificationMutations(productId: () => string) {
         rows.map((row) =>
           row.goodIdentificationTypeId === key.goodIdentificationTypeId && row.fromDate === key.fromDate
             ? { ...row, thruDate: new Date().toISOString(), active: false }
-            : row
-        )
-      )
+            : row))
+
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),

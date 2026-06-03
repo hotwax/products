@@ -11,11 +11,15 @@
         <ion-label>
           <h3>{{ fieldLabel(entry) }}</h3>
           <p>
-            <template v-if="entry.oldValue">{{ entry.oldValue }} → </template>{{ entry.newValue || "—" }}
+            <template v-if="entry.oldValue">
+              {{ entry.oldValue }} →
+            </template>{{ entry.newValue || "—" }}
           </p>
         </ion-label>
         <ion-note slot="end">
-          {{ when(entry.changedDate) }}<template v-if="entry.changedByUserId"> · {{ entry.changedByUserId }}</template>
+          {{ when(entry.changedDate) }}<template v-if="entry.changedByUserId">
+            · {{ entry.changedByUserId }}
+          </template>
         </ion-note>
       </ion-item>
     </ion-list>
@@ -38,6 +42,7 @@ withDefaults(defineProps<{ entries: ProductHistoryEntry[]; limit?: number }>(), 
 
 const fieldLabel = (entry: ProductHistoryEntry) => {
   const entityName = entry.changedEntityName.split(".").pop() ?? entry.changedEntityName
+
   return entry.changedFieldName ? `${entityName}.${entry.changedFieldName}` : entityName
 }
 

@@ -8,6 +8,7 @@ import { qk } from "@/queries/keys"
  *  pim reindexes the affected products server-side, so a refetch sees fresh facets. */
 export function useResolveDuplicates() {
   const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (changes: DedupChange[]) => resolveDuplicateIdentifiers(changes),
     onSuccess: async () => {

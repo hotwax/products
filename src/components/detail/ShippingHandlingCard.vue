@@ -53,7 +53,9 @@
           label-placement="stacked"
           interface="popover"
         >
-          <ion-select-option value="">{{ translate("None") }}</ion-select-option>
+          <ion-select-option value="">
+            {{ translate("None") }}
+          </ion-select-option>
           <ion-select-option
             v-for="option in boxTypes"
             :key="option.id"
