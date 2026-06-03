@@ -16,6 +16,7 @@ catalog:
   "mitt": "3.0.1"
   "pinia": "3.0.4"
   "pinia-plugin-persistedstate": "4.7.1"
+  "@tanstack/vue-query": "5.101.0"
   "@capacitor/android": "8.2.0"
   "@capacitor/core": "8.2.0"
   "@capacitor/ios": "8.2.0"

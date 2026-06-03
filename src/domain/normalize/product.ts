@@ -1,0 +1,73 @@
+import type { ProductCore, ProductSummary } from "../types/product"
+import { flagValue, isoDate, numberValue, stringArray, textValue } from "./value"
+
+type Raw = Record<string, unknown>
+
+/** PIM Solr document → ProductSummary. The doc shape is owned by the pim component
+ *  (co.hotwax.pim.PimSearchServices), so this mapping is intentionally boring. */
+export function normalizeProductSummary(doc: Raw): ProductSummary {
+  return {
+    productId: textValue(doc.productId ?? doc.id),
+    productName: textValue(doc.productName),
+    internalName: textValue(doc.internalName),
+    brandName: textValue(doc.brandName),
+    productTypeId: textValue(doc.productTypeId),
+    isVirtual: flagValue(doc.isVirtual),
+    isVariant: flagValue(doc.isVariant),
+    parentProductId: textValue(doc.parentProductId),
+    parentProductName: textValue(doc.parentProductName),
+    sku: textValue(doc.sku),
+    upc: textValue(doc.upc),
+    tags: stringArray(doc.tags),
+    featureValues: stringArray(doc.featureValues),
+    primaryProductCategoryId: textValue(doc.primaryProductCategoryId),
+    primaryProductCategoryName: textValue(doc.primaryProductCategoryName),
+    productStoreIds: stringArray(doc.productStoreIds),
+    imageUrl: textValue(doc.mainImageUrl),
+    createdDate: isoDate(doc.createdDate) ?? "",
+    lastModifiedDate: isoDate(doc.lastModifiedDate) ?? "",
+    variantCount: numberValue(doc.variantCount) ?? 0
+  }
+}
+
+/** oms/products/{id} entity record → ProductCore (the editor's source of truth). */
+export function normalizeProductCore(record: Raw): ProductCore {
+  return {
+    productId: textValue(record.productId),
+    productTypeId: textValue(record.productTypeId),
+    productName: textValue(record.productName),
+    internalName: textValue(record.internalName),
+    brandName: textValue(record.brandName),
+    description: textValue(record.description),
+    longDescription: textValue(record.longDescription),
+    comments: textValue(record.comments),
+    primaryProductCategoryId: textValue(record.primaryProductCategoryId),
+    isVirtual: flagValue(record.isVirtual),
+    isVariant: flagValue(record.isVariant),
+    introductionDate: isoDate(record.introductionDate),
+    releaseDate: isoDate(record.releaseDate),
+    supportDiscontinuationDate: isoDate(record.supportDiscontinuationDate),
+    salesDiscontinuationDate: isoDate(record.salesDiscontinuationDate),
+    salesDiscWhenNotAvail: flagValue(record.salesDiscWhenNotAvail),
+    returnable: flagValue(record.returnable),
+    taxable: flagValue(record.taxable),
+    chargeShipping: flagValue(record.chargeShipping),
+    inShippingBox: flagValue(record.inShippingBox),
+    defaultShipmentBoxTypeId: textValue(record.defaultShipmentBoxTypeId),
+    productWeight: numberValue(record.productWeight ?? record.shippingWeight),
+    productHeight: numberValue(record.productHeight ?? record.shippingHeight),
+    productWidth: numberValue(record.productWidth ?? record.shippingWidth),
+    productDepth: numberValue(record.productDepth ?? record.shippingDepth),
+    imageUrl: textValue(
+      record.smallImageUrl ?? record.mediumImageUrl ?? record.largeImageUrl ?? record.detailImageUrl ?? record.originalImageUrl
+    ),
+    createdDate: isoDate(record.createdDate),
+    lastModifiedDate: isoDate(record.lastModifiedDate ?? record.lastUpdatedStamp),
+    lastModifiedByUserLogin: textValue(record.lastModifiedByUserLogin)
+  }
+}
+
+/** Display-name fallback chain used everywhere a product is shown. */
+export function productDisplayName(product: { productName?: string; internalName?: string; productId: string }): string {
+  return textValue(product.productName) || textValue(product.internalName) || product.productId
+}
