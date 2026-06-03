@@ -1,7 +1,7 @@
 <template>
   <ion-item
-    :router-link="routerLink"
-    :detail="!!routerLink"
+    :router-link="resolvedRouterLink"
+    :detail="!!resolvedRouterLink"
     lines="full"
   >
     <ion-checkbox
@@ -62,6 +62,7 @@
 import { IonBadge, IonCheckbox, IonChip, IonIcon, IonItem, IonLabel, IonThumbnail } from "@ionic/vue"
 import { gitBranchOutline } from "ionicons/icons"
 import { computed } from "vue"
+import { useRouter } from "vue-router"
 import { DxpShopifyImg, translate } from "@common"
 import { productDisplayName } from "@/domain/normalize/product"
 import { displayableTags, getPresellState, presellColor, presellLabel } from "@/domain/product/flags"
@@ -80,6 +81,13 @@ const props = withDefaults(
 
 defineEmits<{ (event: "toggleSelect"): void }>()
 
+const router = useRouter()
+const resolvedRouterLink = computed(() => {
+  if(!props.routerLink) {return undefined}
+  if(typeof props.routerLink === "string") {return props.routerLink}
+
+  return router.resolve(props.routerLink).href
+})
 const displayName = computed(() => productDisplayName(props.product))
 const presellState = computed(() => getPresellState(props.product))
 const visibleTags = computed(() => displayableTags(props.product.tags).slice(0, props.maxTags))
