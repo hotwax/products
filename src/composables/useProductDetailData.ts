@@ -2,12 +2,12 @@ import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
 import { useRoute, useRouter } from "vue-router"
 import {
-  associationsOptions, auditHistoryOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
+  associationsOptions, auditHistoryOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
 } from "@/queries/productDetail"
 import { boxTypesOptions, productTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE, groupAssociations } from "@/domain/normalize/association"
 import { buildFeatureAxes } from "@/domain/normalize/feature"
-import { familyVariants } from "@/domain/product/family"
+import { familyFeatureOptions, familyVariants, variantForSelection } from "@/domain/product/family"
 import { useToast } from "./useToast"
 import { translate } from "@common"
 
@@ -42,9 +42,17 @@ export function useProductDetailData(routeProductId: Ref<string>) {
     }
   })
 
-  // anchor-scoped queries (the anchor's association graph carries the variant strip)
-  const anchorAssociationsQuery = useQuery(computed(() => associationsOptions(anchorProductId.value)))
-  const variants = computed(() => familyVariants(anchorAssociationsQuery.data.value ?? []))
+  // one Solr query for the whole family → variant strip + feature selector + per-variant combos
+  const familyQuery = useQuery(computed(() => familyMembersOptions(anchorProductId.value)))
+  const familyMembers = computed(() => familyQuery.data.value ?? [])
+  const variants = computed(() => familyVariants(familyMembers.value))
+  const featureOptions = computed(() => familyFeatureOptions(familyMembers.value))
+  const hasFeatureSelection = computed(() => featureOptions.value.length > 0)
+  const selectedVariantSelection = computed(() => {
+    const match = variants.value.find((variant) => variant.productId === selectedVariantId.value)
+
+    return match?.selection ?? {}
+  })
 
   /** selected variant: ?variantId=, validated against the family (preorder-style fallback) */
   const queryVariantId = computed(() => {
@@ -83,6 +91,17 @@ export function useProductDetailData(routeProductId: Ref<string>) {
     // picking a sibling implies you want to work on it
     explicitSegment.value = "variant"
     router.replace({ path: `/products/${anchorProductId.value}`, query: { ...route.query, variantId: productId } })
+  }
+
+  /** pick a feature value (Color/Size chip) → jump to the variant carrying that combination */
+  const selectByFeature = (axis: string, value: string) => {
+    const desired = { ...selectedVariantSelection.value, [axis]: value }
+    const target = variantForSelection(variants.value, desired, axis)
+    if(target) {
+      selectVariant(target)
+    } else {
+      toast.info(translate("No variant available for that combination."))
+    }
   }
 
   /** EDIT PARENT | EDIT VARIANT. Until the user explicitly toggles, it follows the selection:
@@ -139,6 +158,10 @@ export function useProductDetailData(routeProductId: Ref<string>) {
     variants,
     selectedVariantId,
     selectVariant,
+    featureOptions,
+    hasFeatureSelection,
+    selectedVariantSelection,
+    selectByFeature,
 
     routeCore: computed(() => routeCoreQuery.data.value ?? null),
     anchorCore: computed(() => anchorCoreQuery.data.value ?? null),

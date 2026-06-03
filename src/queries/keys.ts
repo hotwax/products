@@ -13,6 +13,7 @@ export const qk = {
     core: (productId: string) => ["product", productId, "core"] as const,
     identifications: (productId: string) => ["product", productId, "identifications"] as const,
     associations: (productId: string) => ["product", productId, "associations"] as const,
+    family: (productId: string) => ["product", productId, "family"] as const,
     features: (productId: string) => ["product", productId, "features"] as const,
     audit: (productId: string) => ["product", productId, "audit"] as const
   },

@@ -40,19 +40,27 @@
           </template>
         </ProductHero>
 
+        <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
+             exists, else a thumbnail strip; a standalone product edits its own features -->
+        <FeatureSelector
+          v-if="hasFeatureSelection"
+          :options="featureOptions"
+          :selected="selectedVariantSelection"
+          @select="selectByFeature"
+        />
+        <VariantStrip
+          v-else-if="hasParent"
+          :variants="variants"
+          :selected-variant-id="selectedVariantId"
+          @select="selectVariant"
+        />
         <FeaturesSection
+          v-else
           :family-axes="familyFeatureAxes"
           :applied-feature-ids="appliedFeatureIds"
           :feature-types="featureTypes"
           @toggle="onToggleFeature"
           @create-value="onCreateFeatureValue"
-        />
-
-        <VariantStrip
-          v-if="hasParent"
-          :variants="variants"
-          :selected-variant-id="selectedVariantId"
-          @select="selectVariant"
         />
 
         <ion-segment
@@ -149,6 +157,7 @@ import { translate } from "@common"
 import ErrorState from "@/components/ErrorState.vue"
 import ProductHero from "@/components/detail/ProductHero.vue"
 import VariantStrip from "@/components/detail/VariantStrip.vue"
+import FeatureSelector from "@/components/detail/FeatureSelector.vue"
 import IdentificationsCard from "@/components/detail/IdentificationsCard.vue"
 import FeaturesSection from "@/components/detail/FeaturesSection.vue"
 import DisplayCard from "@/components/detail/DisplayCard.vue"
@@ -179,6 +188,7 @@ const detail = useProductDetailData(toRef(props, "productId"))
 const {
   editingProductId, parentProductId, segment, setSegment, hasParent,
   variants, selectedVariantId, selectVariant,
+  featureOptions, hasFeatureSelection, selectedVariantSelection, selectByFeature,
   anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,

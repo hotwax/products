@@ -1,7 +1,9 @@
 import { queryOptions } from "@tanstack/vue-query"
 import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductRecord } from "@/api/pim"
 import { fetchEntityAuditLogs } from "@/api/catalog"
-import { normalizeProductCore } from "@/domain/normalize/product"
+import { runProductSolrQuery, solrDocs } from "@/api/solr"
+import { escapeSolrValue } from "@/domain/solr/productQuery"
+import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
@@ -39,6 +41,26 @@ export function associationsOptions(productId: string) {
   return queryOptions({
     queryKey: qk.product.associations(productId),
     queryFn: async () => normalizeAssociations(await fetchAssociations(productId), productId)
+  })
+}
+
+/** All members of a variant family (one Solr query on parentProductId) — carries each variant's
+ *  name, sku, image and featureValues, so it feeds both the variant strip and the feature selector. */
+export function familyMembersOptions(parentProductId: string) {
+  return queryOptions({
+    queryKey: qk.product.family(parentProductId),
+    queryFn: async () => {
+      const response = await runProductSolrQuery({
+        query: "*:*",
+        filter: ["docType:PRODUCT", `parentProductId:${escapeSolrValue(parentProductId)}`],
+        limit: 250,
+        sort: "productName asc"
+      })
+
+      return solrDocs(response).map(normalizeProductSummary)
+    },
+    enabled: Boolean(parentProductId),
+    staleTime: 30_000
   })
 }
 
