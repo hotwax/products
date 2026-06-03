@@ -58,23 +58,6 @@
       </ion-select-option>
     </ion-select>
 
-    <ion-select
-      :value="sort"
-      :label="translate('Sort')"
-      interface="popover"
-      @ion-change="$emit('update:sort', $event.detail.value)"
-    >
-      <ion-select-option value="Alphabet">
-        {{ translate("Alphabetical") }}
-      </ion-select-option>
-      <ion-select-option value="Updated">
-        {{ translate("Recently updated") }}
-      </ion-select-option>
-      <ion-select-option value="Created">
-        {{ translate("Recently created") }}
-      </ion-select-option>
-    </ion-select>
-
     <ion-button
       fill="outline"
       size="small"
@@ -90,14 +73,13 @@ import { IonButton, IonSelect, IonSelectOption } from "@ionic/vue"
 import { computed } from "vue"
 import { translate } from "@common"
 import SearchFilterCard from "@/components/SearchFilterCard.vue"
-import type { CatalogOption, ProductKind, ProductSortOption } from "@/domain/types/product"
+import type { CatalogOption, ProductKind } from "@/domain/types/product"
 
 const props = defineProps<{
   queryString: string
   productTypeId: string
   productStoreId: string
   productKind: ProductKind
-  sort: ProductSortOption
   tags: string[]
   productTypes: CatalogOption[]
   productStores: CatalogOption[]
@@ -108,7 +90,6 @@ defineEmits<{
   (event: "update:productTypeId", value: string): void
   (event: "update:productStoreId", value: string): void
   (event: "update:productKind", value: ProductKind): void
-  (event: "update:sort", value: ProductSortOption): void
   (event: "openTags"): void
   (event: "clear"): void
 }>()
