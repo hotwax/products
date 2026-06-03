@@ -76,6 +76,10 @@ export interface ProductCore {
   productHeight: number | null
   productWidth: number | null
   productDepth: number | null
+  weightUomId: string
+  heightUomId: string
+  widthUomId: string
+  depthUomId: string
   imageUrl: string
   createdDate: string | null
   lastModifiedDate: string | null

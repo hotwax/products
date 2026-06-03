@@ -85,6 +85,11 @@ export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "fe
   return request({ url: `pim/${resource}`, method: "get", params: { pageSize: 200 } }).then(responseList)
 }
 
+/** Units of measure of a given type (UT_LENGTH_MEASURE, UT_WEIGHT_MEASURE). */
+export function fetchUoms(uomTypeEnumId: string): Promise<Raw[]> {
+  return request({ url: "pim/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)
+}
+
 // ---------- data quality ----------
 export function resolveDuplicateIdentifiers(changes: DedupChange[]): Promise<{ updatedCount: number }> {
   return request({ url: "pim/dedup/resolveIdentifiers", method: "post", data: { changes } })

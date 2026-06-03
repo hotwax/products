@@ -24,6 +24,10 @@ export interface ProductFieldsPatch {
   productHeight?: number | string
   productWidth?: number | string
   productDepth?: number | string
+  weightUomId?: string
+  heightUomId?: string
+  widthUomId?: string
+  depthUomId?: string
   smallImageUrl?: string
   /** attribute-backed toggles (no Product columns; pim maps to ProductAttribute) */
   requiresInspection?: "Y" | "N"

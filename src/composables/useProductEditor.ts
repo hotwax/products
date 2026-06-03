@@ -54,6 +54,10 @@ function shippingSlice(core: ProductCore) {
     productHeight: core.productHeight ?? ("" as number | ""),
     productDepth: core.productDepth ?? ("" as number | ""),
     productWeight: core.productWeight ?? ("" as number | ""),
+    widthUomId: core.widthUomId,
+    heightUomId: core.heightUomId,
+    depthUomId: core.depthUomId,
+    weightUomId: core.weightUomId,
     inShippingBox: core.inShippingBox,
     chargeShipping: core.chargeShipping,
     defaultShipmentBoxTypeId: core.defaultShipmentBoxTypeId

@@ -122,6 +122,8 @@
         <ShippingHandlingCard
           :draft="editor.shipping.draft"
           :box-types="boxTypes"
+          :length-uoms="lengthUoms"
+          :weight-uoms="weightUoms"
           :can-copy-from-parent="segment === 'variant' && hasParent"
           :dirty="editor.shipping.dirty.value"
           :saving="editor.saving.value"
@@ -174,7 +176,7 @@ import { useIdentificationMutations } from "@/mutations/useIdentificationMutatio
 import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
 import { useToast } from "@/composables/useToast"
-import { featureTypesOptions, identificationTypesOptions } from "@/queries/catalog"
+import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
@@ -206,8 +208,12 @@ const familyFeatureMutations = useFeatureMutations(() => featureFamilyId.value)
 
 const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
+const lengthUomsQuery = useQuery(lengthUomOptions())
+const weightUomsQuery = useQuery(weightUomOptions())
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
+const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
+const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 

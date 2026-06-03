@@ -1,10 +1,35 @@
 import { queryOptions } from "@tanstack/vue-query"
-import { fetchCatalogList } from "@/api/pim"
+import { fetchCatalogList, fetchUoms } from "@/api/pim"
 import { fetchImportHistories, fetchProductStores } from "@/api/catalog"
 import { normalizeCatalogOption } from "@/domain/normalize/identification"
 import { normalizeImportEntry } from "@/domain/normalize/history"
 import type { CatalogOption } from "@/domain/types/product"
 import { qk } from "./keys"
+
+/** Common units float to the top of the select; the rest stay available but out of the way. */
+const COMMON_UOMS = ["LEN_cm", "LEN_mm", "LEN_m", "LEN_in", "LEN_ft", "WT_g", "WT_kg", "WT_lb", "WT_oz"]
+function uomOptions(uomTypeEnumId: string) {
+  return queryOptions({
+    queryKey: qk.catalog.list(`uoms:${uomTypeEnumId}`),
+    queryFn: async (): Promise<CatalogOption[]> => {
+      const rows = (await fetchUoms(uomTypeEnumId)).map((row) => ({
+        id: String(row.uomId ?? ""),
+        label: String(row.abbreviation ?? row.uomId ?? "")
+      }))
+
+      return rows.sort((a, b) => {
+        const ra = COMMON_UOMS.indexOf(a.id); const rb = COMMON_UOMS.indexOf(b.id)
+        if(ra !== rb) {return (ra === -1 ? 99 : ra) - (rb === -1 ? 99 : rb)}
+
+        return a.label.localeCompare(b.label)
+      })
+    },
+    staleTime: Infinity
+  })
+}
+
+export const lengthUomOptions = () => uomOptions("UT_LENGTH_MEASURE")
+export const weightUomOptions = () => uomOptions("UT_WEIGHT_MEASURE")
 
 /** Reference data: effectively immutable per session → staleTime Infinity, explicit refresh only. */
 
