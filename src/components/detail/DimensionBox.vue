@@ -44,8 +44,12 @@ const props = withDefaults(
     widthUnit?: string
     heightUnit?: string
     depthUnit?: string
+    // per-axis factor to a common base (mm) so mixed units (e.g. in vs cm) scale truthfully
+    widthFactor?: number
+    heightFactor?: number
+    depthFactor?: number
   }>(),
-  { widthUnit: "", heightUnit: "", depthUnit: "" }
+  { widthUnit: "", heightUnit: "", depthUnit: "", widthFactor: 1, heightFactor: 1, depthFactor: 1 }
 )
 
 /** ion-input type="number" emits its value as a STRING through v-model, so coerce here — otherwise
@@ -59,14 +63,23 @@ const num = (value: number | "" | null) => {
 const dims = computed(() => ({ w: num(props.width), h: num(props.height), d: num(props.depth) }))
 const hasDims = computed(() => dims.value.w > 0 || dims.value.h > 0 || dims.value.d > 0)
 
-/** Scale real dims to screen px so the largest axis fills the room; a floor keeps a zero/blank
- *  axis readable as a thin slab rather than collapsing. */
+/** Real-world sizes in a common base unit — this is what the box proportions are built from, so
+ *  axes in different units (in vs cm) keep their true relative size. */
+const normalized = computed(() => ({
+  w: dims.value.w * props.widthFactor,
+  h: dims.value.h * props.heightFactor,
+  d: dims.value.d * props.depthFactor
+}))
+
+/** Scale normalized dims to screen px. Present axes scale PURELY proportionally so true ratios
+ *  hold (incl. across units — 10in renders 2.54× a 10cm side); a small minimum clamp keeps a
+ *  zero/blank or extremely thin axis visible as a sliver rather than collapsing. */
 const scaled = computed(() => {
-  const { w, h, d } = dims.value
+  const { w, h, d } = normalized.value
   const max = Math.max(w, h, d, 1)
-  const span = 84
-  const floor = 12
-  const to = (value: number) => (value > 0 ? floor + (value / max) * (span - floor) : floor)
+  const span = 88
+  const minPx = 6
+  const to = (value: number) => (value > 0 ? Math.max(minPx, (value / max) * span) : minPx)
 
   return { w: to(w), h: to(h), d: to(d) }
 })
@@ -95,10 +108,15 @@ const faces = computed(() => {
 const fmt = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(1))
 const caption = computed(() => {
   const { w, h, d } = dims.value
-  const unit = props.widthUnit || props.heightUnit || props.depthUnit
-  const dimsText = `${fmt(w)} × ${fmt(h)} × ${fmt(d)}`
+  const units = [props.widthUnit, props.heightUnit, props.depthUnit]
+  const shared = units[0] && units.every((unit) => unit === units[0])
+  if(shared) {
+    return `${fmt(w)} × ${fmt(h)} × ${fmt(d)} ${units[0]}`
+  }
+  // units differ (or some unset) → label each axis so the box reads truthfully
+  const withUnit = (value: number, unit: string) => `${fmt(value)}${unit ? ` ${unit}` : ""}`
 
-  return unit ? `${dimsText} ${unit}` : dimsText
+  return `${withUnit(w, props.widthUnit)} × ${withUnit(h, props.heightUnit)} × ${withUnit(d, props.depthUnit)}`
 })
 </script>
 
