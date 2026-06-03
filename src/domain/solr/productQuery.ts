@@ -45,7 +45,7 @@ export function productSearchQueryText(queryString: string): string {
   const tokens = queryString.trim().split(/\s+/).filter(Boolean).map(escapeSolrValue)
   if(!tokens.length) {return "*:*"}
 
-  return `searchText:(${tokens.join(" ")})`
+  return `*${tokens.join(" ")}*`
 }
 
 export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: number): SolrJsonQuery {
@@ -55,7 +55,11 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
     sort: productSort(params.sort),
     limit: params.pageSize,
     offset: pageIndex * params.pageSize,
-    params: { "q.op": "AND" }
+    params: {
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId parentProductName productName internalName sku"
+    }
   }
 }
 

@@ -95,5 +95,5 @@ defineEmits<{
 }>()
 
 const tagsLabel = computed(() =>
-  props.tags.length ? `${translate("Tags")} (${props.tags.length})` : translate("All tags"))
+  props.tags.length ? `${translate("Tags")} (${props.tags.length})` : translate("Apply tags"))
 </script>
