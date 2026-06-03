@@ -62,7 +62,7 @@
 import { IonBadge, IonCheckbox, IonChip, IonIcon, IonItem, IonLabel, IonThumbnail } from "@ionic/vue"
 import { gitBranchOutline } from "ionicons/icons"
 import { computed } from "vue"
-import { useRouter } from "vue-router"
+import router from "../../router"
 import { DxpShopifyImg, translate } from "@common"
 import { productDisplayName } from "@/domain/normalize/product"
 import { displayableTags, getPresellState, presellColor, presellLabel } from "@/domain/product/flags"
@@ -81,7 +81,6 @@ const props = withDefaults(
 
 defineEmits<{ (event: "toggleSelect"): void }>()
 
-const router = useRouter()
 const resolvedRouterLink = computed(() => {
   if(!props.routerLink) {return undefined}
   if(typeof props.routerLink === "string") {return props.routerLink}
