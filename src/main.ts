@@ -3,6 +3,7 @@ import { IonicVue } from "@ionic/vue"
 import { createPinia } from "pinia"
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate"
 import { createDxpI18n, initialiseConfig } from "@common"
+import { VueQueryPlugin, vueQueryOptions } from "./app/vueQuery"
 
 import "@ionic/vue/css/core.css"
 import "@ionic/vue/css/normalize.css"
@@ -33,6 +34,7 @@ const app = createApp(App)
   })
   .use(i18n)
   .use(pinia)
+  .use(VueQueryPlugin, vueQueryOptions)
   .use(router)
 
 initialiseConfig({
@@ -45,10 +47,11 @@ initialiseConfig({
   router
 })
 
-if(import.meta.env.DEV) {
-  import("./dev/autoLogin").then(({ tryDevAutoLogin }) => tryDevAutoLogin())
-}
+router.isReady().then(async () => {
+  if(import.meta.env.DEV) {
+    const { tryDevAutoLogin } = await import("./dev/autoLogin")
+    await tryDevAutoLogin()
+  }
 
-router.isReady().then(() => {
   app.mount("#app")
 })

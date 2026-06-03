@@ -31,8 +31,9 @@ export async function tryDevAutoLogin(): Promise<void> {
     }
     accxuiConfig.value.oms = oms
     accxuiConfig.value.current = userStore.current
-    if(accxuiConfig.value.router?.currentRoute?.value?.name === "Login") {
-      window.location.replace("/")
+    const router = accxuiConfig.value.router
+    if(router?.currentRoute?.value?.name === "Login" || router?.currentRoute?.value?.path === "/login") {
+      await router.replace("/")
     }
     logger.info("[dev] auto-login succeeded")
   } catch {

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "products",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--port", "8107"],
+      "port": 8107
+    }
+  ]
+}
