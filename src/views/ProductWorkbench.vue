@@ -101,6 +101,7 @@
             :key="product.productId"
             :product="product"
             :router-link="familyRouteFor(product)"
+            :variant-counts="groupIdFacets"
             selectable
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
@@ -157,7 +158,7 @@ import { useProductWorkbench } from "@/composables/useProductWorkbench"
 import { familyRouteFor } from "@/domain/product/family"
 
 const {
-  queryString, productTypeId, productKind, productStoreId, tags, sort,
+  queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
   clearFilters, toggleTag,
   products, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,

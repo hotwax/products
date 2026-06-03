@@ -1,8 +1,8 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/vue-query"
 import { runProductSolrQuery, solrDocs, solrTotal } from "@/api/solr"
 import { normalizeProductSummary } from "@/domain/normalize/product"
-import { tagFacetPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
-import type { ProductSearchPage, ProductSearchParams, TagFacet } from "@/domain/types/product"
+import { groupIdFacetPayload, tagFacetPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
+import type { GroupIdFacet, ProductSearchPage, ProductSearchParams, TagFacet } from "@/domain/types/product"
 import { qk } from "./keys"
 
 /** Workbench search: infinite query keyed on the full filter object — changing any filter is a new
@@ -39,6 +39,22 @@ export function tagFacetsOptions(params: ProductSearchParams) {
       const buckets: any[] = response.facets?.tags?.buckets ?? []
 
       return buckets.map((bucket) => ({ value: String(bucket.val), count: Number(bucket.count) }))
+    },
+    staleTime: 5 * 60_000
+  })
+}
+
+export function groupIdFacetsOptions(params: ProductSearchParams) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { groupIds: _groupIds, ...scope } = params
+
+  return queryOptions({
+    queryKey: qk.products.groupIdFacets(scope),
+    queryFn: async (): Promise<Record<string, number>> => {
+      const response = await runProductSolrQuery(groupIdFacetPayload(params))
+      const buckets: any[] = response.facets?.groupId?.buckets ?? []
+
+      return Object.fromEntries(buckets.map((bucket) => [String(bucket.val), Number(bucket.count)]))
     },
     staleTime: 5 * 60_000
   })
