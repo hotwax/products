@@ -72,7 +72,7 @@
           v-for="product in missingProducts"
           :key="product.productId"
           :product="product"
-          :router-link="`/products/${product.productId}`"
+          :router-link="familyRouteFor(product)"
         />
         <EmptyState
           v-if="!drillLoading && !missingProducts.length"
@@ -104,6 +104,7 @@ import EmptyState from "@/components/EmptyState.vue"
 import ErrorState from "@/components/ErrorState.vue"
 import ProductRow from "@/components/workbench/ProductRow.vue"
 import { useMissingValues } from "@/composables/useDataQuality"
+import { familyRouteFor } from "@/domain/product/family"
 
 const {
   coverageByRule, coverageLoading, coverageError, refetchCoverage,

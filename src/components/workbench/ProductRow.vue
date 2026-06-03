@@ -70,7 +70,7 @@ import type { ProductSummary } from "@/domain/types/product"
 const props = withDefaults(
   defineProps<{
     product: ProductSummary
-    routerLink?: string
+    routerLink?: string | import("vue-router").RouteLocationRaw
     selectable?: boolean
     selected?: boolean
     maxTags?: number

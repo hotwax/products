@@ -24,8 +24,8 @@
 
       <template v-else>
         <ProductHero
-          :core="core"
-          :parent-link="parentLink"
+          :core="anchorCore"
+          :family-anchor="hasParent"
           :product-types="productTypes"
         >
           <template #side>
@@ -46,6 +46,13 @@
           :feature-types="featureTypes"
           @toggle="onToggleFeature"
           @create-value="onCreateFeatureValue"
+        />
+
+        <VariantStrip
+          v-if="hasParent"
+          :variants="variants"
+          :selected-variant-id="selectedVariantId"
+          @select="selectVariant"
         />
 
         <ion-segment
@@ -141,6 +148,7 @@ import { useQuery } from "@tanstack/vue-query"
 import { translate } from "@common"
 import ErrorState from "@/components/ErrorState.vue"
 import ProductHero from "@/components/detail/ProductHero.vue"
+import VariantStrip from "@/components/detail/VariantStrip.vue"
 import IdentificationsCard from "@/components/detail/IdentificationsCard.vue"
 import FeaturesSection from "@/components/detail/FeaturesSection.vue"
 import DisplayCard from "@/components/detail/DisplayCard.vue"
@@ -170,7 +178,8 @@ const toast = useToast()
 const detail = useProductDetailData(toRef(props, "productId"))
 const {
   editingProductId, parentProductId, segment, setSegment, hasParent,
-  routeCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
+  variants, selectedVariantId, selectVariant,
+  anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
   audit, productTypes, boxTypes
@@ -191,12 +200,6 @@ const identificationTypes = computed(() => identificationTypesQuery.data.value ?
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
-
-const parentLink = computed(() => {
-  if(!hasParent.value || !routeCore.value?.isVariant) {return null}
-
-  return { productId: parentProductId.value, name: translate("View parent product") }
-})
 
 const isKit = computed(() => (core.value?.productTypeId ?? "").startsWith("MARKETING_PKG"))
 

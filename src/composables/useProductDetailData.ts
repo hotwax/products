@@ -1,54 +1,124 @@
 import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
+import { useRoute, useRouter } from "vue-router"
 import {
   associationsOptions, auditHistoryOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
 } from "@/queries/productDetail"
 import { boxTypesOptions, productTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE, groupAssociations } from "@/domain/normalize/association"
 import { buildFeatureAxes } from "@/domain/normalize/feature"
+import { familyVariants } from "@/domain/product/family"
+import { useToast } from "./useToast"
+import { translate } from "@common"
 
-/** Detail-page data facade. Resolves the product family (virtual parent ↔ variant) and runs the
- *  per-slice queries keyed on `editingProductId` — the EDIT PARENT | EDIT VARIANT segment is a key
- *  swap, so flipping it binds the form to the other cached record instantly instead of refetching
- *  the world. The feature family stays keyed on the parent (axes span the family). */
+/** Detail-page data facade, family-anchored (pattern from the preorder audit detail page):
+ *  the route product is treated as the FAMILY ANCHOR — landing on a variant id canonicalizes the
+ *  URL to the parent with ?variantId=, so the page always opens in family context with the variant
+ *  pre-selected and sibling-jumping is an instant cached key-swap. */
 export function useProductDetailData(routeProductId: Ref<string>) {
-  // the product the route landed on
-  const routeCoreQuery = useQuery(computed(() => productCoreOptions(routeProductId.value)))
+  const route = useRoute()
+  const router = useRouter()
+  const toast = useToast()
 
-  // association graph of the ROUTE product resolves the family
+  // the product the route landed on — may be a variant that needs canonicalizing to its parent
+  const routeCoreQuery = useQuery(computed(() => productCoreOptions(routeProductId.value)))
   const routeAssociationsQuery = useQuery(computed(() => associationsOptions(routeProductId.value)))
 
-  const parentProductId = computed(() => {
+  /** family anchor: the route product itself, or its parent when the route product is a variant */
+  const anchorProductId = computed(() => {
     const core = routeCoreQuery.data.value
-    if(!core) {return ""}
-    if(core.isVirtual) {return core.productId}
-    if(!core.isVariant) {return ""}
+    if(!core) {return routeProductId.value}
+    if(!core.isVariant) {return core.productId}
     const incoming = (routeAssociationsQuery.data.value ?? []).find((assoc) => assoc.direction === "incoming" && assoc.productAssocTypeId === ASSOC_TYPE.variant && assoc.active)
 
-    return incoming?.productId ?? ""
+    return incoming?.productId ?? core.productId
   })
 
-  /** which member of the family the editor is bound to */
-  const editingProductId = ref(routeProductId.value)
-  watch(routeProductId, (next) => (editingProductId.value = next))
+  // canonicalize: /products/<variantId> → /products/<parentId>?variantId=<variantId>
+  watch([anchorProductId, () => routeCoreQuery.data.value], ([anchor]) => {
+    const core = routeCoreQuery.data.value
+    if(core?.isVariant && anchor !== core.productId) {
+      router.replace({ path: `/products/${anchor}`, query: { ...route.query, variantId: core.productId } })
+    }
+  })
 
-  const segment = computed<"parent" | "variant">(() =>
-    editingProductId.value === parentProductId.value && parentProductId.value ? "parent" : "variant")
+  // anchor-scoped queries (the anchor's association graph carries the variant strip)
+  const anchorAssociationsQuery = useQuery(computed(() => associationsOptions(anchorProductId.value)))
+  const variants = computed(() => familyVariants(anchorAssociationsQuery.data.value ?? []))
 
-  const setSegment = (target: "parent" | "variant") => {
-    if(target === "parent" && parentProductId.value) {editingProductId.value = parentProductId.value}
-    if(target === "variant") {editingProductId.value = routeProductId.value}
+  /** selected variant: ?variantId=, validated against the family (preorder-style fallback) */
+  const queryVariantId = computed(() => {
+    const raw = route.query.variantId
+
+    return typeof raw === "string" && raw ? raw : ""
+  })
+
+  const selectedVariantId = ref("")
+  watch(
+    [queryVariantId, variants, anchorProductId],
+    ([wanted, list]) => {
+      if(!list.length) {
+        selectedVariantId.value = ""
+
+        return
+      }
+      if(wanted && list.some((variant) => variant.productId === wanted)) {
+        selectedVariantId.value = wanted
+
+        return
+      }
+      const fallback = list[0].productId
+      if(wanted && wanted !== fallback) {toast.info(translate("Selected variant not available. Showing the first variant."))}
+      selectedVariantId.value = fallback
+      if(route.query.variantId !== fallback && route.path === `/products/${anchorProductId.value}`) {
+        router.replace({ path: route.path, query: { ...route.query, variantId: fallback } })
+      }
+    },
+    { immediate: true }
+  )
+
+  const selectVariant = (productId: string) => {
+    if(!variants.value.some((variant) => variant.productId === productId)) {return}
+    selectedVariantId.value = productId
+    // picking a sibling implies you want to work on it
+    explicitSegment.value = "variant"
+    router.replace({ path: `/products/${anchorProductId.value}`, query: { ...route.query, variantId: productId } })
   }
 
-  // per-slice queries bound to the product being edited
+  /** EDIT PARENT | EDIT VARIANT. Until the user explicitly toggles, it follows the selection:
+   *  a pre-selected variant (search click, ?variantId, or landing on a variant id) edits the
+   *  variant; otherwise the parent. An explicit choice then sticks. */
+  const userChoseSegment = ref(false)
+  const explicitSegment = ref<"parent" | "variant">("parent")
+  const hasVariants = computed(() => variants.value.length > 0)
+
+  const segment = computed<"parent" | "variant">(() => {
+    if(!selectedVariantId.value) {return "parent"}
+    if(userChoseSegment.value) {return explicitSegment.value}
+
+    return "variant"
+  })
+  const setSegment = (target: "parent" | "variant") => {
+    if(target === "variant" && !selectedVariantId.value) {return}
+    userChoseSegment.value = true
+    explicitSegment.value = target
+  }
+
+  /** which family member the editor cards bind to */
+  const editingProductId = computed(() =>
+    segment.value === "variant" && selectedVariantId.value ? selectedVariantId.value : anchorProductId.value)
+
+  // family identity for the hero — always the anchor (parent), stable as you jump siblings
+  const anchorCoreQuery = useQuery(computed(() => productCoreOptions(anchorProductId.value)))
+
+  // per-slice queries bound to the product being edited (key swap on segment/variant change)
   const coreQuery = useQuery(computed(() => productCoreOptions(editingProductId.value)))
   const identificationsQuery = useQuery(computed(() => identificationsOptions(editingProductId.value)))
   const associationsQuery = useQuery(computed(() => associationsOptions(editingProductId.value)))
   const auditQuery = useQuery(computed(() => auditHistoryOptions(editingProductId.value)))
 
-  // features span the family → keyed on the parent when there is one
-  const featureFamilyId = computed(() => parentProductId.value || routeProductId.value)
-  const featureApplsQuery = useQuery(computed(() => featureApplicationsOptions(featureFamilyId.value)))
+  // features span the family → keyed on the anchor; the editing product's own appls drive the checks
+  const featureApplsQuery = useQuery(computed(() => featureApplicationsOptions(anchorProductId.value)))
   const editingFeatureApplsQuery = useQuery(computed(() => featureApplicationsOptions(editingProductId.value)))
 
   // reference data the cards need
@@ -59,13 +129,19 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
   return {
     routeProductId,
+    anchorProductId,
     editingProductId,
-    parentProductId,
+    parentProductId: anchorProductId, // for the editor's copy-from-parent
     segment,
     setSegment,
-    hasParent: computed(() => Boolean(parentProductId.value) && parentProductId.value !== routeProductId.value),
+    hasParent: hasVariants, // segment is shown whenever the family has members to jump between
+
+    variants,
+    selectedVariantId,
+    selectVariant,
 
     routeCore: computed(() => routeCoreQuery.data.value ?? null),
+    anchorCore: computed(() => anchorCoreQuery.data.value ?? null),
     core: computed(() => coreQuery.data.value ?? null),
     coreLoading: coreQuery.isLoading,
     coreError: coreQuery.isError,
@@ -81,7 +157,7 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
     familyFeatureAxes: computed(() => buildFeatureAxes(featureApplsQuery.data.value ?? [])),
     editingFeatureAxes: computed(() => buildFeatureAxes(editingFeatureApplsQuery.data.value ?? [])),
-    featureFamilyId,
+    featureFamilyId: anchorProductId,
 
     audit: computed(() => auditQuery.data.value ?? []),
     auditLoading: auditQuery.isLoading,

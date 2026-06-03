@@ -100,7 +100,7 @@
             v-for="product in products"
             :key="product.productId"
             :product="product"
-            :router-link="`/products/${product.productId}`"
+            :router-link="familyRouteFor(product)"
             selectable
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
@@ -154,6 +154,7 @@ import TagFilterModal from "@/components/workbench/TagFilterModal.vue"
 import WorkbenchFilters from "@/components/workbench/WorkbenchFilters.vue"
 import { errorMessage } from "@/api/http"
 import { useProductWorkbench } from "@/composables/useProductWorkbench"
+import { familyRouteFor } from "@/domain/product/family"
 
 const {
   queryString, productTypeId, productKind, productStoreId, tags, sort,

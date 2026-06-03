@@ -8,18 +8,12 @@
     </div>
 
     <div class="hero-main">
-      <ion-item
-        v-if="parentLink"
-        lines="none"
-        button
-        :router-link="`/products/${parentLink.productId}`"
-        class="parent-link"
+      <p
+        v-if="familyAnchor"
+        class="hero-overline"
       >
-        <ion-label>
-          <p>{{ translate("Parent product") }}</p>
-          <h2>{{ parentLink.name }}</h2>
-        </ion-label>
-      </ion-item>
+        {{ translate("Parent product") }} · {{ core?.productId }}
+      </p>
 
       <ion-list lines="full">
         <ion-item>
@@ -70,7 +64,7 @@ import type { CatalogOption, ProductCore } from "@/domain/types/product"
 
 const props = defineProps<{
   core: ProductCore | null
-  parentLink: { productId: string; name: string } | null
+  familyAnchor: boolean
   productTypes: CatalogOption[]
 }>()
 
@@ -105,8 +99,13 @@ const kindBadge = computed(() => {
   background: var(--ion-color-step-100, #f0f0f3);
 }
 
-.parent-link {
-  --padding-start: 0;
+.hero-overline {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
 }
 
 @media (max-width: 960px) {
