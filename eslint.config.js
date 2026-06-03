@@ -1,4 +1,4 @@
-import accxuiConfig from "../accxui/eslint.config.js"
+import accxuiConfig from "../../eslint.config.js"
 
 export default [
   ...accxuiConfig,

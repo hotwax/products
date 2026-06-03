@@ -19,7 +19,7 @@
     "@ionic/core": "catalog:",
     "@ionic/vue": "catalog:",
     "@ionic/vue-router": "catalog:",
-    "@tanstack/vue-query": "catalog:",
+    "@tanstack/vue-query": "5.100.12",
     "ionicons": "catalog:",
     "luxon": "catalog:",
     "mitt": "catalog:",
@@ -36,7 +36,7 @@
     "@vitejs/plugin-legacy": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "eslint": "catalog:",
-    "typescript": "~5.9.3",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:"
