@@ -39,13 +39,6 @@
             <p>{{ translate("Type") }}</p>
             <h2>{{ typeLabel }}</h2>
           </ion-label>
-          <ion-badge
-            v-if="kindBadge"
-            slot="end"
-            color="medium"
-          >
-            {{ kindBadge }}
-          </ion-badge>
         </ion-item>
       </ion-list>
     </div>
@@ -57,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonBadge, IonItem, IonLabel, IonList } from "@ionic/vue"
+import { IonItem, IonLabel, IonList } from "@ionic/vue"
 import { computed } from "vue"
 import { DxpShopifyImg, translate } from "@common"
 import type { CatalogOption, ProductCore } from "@/domain/types/product"
@@ -72,13 +65,6 @@ const typeLabel = computed(() => {
   const typeId = props.core?.productTypeId ?? ""
 
   return props.productTypes.find((option) => option.id === typeId)?.label || typeId || "—"
-})
-
-const kindBadge = computed(() => {
-  if(props.core?.isVirtual) {return translate("Virtual")}
-  if(props.core?.isVariant) {return translate("Variant")}
-
-  return ""
 })
 </script>
 

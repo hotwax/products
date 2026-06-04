@@ -52,7 +52,7 @@ export function familyMembersOptions(parentProductId: string) {
     queryFn: async () => {
       const response = await runProductSolrQuery({
         query: "*:*",
-        filter: ["docType:PRODUCT", `parentProductId:${escapeSolrValue(parentProductId)}`],
+        filter: ["docType:PRODUCT", `groupId:${escapeSolrValue(parentProductId)}`],
         limit: 250,
         sort: "productName asc"
       })

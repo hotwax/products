@@ -14,7 +14,7 @@ export function normalizeProductSummary(doc: Raw): ProductSummary {
     productTypeId: textValue(doc.productTypeId),
     isVirtual: flagValue(doc.isVirtual),
     isVariant: flagValue(doc.isVariant),
-    parentProductId: textValue(doc.parentProductId),
+    parentProductId: textValue(doc.groupId),
     parentProductName: textValue(doc.parentProductName),
     sku: textValue(doc.sku),
     upc: textValue(doc.upc),
