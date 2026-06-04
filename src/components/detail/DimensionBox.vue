@@ -1,55 +1,24 @@
 <template>
   <div class="dim-box">
-    <svg
-      v-if="hasAny"
-      :viewBox="`0 0 ${VIEW} ${VIEW}`"
-      class="dim-svg"
-      role="img"
-      :aria-label="ariaLabel"
-    >
-      <!-- back edges (dashed, behind) -->
-      <polyline
-        :points="backEdges"
-        class="edge edge-hidden"
-      />
-      <!-- three visible faces, painted back-to-front -->
-      <polygon
-        :points="faceLeft"
-        class="face face-left"
-      />
-      <polygon
-        :points="faceRight"
-        class="face face-right"
-      />
-      <polygon
-        :points="faceTop"
-        class="face face-top"
-      />
-      <polyline
-        :points="frontEdges"
-        class="edge"
-      />
-
-      <!-- dimension labels at edge midpoints -->
-      <text
-        v-if="width"
-        :x="widthLabel.x"
-        :y="widthLabel.y"
-        class="dim-label"
-      >{{ fmt(width) }} {{ widthUnit }}</text>
-      <text
-        v-if="depth"
-        :x="depthLabel.x"
-        :y="depthLabel.y"
-        class="dim-label"
-      >{{ fmt(depth) }} {{ depthUnit }}</text>
-      <text
-        v-if="height"
-        :x="heightLabel.x"
-        :y="heightLabel.y"
-        class="dim-label dim-label--v"
-      >{{ fmt(height) }} {{ heightUnit }}</text>
-    </svg>
+    <template v-if="hasDims">
+      <!-- CSS 3D cuboid: faces are sized/positioned from the entered dimensions and CSS-transition
+           on change, so the box reshapes smoothly and in real time (compositor-driven — no JS
+           animation loop, which the preview throttles anyway) -->
+      <div class="scene">
+        <div class="cuboid">
+          <div
+            v-for="face in faces"
+            :key="face.name"
+            class="face"
+            :class="`face-${face.name}`"
+            :style="face.style"
+          />
+        </div>
+      </div>
+      <p class="dim-caption">
+        {{ caption }}
+      </p>
+    </template>
 
     <div
       v-else
@@ -75,127 +44,131 @@ const props = withDefaults(
     widthUnit?: string
     heightUnit?: string
     depthUnit?: string
+    // per-axis factor to a common base (mm) so mixed units (e.g. in vs cm) scale truthfully
+    widthFactor?: number
+    heightFactor?: number
+    depthFactor?: number
   }>(),
-  { widthUnit: "", heightUnit: "", depthUnit: "" }
+  { widthUnit: "", heightUnit: "", depthUnit: "", widthFactor: 1, heightFactor: 1, depthFactor: 1 }
 )
 
-const VIEW = 240
-const COS = Math.cos(Math.PI / 6) // 30°
-const SIN = Math.sin(Math.PI / 6)
+/** ion-input type="number" emits its value as a STRING through v-model, so coerce here — otherwise
+ *  typed dimensions never reach the preview until a save round-trips them back as numbers. */
+const num = (value: number | "" | null) => {
+  const n = typeof value === "number" ? value : parseFloat(String(value ?? ""))
 
-const num = (value: number | "" | null) => (typeof value === "number" && value > 0 ? value : 0)
-const width = computed(() => num(props.width))
-const height = computed(() => num(props.height))
-const depth = computed(() => num(props.depth))
-const hasAny = computed(() => width.value > 0 || height.value > 0 || depth.value > 0)
-
-/** Scale real dims to screen units so the largest axis fills the available room; each axis keeps a
- *  small minimum so a zero/blank dimension still reads as a thin slab rather than vanishing. */
-const scaled = computed(() => {
-  const max = Math.max(width.value, height.value, depth.value, 1)
-  const span = 96
-  const floor = 14
-  const to = (value: number) => (value > 0 ? floor + (value / max) * (span - floor) : floor)
-
-  return { w: to(width.value), h: to(height.value), d: to(depth.value) }
-})
-
-/** project (i,j,k) in box space → screen point. width↘, depth↙, height↑ */
-const project = (i: number, j: number, k: number) => {
-  const { w, h, d } = scaled.value
-  const cx = VIEW / 2
-  const cy = VIEW / 2 + h / 2
-
-  return {
-    x: cx + i * w * COS - j * d * COS,
-    y: cy + i * w * SIN + j * d * SIN - k * h
-  }
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
-const pt = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`
-const mid = (a: { x: number; y: number }, b: { x: number; y: number }) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
 
-// 8 corners
-const c = computed(() => ({
-  o: project(0, 0, 0), x: project(1, 0, 0), z: project(0, 1, 0), xz: project(1, 1, 0),
-  oH: project(0, 0, 1), xH: project(1, 0, 1), zH: project(0, 1, 1), xzH: project(1, 1, 1)
+const dims = computed(() => ({ w: num(props.width), h: num(props.height), d: num(props.depth) }))
+const hasDims = computed(() => dims.value.w > 0 || dims.value.h > 0 || dims.value.d > 0)
+
+/** Real-world sizes in a common base unit — this is what the box proportions are built from, so
+ *  axes in different units (in vs cm) keep their true relative size. */
+const normalized = computed(() => ({
+  w: dims.value.w * props.widthFactor,
+  h: dims.value.h * props.heightFactor,
+  d: dims.value.d * props.depthFactor
 }))
 
-const faceTop = computed(() => [c.value.oH, c.value.xH, c.value.xzH, c.value.zH].map(pt).join(" "))
-const faceRight = computed(() => [c.value.x, c.value.xz, c.value.xzH, c.value.xH].map(pt).join(" "))
-const faceLeft = computed(() => [c.value.z, c.value.xz, c.value.xzH, c.value.zH].map(pt).join(" "))
-const frontEdges = computed(() =>
-  [c.value.x, c.value.o, c.value.z, c.value.zH, c.value.oH, c.value.xH, c.value.x, c.value.xz].map(pt).join(" "))
-const backEdges = computed(() => [c.value.o, c.value.oH].map(pt).join(" "))
+/** Scale normalized dims to screen px. Present axes scale PURELY proportionally so true ratios
+ *  hold (incl. across units — 10in renders 2.54× a 10cm side); a small minimum clamp keeps a
+ *  zero/blank or extremely thin axis visible as a sliver rather than collapsing. */
+const scaled = computed(() => {
+  const { w, h, d } = normalized.value
+  const max = Math.max(w, h, d, 1)
+  const span = 88
+  const minPx = 6
+  const to = (value: number) => (value > 0 ? Math.max(minPx, (value / max) * span) : minPx)
 
-const widthLabel = computed(() => {
-  const m = mid(c.value.o, c.value.x);
-
-  return { x: m.x + 6, y: m.y + 14 }
+  return { w: to(w), h: to(h), d: to(d) }
 })
-const depthLabel = computed(() => {
-  const m = mid(c.value.o, c.value.z);
 
-  return { x: m.x - 6, y: m.y + 14 }
-})
-const heightLabel = computed(() => {
-  const m = mid(c.value.x, c.value.xH);
+const px = (n: number) => `${n.toFixed(1)}px`
 
-  return { x: m.x + 8, y: m.y }
+/** Each face is centered on the cuboid origin (translate -50%,-50%) then rotated into place and
+ *  pushed out by half the perpendicular dimension. width/height/transform all CSS-transition. */
+const faces = computed(() => {
+  const { w, h, d } = scaled.value
+  const wh = { width: px(w), height: px(h) }
+  const dh = { width: px(d), height: px(h) }
+  const wd = { width: px(w), height: px(d) }
+  const base = "translate(-50%, -50%)"
+
+  return [
+    { name: "front", style: { ...wh, transform: `${base} translateZ(${px(d / 2)})` } },
+    { name: "back", style: { ...wh, transform: `${base} rotateY(180deg) translateZ(${px(d / 2)})` } },
+    { name: "right", style: { ...dh, transform: `${base} rotateY(90deg) translateZ(${px(w / 2)})` } },
+    { name: "left", style: { ...dh, transform: `${base} rotateY(-90deg) translateZ(${px(w / 2)})` } },
+    { name: "top", style: { ...wd, transform: `${base} rotateX(90deg) translateZ(${px(h / 2)})` } },
+    { name: "bottom", style: { ...wd, transform: `${base} rotateX(-90deg) translateZ(${px(h / 2)})` } }
+  ]
 })
 
 const fmt = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(1))
-const ariaLabel = computed(() =>
-  `${fmt(width.value)} ${props.widthUnit} wide, ${fmt(height.value)} ${props.heightUnit} high, ${fmt(depth.value)} ${props.depthUnit} deep`)
+const caption = computed(() => {
+  const { w, h, d } = dims.value
+  const units = [props.widthUnit, props.heightUnit, props.depthUnit]
+  const shared = units[0] && units.every((unit) => unit === units[0])
+  if(shared) {
+    return `${fmt(w)} × ${fmt(h)} × ${fmt(d)} ${units[0]}`
+  }
+  // units differ (or some unset) → label each axis so the box reads truthfully
+  const withUnit = (value: number, unit: string) => `${fmt(value)}${unit ? ` ${unit}` : ""}`
+
+  return `${withUnit(w, props.widthUnit)} × ${withUnit(h, props.heightUnit)} × ${withUnit(d, props.depthUnit)}`
+})
 </script>
 
 <style scoped>
 .dim-box {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   width: 100%;
   min-height: 220px;
 }
 
-.dim-svg {
-  width: 100%;
-  max-width: 320px;
+.scene {
+  width: 220px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 640px;
+  animation: dim-pop 0.28s ease both;
+}
+
+.cuboid {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(-24deg) rotateY(-36deg);
 }
 
 .face {
-  stroke: var(--ion-color-primary-shade, #3171e0);
-  stroke-width: 1;
-  stroke-linejoin: round;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 1px solid var(--ion-color-primary-shade, #3171e0);
+  /* the smooth morph: faces resize and reposition over 280ms when dimensions change */
+  transition: width 0.28s ease, height 0.28s ease, transform 0.28s ease;
 }
 
-.face-top { fill: var(--ion-color-primary-tint, #6a9bf4); }
-.face-right { fill: var(--ion-color-primary, #3880ff); }
-.face-left { fill: var(--ion-color-primary-shade, #3171e0); }
+.face-front,
+.face-back { background: var(--ion-color-primary, #3880ff); opacity: 0.92; }
+.face-right,
+.face-left { background: var(--ion-color-primary-shade, #3171e0); opacity: 0.92; }
+.face-top,
+.face-bottom { background: var(--ion-color-primary-tint, #6a9bf4); opacity: 0.92; }
 
-.edge {
-  fill: none;
-  stroke: var(--ion-color-primary-shade, #3171e0);
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.edge-hidden {
-  stroke: var(--ion-color-medium, #92949c);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-  opacity: 0.6;
-}
-
-.dim-label {
-  fill: var(--ion-text-color, #1b1b1b);
-  font-size: 11px;
+.dim-caption {
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
-  text-anchor: middle;
-  dominant-baseline: middle;
+  color: var(--ion-text-color, #1b1b1b);
 }
-
-.dim-label--v { text-anchor: start; }
 
 .dim-empty {
   display: flex;
@@ -215,5 +188,15 @@ const ariaLabel = computed(() =>
 .dim-empty p {
   margin: 0;
   font-size: 13px;
+}
+
+@keyframes dim-pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene { animation: none; }
+  .face { transition: none; }
 }
 </style>
