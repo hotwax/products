@@ -21,6 +21,7 @@
             type="number"
             :label="translate('Width')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
             placeholder="unit"
@@ -28,6 +29,7 @@
             :aria-label="translate('Width unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -47,6 +49,7 @@
             type="number"
             :label="translate('Height')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
             placeholder="unit"
@@ -54,6 +57,7 @@
             :aria-label="translate('Height unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -73,6 +77,7 @@
             type="number"
             :label="translate('Depth')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
             placeholder="unit"
@@ -80,6 +85,7 @@
             :aria-label="translate('Depth unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -99,6 +105,7 @@
             type="number"
             :label="translate('Weight')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
             placeholder="unit"
@@ -106,6 +113,7 @@
             :aria-label="translate('Weight unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in weightUoms"
@@ -132,6 +140,7 @@
           :label="translate('Default box type')"
           label-placement="stacked"
           interface="popover"
+          fill="outline"
         >
           <ion-select-option value="">
             {{ translate("None") }}

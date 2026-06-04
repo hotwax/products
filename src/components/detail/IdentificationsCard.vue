@@ -48,6 +48,7 @@
             :value="drafts[rowKey(row)] ?? row.idValue"
             :label="row.typeDescription"
             label-placement="stacked"
+            fill="outline"
             @ion-input="drafts[rowKey(row)] = $event.detail.value ?? ''"
             @ion-blur="commitValue(row)"
           />
@@ -68,6 +69,7 @@
             :label="translate('Add identification')"
             :placeholder="translate('Type')"
             interface="popover"
+            fill="outline"
           >
             <ion-select-option
               v-for="option in availableTypes"
@@ -80,6 +82,7 @@
           <ion-input
             v-model="newValue"
             :placeholder="translate('Value')"
+            fill="outline"
             @keyup.enter="addNew"
           />
           <ion-button
