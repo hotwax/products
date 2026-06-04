@@ -88,7 +88,11 @@ const pickerQuery = useQuery({
       filter: ["docType:PRODUCT"],
       limit: 25,
       sort: "productName asc",
-      params: { "q.op": "AND" }
+      params: {
+        "defType": "edismax",
+        "q.op": "OR",
+        "qf": "productId parentProductName productName internalName sku"
+      }
     })
 
     return solrDocs(response).map(normalizeProductSummary)
