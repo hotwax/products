@@ -91,7 +91,7 @@ const pickerQuery = useQuery({
       params: {
         "defType": "edismax",
         "q.op": "OR",
-        "qf": "productId parentProductName productName internalName sku"
+        "qf": "productId groupId parentProductName productName internalName sku"
       }
     })
 

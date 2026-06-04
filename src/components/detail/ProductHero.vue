@@ -15,29 +15,13 @@
         {{ translate("Parent product") }} · {{ core?.productId }}
       </p>
 
-      <ion-list lines="full">
+      <ion-list lines="none">
         <ion-item>
           <ion-label>
-            <p>{{ translate("Name") }}</p>
-            <h2>{{ core?.productName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item>
-          <ion-label>
-            <p>{{ translate("Internal name") }}</p>
-            <h2>{{ core?.internalName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item>
-          <ion-label>
-            <p>{{ translate("Brand name") }}</p>
-            <h2>{{ core?.brandName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item lines="none">
-          <ion-label>
-            <p>{{ translate("Type") }}</p>
-            <h2>{{ typeLabel }}</h2>
+            <h2><strong>{{ translate("Name") }}: </strong>{{ core?.productName || "—" }}</h2>
+            <h2><strong>{{ translate("Internal Name") }}: </strong>{{ core?.internalName || "—" }}</h2>
+            <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
+            <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
           </ion-label>
         </ion-item>
       </ion-list>
