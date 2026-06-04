@@ -187,6 +187,7 @@ export interface ImportHistoryEntry {
   status: string
   message: string
   createdDate: string
+  identifications: Array<{ goodIdentificationTypeId: string; idValue: string }>
 }
 
 export type PresellState = "preorder" | "backorder" | null

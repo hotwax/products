@@ -28,7 +28,7 @@ export function normalizeImportEntry(record: Raw): ImportHistoryEntry {
     parentProductId: textValue(record.parentProductId),
     sku: textValue(record.sku ?? record.shopifyProductSku),
     status: textValue(record.systemMessageId) ? "Synced" : "Recorded",
-    message: textValue(record.systemMessageId) ? `System message ${textValue(record.systemMessageId)}` : "",
+    message: textValue(record.systemMessageId) ? `System message: ${textValue(record.systemMessageId)}` : "",
     createdDate: isoDate(record.createdDate ?? record.lastUpdatedStamp) ?? ""
   }
 }

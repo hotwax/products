@@ -29,11 +29,11 @@
       <template v-else>
         <ion-list lines="none">
           <ion-list-header>
-            <ion-label>{{ translate("Recently synced product updates") }}</ion-label>
+            <ion-label>{{ translate("Last 100 recently synced product updates") }}</ion-label>
           </ion-list-header>
           <ion-searchbar
             v-model="query"
-            :placeholder="translate('Search by product, SKU, shop')"
+            :placeholder="translate('Search by product, SKU, barcode, shop')"
           />
         </ion-list>
 
@@ -41,8 +41,6 @@
           <ion-item
             v-for="entry in filteredEntries"
             :key="entry.id"
-            button
-            :router-link="`/products/${entry.productId}`"
           >
             <ion-label>
               <h3>{{ entry.productId }}</h3>
