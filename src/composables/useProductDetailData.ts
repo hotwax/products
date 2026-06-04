@@ -1,6 +1,6 @@
 import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
-import { useRoute, useRouter } from "vue-router"
+import router from "../router"
 import {
   associationsOptions, auditHistoryOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
 } from "@/queries/productDetail"
@@ -16,8 +16,7 @@ import { translate } from "@common"
  *  URL to the parent with ?variantId=, so the page always opens in family context with the variant
  *  pre-selected and sibling-jumping is an instant cached key-swap. */
 export function useProductDetailData(routeProductId: Ref<string>) {
-  const route = useRoute()
-  const router = useRouter()
+  const route = router.currentRoute.value
   const toast = useToast()
 
   // the product the route landed on — may be a variant that needs canonicalizing to its parent

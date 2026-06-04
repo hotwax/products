@@ -10,6 +10,7 @@ export interface ProductSearchParams {
   productKind: ProductKind
   productStoreId: string
   tags: string[]
+  groupIds: string[]
   sort: ProductSortOption
   pageSize: number
 }
@@ -45,6 +46,11 @@ export interface ProductSearchPage {
 }
 
 export interface TagFacet {
+  value: string
+  count: number
+}
+
+export interface GroupIdFacet {
   value: string
   count: number
 }

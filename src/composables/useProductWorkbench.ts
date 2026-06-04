@@ -1,7 +1,7 @@
 import { computed } from "vue"
 import { storeToRefs } from "pinia"
 import { useInfiniteQuery, useQuery } from "@tanstack/vue-query"
-import { tagFacetsOptions, workbenchSearchOptions } from "@/queries/products"
+import { groupIdFacetsOptions, tagFacetsOptions, workbenchSearchOptions } from "@/queries/products"
 import { productStoresOptions, productTypesOptions } from "@/queries/catalog"
 import { useWorkbenchStore } from "@/stores/workbench"
 
@@ -9,7 +9,7 @@ import { useWorkbenchStore } from "@/stores/workbench"
  *  and exposes exactly what the view renders. Views import THIS, never api/queries directly. */
 export function useProductWorkbench() {
   const workbench = useWorkbenchStore()
-  const { queryString, productTypeId, productKind, productStoreId, tags, sort, selectedProductIds } = storeToRefs(workbench)
+  const { queryString, productTypeId, productKind, productStoreId, tags, groupIds, sort, selectedProductIds } = storeToRefs(workbench)
 
   const searchParams = computed(() => workbench.searchParams)
 
@@ -17,6 +17,8 @@ export function useProductWorkbench() {
   const tagFacetsQuery = useQuery(computed(() => tagFacetsOptions(searchParams.value)))
   const productTypesQuery = useQuery(productTypesOptions())
   const productStoresQuery = useQuery(productStoresOptions())
+
+  const groupIdFacetsQuery = useQuery(computed(() => groupIdFacetsOptions(searchParams.value)))
 
   const products = computed(() => searchQuery.data.value?.pages.flatMap((page) => page.products) ?? [])
   const total = computed(() => searchQuery.data.value?.pages[0]?.total ?? 0)
@@ -39,9 +41,10 @@ export function useProductWorkbench() {
 
   return {
     // filter state (v-model targets)
-    queryString, productTypeId, productKind, productStoreId, tags, sort,
+    queryString, productTypeId, productKind, productStoreId, tags, groupIds, sort,
     clearFilters: () => workbench.clearFilters(),
     toggleTag: (tag: string) => workbench.toggleTag(tag),
+    toggleGroupId: (groupId: string) => workbench.toggleGroupId(groupId),
 
     // results
     products, total,
@@ -55,6 +58,7 @@ export function useProductWorkbench() {
 
     // facets + reference data
     tagFacets: computed(() => tagFacetsQuery.data.value ?? []),
+    groupIdFacets: computed(() => groupIdFacetsQuery.data.value ?? {}),
     productTypes: computed(() => productTypesQuery.data.value ?? []),
     productStores: computed(() => productStoresQuery.data.value ?? []),
 

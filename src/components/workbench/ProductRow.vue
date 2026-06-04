@@ -22,7 +22,8 @@
     <ion-label>
       <h2>{{ displayName }}</h2>
       <p>
-        {{ product.sku || product.productId }}<template v-if="secondaryLine">
+        {{ product.sku || product.productId }}
+        <template v-if="secondaryLine">
           · {{ secondaryLine }}
         </template>
       </p>
@@ -30,12 +31,6 @@
         v-if="product.isVirtual || presellState || visibleTags.length"
         class="row-badges"
       >
-        <ion-badge
-          v-if="presellState"
-          :color="presellColor(presellState)"
-        >
-          {{ presellLabel(presellState) }}
-        </ion-badge>
         <ion-chip
           v-if="product.isVirtual"
           outline
@@ -45,6 +40,12 @@
           <ion-label>{{ variantCountLabel }}</ion-label>
         </ion-chip>
         <ion-badge
+          v-if="presellState"
+          :color="presellColor(presellState)"
+        >
+          {{ presellLabel(presellState) }}
+        </ion-badge>
+        <ion-badge
           v-for="tag in visibleTags"
           :key="tag"
           color="light"
@@ -53,8 +54,6 @@
         </ion-badge>
       </div>
     </ion-label>
-
-    <slot name="end" />
   </ion-item>
 </template>
 
@@ -62,7 +61,7 @@
 import { IonBadge, IonCheckbox, IonChip, IonIcon, IonItem, IonLabel, IonThumbnail } from "@ionic/vue"
 import { gitBranchOutline } from "ionicons/icons"
 import { computed } from "vue"
-import { useRouter } from "vue-router"
+import router from "../../router"
 import { DxpShopifyImg, translate } from "@common"
 import { productDisplayName } from "@/domain/normalize/product"
 import { displayableTags, getPresellState, presellColor, presellLabel } from "@/domain/product/flags"
@@ -75,13 +74,13 @@ const props = withDefaults(
     selectable?: boolean
     selected?: boolean
     maxTags?: number
+    variantCounts?: Record<string, number>
   }>(),
-  { routerLink: undefined, selectable: false, selected: false, maxTags: 3 }
+  { routerLink: undefined, selectable: false, selected: false, maxTags: 3, variantCounts: () => ({}) }
 )
 
 defineEmits<{ (event: "toggleSelect"): void }>()
 
-const router = useRouter()
 const resolvedRouterLink = computed(() => {
   if(!props.routerLink) {return undefined}
   if(typeof props.routerLink === "string") {return props.routerLink}
@@ -96,8 +95,10 @@ const secondaryLine = computed(() => {
 
   return props.product.brandName || props.product.productTypeId
 })
-const variantCountLabel = computed(() =>
-  props.product.variantCount === 1 ? translate("1 variant") : `${props.product.variantCount} ${translate("variants")}`)
+const variantCountLabel = computed(() => {
+  const count = props.variantCounts[props.product.productId] ?? props.product.variantCount
+  return count === 1 ? translate("1 variant") : `${count} ${translate("variants")}`
+})
 </script>
 
 <style scoped>

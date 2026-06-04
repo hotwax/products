@@ -19,7 +19,6 @@
         v-model:product-type-id="productTypeId"
         v-model:product-store-id="productStoreId"
         v-model:product-kind="productKind"
-        v-model:sort="sort"
         :tags="tags"
         :product-types="productTypes"
         :product-stores="productStores"
@@ -67,6 +66,23 @@
           >
             {{ translate("Clear") }}
           </ion-button>
+          <ion-select
+            slot="end"
+            :value="sort"
+            interface="popover"
+            :label="translate('Sort')"
+            @ion-change="sort = $event.detail.value"
+          >
+            <ion-select-option value="Alphabet">
+              {{ translate("Alphabetical") }}
+            </ion-select-option>
+            <ion-select-option value="Updated">
+              {{ translate("Recently updated") }}
+            </ion-select-option>
+            <ion-select-option value="Created">
+              {{ translate("Recently created") }}
+            </ion-select-option>
+          </ion-select>
         </ion-item>
 
         <template v-if="isLoading">
@@ -101,6 +117,7 @@
             :key="product.productId"
             :product="product"
             :router-link="familyRouteFor(product)"
+            :variant-counts="groupIdFacets"
             selectable
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
@@ -141,8 +158,8 @@
 <script setup lang="ts">
 import {
   IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent,
-  IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSkeletonText, IonThumbnail,
-  IonTitle, IonToolbar
+  IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
+  IonSkeletonText, IonThumbnail, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { closeCircleOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
@@ -157,7 +174,7 @@ import { useProductWorkbench } from "@/composables/useProductWorkbench"
 import { familyRouteFor } from "@/domain/product/family"
 
 const {
-  queryString, productTypeId, productKind, productStoreId, tags, sort,
+  queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
   clearFilters, toggleTag,
   products, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,

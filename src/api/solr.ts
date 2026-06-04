@@ -12,7 +12,7 @@ export interface SolrResponse {
 }
 
 export function runProductSolrQuery(json: SolrJsonQuery): Promise<SolrResponse> {
-  return request<SolrResponse>({ url: "pim/runSolrQuery", method: "post", data: { json } })
+  return request<SolrResponse>({ url: "admin/runSolrQuery", method: "post", data: { json } })
 }
 
 export function solrDocs(response: SolrResponse): Record<string, unknown>[] {
