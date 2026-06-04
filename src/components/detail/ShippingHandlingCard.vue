@@ -142,6 +142,9 @@
           :width-unit="unitLabel(draft.widthUomId)"
           :height-unit="unitLabel(draft.heightUomId)"
           :depth-unit="unitLabel(draft.depthUomId)"
+          :width-factor="lengthUomToMm(draft.widthUomId)"
+          :height-factor="lengthUomToMm(draft.heightUomId)"
+          :depth-factor="lengthUomToMm(draft.depthUomId)"
         />
       </div>
     </div>
@@ -164,6 +167,7 @@ import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
 import DimensionBox from "./DimensionBox.vue"
+import { lengthUomToMm } from "@/domain/product/uom"
 import type { CatalogOption } from "@/domain/types/product"
 
 const props = defineProps<{
