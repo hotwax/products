@@ -5,23 +5,27 @@
         v-model="draft.productName"
         :label="translate('Name')"
         label-placement="stacked"
+        fill="outline"
       />
       <ion-input
         v-model="draft.internalName"
         :label="translate('Internal name')"
         label-placement="stacked"
         :helper-text="duplicateHint"
+        fill="outline"
       />
       <ion-input
         v-model="draft.brandName"
         :label="translate('Brand name')"
         label-placement="stacked"
+        fill="outline"
       />
       <ion-select
         v-model="draft.productTypeId"
         :label="translate('Type')"
         label-placement="stacked"
         interface="popover"
+        fill="outline"
       >
         <ion-select-option
           v-for="option in productTypes"
@@ -38,12 +42,14 @@
         :label="translate('Desc')"
         label-placement="stacked"
         auto-grow
+        fill="outline"
       />
       <ion-textarea
         v-model="draft.longDescription"
         :label="translate('Long desc')"
         label-placement="stacked"
         auto-grow
+        fill="outline"
       />
     </div>
 

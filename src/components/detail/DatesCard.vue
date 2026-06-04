@@ -17,24 +17,28 @@
         type="date"
         :label="translate('Introduction date')"
         label-placement="stacked"
+        fill="outline"
       />
       <ion-input
         v-model="draft.releaseDate"
         type="date"
         :label="translate('Release date')"
         label-placement="stacked"
+        fill="outline"
       />
       <ion-input
         v-model="draft.supportDiscontinuationDate"
         type="date"
         :label="translate('Support discontinuation date')"
         label-placement="stacked"
+        fill="outline"
       />
       <ion-input
         v-model="draft.salesDiscontinuationDate"
         type="date"
         :label="translate('Sales discontinuation')"
         label-placement="stacked"
+        fill="outline"
       />
     </div>
 

@@ -15,16 +15,21 @@
       <div class="shipping-fields">
         <div class="measure-row">
           <ion-input
+            min="0"
+            placeholder="00"
             v-model="draft.productWidth"
             type="number"
             :label="translate('Width')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
+            placeholder="unit"
             v-model="draft.widthUomId"
             :aria-label="translate('Width unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -38,16 +43,21 @@
 
         <div class="measure-row">
           <ion-input
+            min="0"
+            placeholder="00"
             v-model="draft.productHeight"
             type="number"
             :label="translate('Height')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
+            placeholder="unit"
             v-model="draft.heightUomId"
             :aria-label="translate('Height unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -61,16 +71,21 @@
 
         <div class="measure-row">
           <ion-input
+            min="0"
+            placeholder="00"
             v-model="draft.productDepth"
             type="number"
             :label="translate('Depth')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
+            placeholder="unit"
             v-model="draft.depthUomId"
             :aria-label="translate('Depth unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -84,16 +99,21 @@
 
         <div class="measure-row">
           <ion-input
+            min="0"
+            placeholder="00"
             v-model="draft.productWeight"
             type="number"
             :label="translate('Weight')"
             label-placement="stacked"
+            fill="outline"
           />
           <ion-select
+            placeholder="unit"
             v-model="draft.weightUomId"
             :aria-label="translate('Weight unit')"
             interface="popover"
             class="uom-select"
+            fill="outline"
           >
             <ion-select-option
               v-for="uom in weightUoms"
@@ -120,6 +140,7 @@
           :label="translate('Default box type')"
           label-placement="stacked"
           interface="popover"
+          fill="outline"
         >
           <ion-select-option value="">
             {{ translate("None") }}
@@ -221,7 +242,7 @@ const unitLabel = (uomId: string) => props.lengthUoms.find((uom) => uom.id === u
 
 .measure-row {
   display: grid;
-  grid-template-columns: 1fr 88px;
+  grid-template-columns: 1fr max-content;
   gap: 8px;
   align-items: end;
 }
