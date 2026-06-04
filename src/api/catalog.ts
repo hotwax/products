@@ -32,7 +32,7 @@ export async function fetchEntityAuditLogs(productId: string, pageSize = 50): Pr
   }))
 }
 
-export async function fetchImportHistories(pageSize = 50): Promise<Raw[]> {
+export async function fetchImportHistories(pageSize = 100): Promise<Raw[]> {
   return responseList(await request({
     url: "oms/products/productUpdateHistories",
     method: "get",
