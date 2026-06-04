@@ -22,11 +22,11 @@ export async function fetchDataDocument(
   return response.entityValueList ?? responseList(response)
 }
 
-/** Field-level audit trail (pim/products/{id}/history). Upstream only GoodIdentification.idValue
+/** Field-level audit trail (oms/products/{id}/history). Upstream only GoodIdentification.idValue
  *  carries enable-audit-log, so identifier changes (incl. dedup fixes) are the recorded history. */
 export async function fetchEntityAuditLogs(productId: string, pageSize = 50): Promise<Raw[]> {
   return responseList(await request({
-    url: `pim/products/${productId}/history`,
+    url: `oms/products/${productId}/history`,
     method: "get",
     params: { pageSize }
   }))
