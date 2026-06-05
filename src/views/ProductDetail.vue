@@ -14,7 +14,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content ref="contentRef">
       <ErrorState
         v-if="coreError"
         :title="translate('Product detail failed')"
@@ -27,6 +27,7 @@
           :core="anchorCore"
           :family-anchor="hasParent"
           :product-types="productTypes"
+          @edit="scrollToDisplay"
         >
           <template #side>
             <IdentificationsCard
@@ -43,19 +44,16 @@
         <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
              exists, else a thumbnail strip; a standalone product edits its own features -->
         <FeatureSelector
-          v-if="hasFeatureSelection"
           :options="featureOptions"
           :selected="selectedVariantSelection"
           @select="selectByFeature"
         />
         <VariantStrip
-          v-else-if="hasParent"
           :variants="variants"
           :selected-variant-id="selectedVariantId"
           @select="selectVariant"
         />
         <FeaturesSection
-          v-else
           :family-axes="familyFeatureAxes"
           :applied-feature-ids="appliedFeatureIds"
           :feature-types="featureTypes"
@@ -64,6 +62,7 @@
         />
 
         <ion-segment
+          ref="segmentRef"
           v-if="hasParent"
           :value="segment"
           class="edit-segment"
@@ -78,6 +77,7 @@
         </ion-segment>
 
         <DisplayCard
+          ref="displayCardRef"
           :draft="editor.display.draft"
           :product-types="productTypes"
           :dirty="editor.display.dirty.value"
@@ -96,6 +96,16 @@
           @save="editor.saveDates"
           @reset="editor.dates.reset"
           @copy-from-parent="editor.copyFromParent('dates')"
+        />
+
+        <TagsCard
+          :anchor-tags="anchorTags"
+          :variant-tags="selectedVariantTags"
+          :has-parent="hasParent"
+          @add-tag="(tag) => tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
+          @remove-tag="(tag) => tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
+          @add-variant-tag="(tag) => variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
+          @remove-variant-tag="(tag) => variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
         />
 
         <ComponentsCard
@@ -152,7 +162,7 @@ import {
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
   IonSegmentButton, IonTitle, IonToolbar, alertController
 } from "@ionic/vue"
-import { computed, ref, toRef } from "vue"
+import { computed, ref, toRef, type ComponentPublicInstance } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
 import { useQuery } from "@tanstack/vue-query"
 import { translate } from "@common"
@@ -168,6 +178,7 @@ import InventoryPolicyCard from "@/components/detail/InventoryPolicyCard.vue"
 import ComponentsCard from "@/components/detail/ComponentsCard.vue"
 import ShippingHandlingCard from "@/components/detail/ShippingHandlingCard.vue"
 import HistoryCard from "@/components/detail/HistoryCard.vue"
+import TagsCard from "@/components/detail/TagsCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import { errorMessage } from "@/api/http"
 import { useProductDetailData } from "@/composables/useProductDetailData"
@@ -175,6 +186,7 @@ import { useProductEditor } from "@/composables/useProductEditor"
 import { useIdentificationMutations } from "@/mutations/useIdentificationMutations"
 import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
+import { useTagMutations } from "@/mutations/useTagMutations"
 import { useToast } from "@/composables/useToast"
 import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
@@ -186,6 +198,21 @@ import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
 
+const contentRef = ref<ComponentPublicInstance | null>(null)
+const segmentRef = ref<ComponentPublicInstance | null>(null)
+const displayCardRef = ref<ComponentPublicInstance | null>(null)
+
+const scrollToDisplay = async () => {
+  // scroll to the segment when it's visible (product has variants), otherwise the DisplayCard
+  const target = segmentRef.value ?? displayCardRef.value
+  const el = (target as any)?.$el as HTMLElement | undefined
+  const content = (contentRef.value as any)?.$el as HTMLIonContentElement | undefined
+  if(!el || !content) {return}
+  const scrollEl = await content.getScrollElement()
+  const offset = el.getBoundingClientRect().top - content.getBoundingClientRect().top + scrollEl.scrollTop
+  content.scrollToPoint(0, offset, 400)
+}
+
 const detail = useProductDetailData(toRef(props, "productId"))
 const {
   editingProductId, parentProductId, segment, setSegment, hasParent,
@@ -194,13 +221,18 @@ const {
   anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
-  audit, productTypes, boxTypes
+  audit, productTypes, boxTypes,
+  anchorTags, selectedVariantTags
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
 
 const identificationMutations = useIdentificationMutations(() => editingProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value)
+// tags on the anchor (virtual) product
+const tagMutations = useTagMutations(() => parentProductId.value)
+// tags on the selected variant — uses family cache path
+const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value })
 // feature edits apply to whichever family member is being edited
 const featureMutations = useFeatureMutations(() => editingProductId.value)
 // "new value" chips extend the family's selectable axes on the parent

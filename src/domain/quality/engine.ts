@@ -43,7 +43,7 @@ export function missingProductsPayload(rule: QualityRule, pageIndex: number, pag
     filter: ["docType:PRODUCT", ...scopeFilters(rule.scope), ...baseFilters, `-${rule.solrField}:*`],
     limit: pageSize,
     offset: pageIndex * pageSize,
-    sort: "createdDate desc"
+    sort: "introductionDate desc"
   }
 }
 
@@ -71,7 +71,7 @@ export function duplicateProductsPayload(rule: QualityRule, values: string[], pe
     query: "*:*",
     filter: ["docType:PRODUCT", ...scopeFilters(rule.scope), `${rule.solrField}:(${escaped})`],
     limit: Math.max(values.length * perGroup, perGroup),
-    sort: "createdDate asc"
+    sort: "introductionDate asc"
   }
 }
 

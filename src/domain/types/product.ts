@@ -28,7 +28,7 @@ export interface ProductSummary {
   parentProductName: string
   sku: string
   upc: string
-  tags: string[]
+  tags: any[] | unknown
   featureValues: string[]
   primaryProductCategoryId: string
   primaryProductCategoryName: string

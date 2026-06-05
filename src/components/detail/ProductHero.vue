@@ -3,41 +3,37 @@
     <div class="hero-image">
       <DxpShopifyImg
         :src="core?.imageUrl ?? ''"
-        size="detail"
+        size="grande"
       />
     </div>
 
     <div class="hero-main">
-      <p
-        v-if="familyAnchor"
-        class="hero-overline"
-      >
-        {{ translate("Parent product") }} · {{ core?.productId }}
-      </p>
+      <div class="hero-main-head">
+        <p
+          v-if="familyAnchor"
+          class="hero-overline"
+        >
+          {{ translate("Parent product") }} · {{ core?.productId }}
+        </p>
+        <ion-button
+          fill="clear"
+          class="edit-btn"
+          @click="$emit('edit')"
+        >
+          <ion-icon
+            slot="icon-only"
+            :icon="pencilOutline"
+          />
+        </ion-button>
+      </div>
 
-      <ion-list lines="full">
+      <ion-list lines="none">
         <ion-item>
           <ion-label>
-            <p>{{ translate("Name") }}</p>
-            <h2>{{ core?.productName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item>
-          <ion-label>
-            <p>{{ translate("Internal name") }}</p>
-            <h2>{{ core?.internalName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item>
-          <ion-label>
-            <p>{{ translate("Brand name") }}</p>
-            <h2>{{ core?.brandName || "—" }}</h2>
-          </ion-label>
-        </ion-item>
-        <ion-item lines="none">
-          <ion-label>
-            <p>{{ translate("Type") }}</p>
-            <h2>{{ typeLabel }}</h2>
+            <h2><strong>{{ translate("Name") }}: </strong>{{ core?.productName || "—" }}</h2>
+            <h2><strong>{{ translate("Internal Name") }}: </strong>{{ core?.internalName || "—" }}</h2>
+            <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
+            <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
           </ion-label>
         </ion-item>
       </ion-list>
@@ -50,8 +46,9 @@
 </template>
 
 <script setup lang="ts">
-import { IonItem, IonLabel, IonList } from "@ionic/vue"
+import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue"
 import { computed } from "vue"
+import { pencilOutline } from "ionicons/icons"
 import { DxpShopifyImg, translate } from "@common"
 import type { CatalogOption, ProductCore } from "@/domain/types/product"
 
@@ -60,6 +57,8 @@ const props = defineProps<{
   familyAnchor: boolean
   productTypes: CatalogOption[]
 }>()
+
+defineEmits<{ (event: "edit"): void }>()
 
 const typeLabel = computed(() => {
   const typeId = props.core?.productTypeId ?? ""
@@ -85,8 +84,14 @@ const typeLabel = computed(() => {
   background: var(--ion-color-step-100, #f0f0f3);
 }
 
+.hero-main-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
 .hero-overline {
-  margin: 0 0 4px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;

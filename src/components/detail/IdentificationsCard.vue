@@ -31,12 +31,6 @@
           {{ row.idValue }}
         </ion-note>
       </ion-item>
-
-      <ion-item v-if="!activeRows.length">
-        <ion-label color="medium">
-          {{ translate("No identifications yet") }}
-        </ion-label>
-      </ion-item>
     </ion-list>
 
     <IdentificationsModal
