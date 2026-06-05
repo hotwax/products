@@ -14,7 +14,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content ref="contentRef">
       <ErrorState
         v-if="coreError"
         :title="translate('Product detail failed')"
@@ -27,6 +27,7 @@
           :core="anchorCore"
           :family-anchor="hasParent"
           :product-types="productTypes"
+          @edit="scrollToDisplay"
         >
           <template #side>
             <IdentificationsCard
@@ -61,6 +62,7 @@
         />
 
         <ion-segment
+          ref="segmentRef"
           v-if="hasParent"
           :value="segment"
           class="edit-segment"
@@ -75,6 +77,7 @@
         </ion-segment>
 
         <DisplayCard
+          ref="displayCardRef"
           :draft="editor.display.draft"
           :product-types="productTypes"
           :dirty="editor.display.dirty.value"
@@ -159,7 +162,7 @@ import {
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
   IonSegmentButton, IonTitle, IonToolbar, alertController
 } from "@ionic/vue"
-import { computed, ref, toRef } from "vue"
+import { computed, ref, toRef, type ComponentPublicInstance } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
 import { useQuery } from "@tanstack/vue-query"
 import { translate } from "@common"
@@ -194,6 +197,21 @@ import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim
 
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
+
+const contentRef = ref<ComponentPublicInstance | null>(null)
+const segmentRef = ref<ComponentPublicInstance | null>(null)
+const displayCardRef = ref<ComponentPublicInstance | null>(null)
+
+const scrollToDisplay = async () => {
+  // scroll to the segment when it's visible (product has variants), otherwise the DisplayCard
+  const target = segmentRef.value ?? displayCardRef.value
+  const el = (target as any)?.$el as HTMLElement | undefined
+  const content = (contentRef.value as any)?.$el as HTMLIonContentElement | undefined
+  if(!el || !content) {return}
+  const scrollEl = await content.getScrollElement()
+  const offset = el.getBoundingClientRect().top - content.getBoundingClientRect().top + scrollEl.scrollTop
+  content.scrollToPoint(0, offset, 400)
+}
 
 const detail = useProductDetailData(toRef(props, "productId"))
 const {
