@@ -43,19 +43,16 @@
         <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
              exists, else a thumbnail strip; a standalone product edits its own features -->
         <FeatureSelector
-          v-if="hasFeatureSelection"
           :options="featureOptions"
           :selected="selectedVariantSelection"
           @select="selectByFeature"
         />
         <VariantStrip
-          v-else-if="hasParent"
           :variants="variants"
           :selected-variant-id="selectedVariantId"
           @select="selectVariant"
         />
         <FeaturesSection
-          v-else
           :family-axes="familyFeatureAxes"
           :applied-feature-ids="appliedFeatureIds"
           :feature-types="featureTypes"
@@ -96,6 +93,16 @@
           @save="editor.saveDates"
           @reset="editor.dates.reset"
           @copy-from-parent="editor.copyFromParent('dates')"
+        />
+
+        <TagsCard
+          :anchor-tags="anchorTags"
+          :variant-tags="selectedVariantTags"
+          :has-parent="hasParent"
+          @add-tag="(tag) => tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
+          @remove-tag="(tag) => tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
+          @add-variant-tag="(tag) => variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
+          @remove-variant-tag="(tag) => variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
         />
 
         <ComponentsCard
@@ -168,6 +175,7 @@ import InventoryPolicyCard from "@/components/detail/InventoryPolicyCard.vue"
 import ComponentsCard from "@/components/detail/ComponentsCard.vue"
 import ShippingHandlingCard from "@/components/detail/ShippingHandlingCard.vue"
 import HistoryCard from "@/components/detail/HistoryCard.vue"
+import TagsCard from "@/components/detail/TagsCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import { errorMessage } from "@/api/http"
 import { useProductDetailData } from "@/composables/useProductDetailData"
@@ -175,6 +183,7 @@ import { useProductEditor } from "@/composables/useProductEditor"
 import { useIdentificationMutations } from "@/mutations/useIdentificationMutations"
 import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
+import { useTagMutations } from "@/mutations/useTagMutations"
 import { useToast } from "@/composables/useToast"
 import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
@@ -194,13 +203,18 @@ const {
   anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
-  audit, productTypes, boxTypes
+  audit, productTypes, boxTypes,
+  anchorTags, selectedVariantTags
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
 
 const identificationMutations = useIdentificationMutations(() => editingProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value)
+// tags on the anchor (virtual) product
+const tagMutations = useTagMutations(() => parentProductId.value)
+// tags on the selected variant — uses family cache path
+const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value })
 // feature edits apply to whichever family member is being edited
 const featureMutations = useFeatureMutations(() => editingProductId.value)
 // "new value" chips extend the family's selectable axes on the parent

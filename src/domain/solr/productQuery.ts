@@ -58,7 +58,7 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
     params: {
       "defType": "edismax",
       "q.op": "OR",
-      "qf": "productId parentProductName productName internalName sku"
+      "qf": "productId groupId parentProductName productName internalName sku"
     }
   }
 }
@@ -82,6 +82,10 @@ export function groupIdFacetPayload(params: ProductSearchParams): SolrJsonQuery 
     filter: productScopeFilters({ ...params, groupIds: [], productKind: undefined }),
     limit: 0,
     facet: { groupId: { type: "terms", field: "groupId", limit: -1, mincount: 1 } },
-    params: { "q.op": "AND" }
+    params: {
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId groupId parentProductName productName internalName sku"
+    }
   }
 }

@@ -4,6 +4,7 @@ import { fetchEntityAuditLogs } from "@/api/catalog"
 import { runProductSolrQuery, solrDocs } from "@/api/solr"
 import { escapeSolrValue } from "@/domain/solr/productQuery"
 import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
+import type { ProductSummary } from "@/domain/types/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
@@ -57,6 +58,8 @@ export function familyMembersOptions(parentProductId: string) {
         sort: "productName asc"
       })
 
+      console.log('solrDocs(response).map(normalizeProductSummary)', solrDocs(response).map(normalizeProductSummary))
+
       return solrDocs(response).map(normalizeProductSummary)
     },
     enabled: Boolean(parentProductId),
@@ -78,6 +81,25 @@ export function featureApplicationsOptions(productId: string) {
 
       return rows.map((row) => normalizeFeatureApplication(row, features, typeLabels))
     }
+  })
+}
+
+/** Single-product Solr lookup — used to get tags for the anchor (virtual) product,
+ *  which isn't included in the family members query (that filters isVariant:true). */
+export function productSolrOptions(productId: string) {
+  return queryOptions({
+    queryKey: qk.product.solr(productId),
+    queryFn: async (): Promise<ProductSummary | null> => {
+      const response = await runProductSolrQuery({
+        query: "*:*",
+        filter: ["docType:PRODUCT", `productId:${escapeSolrValue(productId)}`],
+        limit: 1
+      })
+      const docs = solrDocs(response)
+
+      return docs.length > 0 ? normalizeProductSummary(docs[0]) : null
+    },
+    staleTime: 30_000
   })
 }
 

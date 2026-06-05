@@ -90,6 +90,15 @@ export function fetchUoms(uomTypeEnumId: string): Promise<Raw[]> {
   return request({ url: "oms/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)
 }
 
+// ---------- keywords / tags ----------
+export function addProductKeyword(productId: string, keyword: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/keywords`, method: "post", data: { keyword } })
+}
+
+export function removeProductKeyword(productId: string, keyword: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/keywords/remove`, method: "post", data: { keyword } })
+}
+
 // ---------- data quality ----------
 export function resolveDuplicateIdentifiers(changes: DedupChange[]): Promise<{ updatedCount: number }> {
   return request({ url: "oms/dedup/resolveIdentifiers", method: "post", data: { changes } })

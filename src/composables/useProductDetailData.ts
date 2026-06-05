@@ -2,7 +2,7 @@ import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
 import router from "../router"
 import {
-  associationsOptions, auditHistoryOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions
+  associationsOptions, auditHistoryOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions, productSolrOptions
 } from "@/queries/productDetail"
 import { boxTypesOptions, productTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE, groupAssociations } from "@/domain/normalize/association"
@@ -139,6 +139,9 @@ export function useProductDetailData(routeProductId: Ref<string>) {
   const featureApplsQuery = useQuery(computed(() => featureApplicationsOptions(anchorProductId.value)))
   const editingFeatureApplsQuery = useQuery(computed(() => featureApplicationsOptions(editingProductId.value)))
 
+  // anchor product from Solr to get its tags (family members query only fetches isVariant:true)
+  const anchorSolrQuery = useQuery(computed(() => productSolrOptions(anchorProductId.value)))
+
   // reference data the cards need
   const productTypesQuery = useQuery(productTypesOptions())
   const boxTypesQuery = useQuery(boxTypesOptions())
@@ -183,6 +186,9 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
     audit: computed(() => auditQuery.data.value ?? []),
     auditLoading: auditQuery.isLoading,
+
+    anchorTags: computed(() => anchorSolrQuery.data.value?.tags ?? []),
+    selectedVariantTags: computed(() => familyMembers.value.find((m) => m.productId === selectedVariantId.value)?.tags ?? []),
 
     productTypes: computed(() => productTypesQuery.data.value ?? []),
     boxTypes: computed(() => boxTypesQuery.data.value ?? [])
