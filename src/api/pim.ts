@@ -81,13 +81,13 @@ export function fetchFeatureCatalog(): Promise<Raw[]> {
   return request({ url: "oms/features", method: "get", params: { pageSize: 500, orderByField: "description" } }).then(responseList)
 }
 
-export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "identificationTypes" | "boxTypes"): Promise<Raw[]> {
+export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "goodIdentificationTypes" | "boxTypes"): Promise<Raw[]> {
   return request({ url: `oms/${resource}`, method: "get", params: { pageSize: 200 } }).then(responseList)
 }
 
 /** Units of measure of a given type (UT_LENGTH_MEASURE, UT_WEIGHT_MEASURE). */
 export function fetchUoms(uomTypeEnumId: string): Promise<Raw[]> {
-  return request({ url: "oms/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)
+  return request({ url: "admin/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)
 }
 
 // ---------- keywords / tags ----------
