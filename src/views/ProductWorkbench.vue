@@ -6,6 +6,14 @@
           <ion-menu-button />
         </ion-buttons>
         <ion-title>{{ translate("Product workbench") }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button router-link="/products/create">
+            <ion-icon
+              slot="icon-only"
+              :icon="addOutline"
+            />
+          </ion-button>
+        </ion-buttons>
         <ion-progress-bar
           v-if="isFetching && !isLoading"
           type="indeterminate"
@@ -161,7 +169,7 @@ import {
   IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
   IonSkeletonText, IonThumbnail, IonTitle, IonToolbar
 } from "@ionic/vue"
-import { closeCircleOutline } from "ionicons/icons"
+import { addOutline, closeCircleOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
 import { translate } from "@common"
 import EmptyState from "@/components/EmptyState.vue"

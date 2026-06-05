@@ -1,6 +1,6 @@
 import type {
   AssociationCreate, AssociationKey, AssociationUpdate, DedupChange, FeatureApply, FeatureCreate,
-  IdentificationCreate, IdentificationKey, ProductFieldsPatch
+  IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch
 } from "@/domain/types/pim"
 import { request, responseList } from "./http"
 
@@ -11,6 +11,10 @@ type Raw = Record<string, unknown>
 // ---------- product ----------
 export function fetchProductRecord(productId: string): Promise<Raw> {
   return request<Raw>({ url: `oms/products/${productId}`, method: "get" })
+}
+
+export function createProduct(payload: ProductCreatePayload): Promise<{ productId: string }> {
+  return request<{ productId: string }>({ url: "oms/products", method: "post", data: payload })
 }
 
 export function updateProductFields(productId: string, patch: ProductFieldsPatch): Promise<unknown> {

@@ -81,6 +81,34 @@ export interface FeatureCreate {
   idCode?: string
 }
 
+export interface ProductCreatePayload {
+  productName?: string
+  internalName?: string
+  brandName?: string
+  description?: string
+  longDescription?: string
+  productTypeId?: string
+  introductionDate?: string
+  releaseDate?: string
+  supportDiscontinuationDate?: string
+  salesDiscontinuationDate?: string
+  salesDiscWhenNotAvail?: "Y" | "N"
+  returnable?: "Y" | "N"
+  taxable?: "Y" | "N"
+  chargeShipping?: "Y" | "N"
+  inShippingBox?: "Y" | "N"
+  defaultShipmentBoxTypeId?: string
+  productWeight?: number | string
+  productHeight?: number | string
+  productWidth?: number | string
+  productDepth?: number | string
+  weightUomId?: string
+  heightUomId?: string
+  widthUomId?: string
+  depthUomId?: string
+  isVirtual?: "Y" | "N"
+}
+
 export interface DedupChange {
   productId: string
   goodIdentificationTypeId: string
