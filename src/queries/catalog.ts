@@ -46,7 +46,7 @@ export const productTypesOptions = () => catalogListOptions("productTypes", "pro
 export const featureTypesOptions = () => catalogListOptions("featureTypes", "productFeatureTypeId")
 export const featureApplTypesOptions = () => catalogListOptions("featureApplTypes", "productFeatureApplTypeId")
 export const associationTypesOptions = () => catalogListOptions("associationTypes", "productAssocTypeId")
-export const identificationTypesOptions = () => catalogListOptions("identificationTypes", "goodIdentificationTypeId")
+export const identificationTypesOptions = () => catalogListOptions("goodIdentificationTypes", "goodIdentificationTypeId")
 export const boxTypesOptions = () => catalogListOptions("boxTypes", "shipmentBoxTypeId")
 
 export function productStoresOptions() {
