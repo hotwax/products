@@ -30,6 +30,7 @@ function uomOptions(uomTypeEnumId: string) {
 
 export const lengthUomOptions = () => uomOptions("UT_LENGTH_MEASURE")
 export const weightUomOptions = () => uomOptions("UT_WEIGHT_MEASURE")
+export const currencyUomOptions = () => uomOptions("CURRENCY_MEASURE")
 
 /** Reference data: effectively immutable per session → staleTime Infinity, explicit refresh only. */
 
@@ -48,6 +49,7 @@ export const featureApplTypesOptions = () => catalogListOptions("featureApplType
 export const associationTypesOptions = () => catalogListOptions("associationTypes", "productAssocTypeId")
 export const identificationTypesOptions = () => catalogListOptions("goodIdentificationTypes", "goodIdentificationTypeId")
 export const boxTypesOptions = () => catalogListOptions("boxTypes", "shipmentBoxTypeId")
+export const priceTypesOptions = () => catalogListOptions("productPriceTypes", "productPriceTypeId")
 
 export function productStoresOptions() {
   return queryOptions({

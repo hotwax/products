@@ -81,6 +81,12 @@ export interface FeatureCreate {
   idCode?: string
 }
 
+export interface ProductPriceCreate {
+  productPriceTypeId: string
+  currencyUomId: string
+  price: number
+}
+
 export interface ProductCreatePayload {
   productName?: string
   internalName?: string
@@ -107,6 +113,7 @@ export interface ProductCreatePayload {
   widthUomId?: string
   depthUomId?: string
   isVirtual?: "Y" | "N"
+  [key: string]: any
 }
 
 export interface DedupChange {

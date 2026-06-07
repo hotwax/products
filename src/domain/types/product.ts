@@ -157,6 +157,12 @@ export interface CatalogOption {
   label: string
 }
 
+export interface ProductCategory {
+  productCategoryId: string
+  categoryName: string
+  description: string
+}
+
 export interface StoreCatalogExposure {
   productStoreId: string
   storeName: string

@@ -1,6 +1,6 @@
 import type {
   AssociationCreate, AssociationKey, AssociationUpdate, DedupChange, FeatureApply, FeatureCreate,
-  IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch
+  IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch, ProductPriceCreate
 } from "@/domain/types/pim"
 import { request, responseList } from "./http"
 
@@ -92,6 +92,24 @@ export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "fe
 /** Units of measure of a given type (UT_LENGTH_MEASURE, UT_WEIGHT_MEASURE). */
 export function fetchUoms(uomTypeEnumId: string): Promise<Raw[]> {
   return request({ url: "admin/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)
+}
+
+// ---------- prices ----------
+export function createProductPrice(productId: string, payload: ProductPriceCreate): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/prices`, method: "post", data: payload })
+}
+
+// ---------- categories ----------
+export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<{ productCategoryId: string; categoryName: string; description: string }[]> {
+  return responseList(await request({
+    url: "oms/productCategories",
+    method: "get",
+    params: { categoryName: categoryName || undefined, pageSize }
+  }))
+}
+
+export function addProductCategoryMember(productId: string, productCategoryId: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/categories`, method: "post", data: { productCategoryId } })
 }
 
 // ---------- keywords / tags ----------

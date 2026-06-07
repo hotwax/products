@@ -389,6 +389,147 @@
         </ion-list>
       </CardSection>
 
+      <!-- Categories -->
+      <CardSection :title="translate('Categories')">
+        <template #action>
+          <ion-button
+            fill="clear"
+            size="small"
+            @click="categoryPickerOpen = true"
+          >
+            {{ translate("Add category") }}
+          </ion-button>
+        </template>
+
+        <div
+          v-if="selectedCategories.length"
+          class="categories-list"
+        >
+          <ion-item
+            v-for="category in selectedCategories"
+            :key="category.productCategoryId"
+            lines="full"
+          >
+            <ion-label>
+              <h3>{{ category.categoryName || category.productCategoryId }}</h3>
+              <p v-if="category.description">
+                {{ category.description }}
+              </p>
+              <p>{{ category.productCategoryId }}</p>
+            </ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+              color="danger"
+              size="small"
+              @click="removeCategory(category.productCategoryId)"
+            >
+              {{ translate("Remove") }}
+            </ion-button>
+          </ion-item>
+        </div>
+        <p
+          v-else
+          class="no-categories"
+        >
+          {{ translate("No categories added") }}
+        </p>
+
+        <CategoryPicker
+          :is-open="categoryPickerOpen"
+          :exclude-category-ids="selectedCategoryIds"
+          @select="addCategory"
+          @dismiss="categoryPickerOpen = false"
+        />
+      </CardSection>
+
+      <!-- Prices -->
+      <CardSection :title="translate('Prices')">
+        <ion-list lines="full">
+          <ion-item
+            v-for="(price, index) in draftedPrices"
+            :key="index"
+            lines="full"
+          >
+            <ion-label>
+              <p>{{ priceTypeLabel(price.productPriceTypeId) }}</p>
+              <h3>{{ price.currencyUomId }} {{ price.price }}</h3>
+            </ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+              color="danger"
+              size="small"
+              @click="removePrice(index)"
+            >
+              {{ translate("Remove") }}
+            </ion-button>
+          </ion-item>
+
+          <ion-item lines="none">
+            <div class="price-add-row">
+              <ion-select
+                v-model="newPrice.productPriceTypeId"
+                :label="translate('Type')"
+                label-placement="stacked"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="option in availablePriceTypes"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.label }}
+                </ion-select-option>
+              </ion-select>
+              <ion-select
+                v-model="newPrice.currencyUomId"
+                :label="translate('Currency')"
+                label-placement="stacked"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="option in currencies"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.label }}
+                </ion-select-option>
+              </ion-select>
+              <ion-input
+                v-model="newPrice.price"
+                type="number"
+                min="0"
+                :label="translate('Amount')"
+                label-placement="stacked"
+                fill="outline"
+                @keyup.enter="addPrice"
+              />
+              <ion-button
+                fill="clear"
+                :disabled="!canAddPrice"
+                @click="addPrice"
+              >
+                {{ translate("Add") }}
+              </ion-button>
+            </div>
+          </ion-item>
+        </ion-list>
+      </CardSection>
+
+      <!-- Features -->
+      <CardSection :title="translate('Features')">
+        <FeaturesSection
+          :family-axes="draftAxes"
+          :applied-feature-ids="draftAppliedIds"
+          :feature-types="featureTypes"
+          @toggle="onToggleFeature"
+          @create-value="onCreateFeatureValue"
+        />
+      </CardSection>
+
       <!-- Variants -->
       <CardSection :title="translate('Variants')">
         <template #action>
@@ -470,25 +611,29 @@
 import {
   IonBackButton, IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon,
   IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonSpinner,
-  IonTextarea, IonThumbnail, IonTitle, IonToggle, IonToolbar
+  IonTextarea, IonThumbnail, IonTitle, IonToggle, IonToolbar,
+  IonList, IonListHeader
 } from "@ionic/vue"
 import { computed, reactive, ref } from "vue"
-import { useRouter } from "vue-router"
+import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
 import { DxpShopifyImg, translate } from "@common"
 import { closeCircle } from "ionicons/icons"
 import CardSection from "@/components/common/CardSection.vue"
+import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
+import FeaturesSection from "@/components/detail/FeaturesSection.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
-import { createProduct, createAssociation, createIdentification, addProductKeyword } from "@/api/pim"
-import { boxTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"
-import { ASSOC_TYPE } from "@/domain/normalize/association"
+import { addProductCategoryMember, applyFeature, createFeature, createProduct, createProductPrice } from "@/api/pim"
+import { boxTypesOptions, currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, priceTypesOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"
+import { featureCatalogOptions } from "@/queries/productDetail"
+import { buildFeatureAxes, FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { lengthUomToMm } from "@/domain/product/uom"
 import { productDisplayName } from "@/domain/normalize/product"
 import { useToast } from "@/composables/useToast"
-import type { ProductSummary } from "@/domain/types/product"
+import type { ProductCategory, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
+import type { ProductPriceCreate } from "@/domain/types/pim"
 
-const router = useRouter()
 const toast = useToast()
 
 // Reference data
@@ -497,11 +642,26 @@ const boxTypesQuery = useQuery(boxTypesOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
 const identificationTypesQuery = useQuery(identificationTypesOptions())
+const featureTypesQuery = useQuery(featureTypesOptions())
+const priceTypesQuery = useQuery(priceTypesOptions())
+const currenciesQuery = useQuery(currencyUomOptions())
 const productTypes = computed(() => productTypesQuery.data.value ?? [])
 const boxTypes = computed(() => boxTypesQuery.data.value ?? [])
 const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
+const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
+const priceTypes = computed(() => priceTypesQuery.data.value ?? [])
+const currencies = computed(() => currenciesQuery.data.value ?? [])
+
+const info = reactive({
+  productName: "",
+  internalName: "",
+  brandName: "",
+  productTypeId: "",
+  description: "",
+  longDescription: ""
+})
 
 // Form state
 const form = reactive({
@@ -536,12 +696,20 @@ const newTag = ref("")
 const identifications = ref<Array<{ goodIdentificationTypeId: string; idValue: string }>>([])
 const newIdentTypeId = ref("")
 const newIdentValue = ref("")
+const draftedPrices = ref<ProductPriceCreate[]>([])
+const newPrice = reactive<Partial<ProductPriceCreate>>({ productPriceTypeId: "", currencyUomId: "", price: undefined })
+const selectedCategories = ref<ProductCategory[]>([])
+const categoryPickerOpen = ref(false)
 const variants = ref<ProductSummary[]>([])
 const pickerOpen = ref(false)
 const creating = ref(false)
 
 const canCreate = computed(() => Boolean(form.productName.trim() || form.internalName.trim()))
 const variantIds = computed(() => variants.value.map((v) => v.productId))
+const selectedCategoryIds = computed(() => selectedCategories.value.map((c) => c.productCategoryId))
+const usedPriceTypeIds = computed(() => new Set(draftedPrices.value.map((p) => p.productPriceTypeId)))
+const availablePriceTypes = computed(() => priceTypes.value.filter((t) => !usedPriceTypeIds.value.has(t.id)))
+const canAddPrice = computed(() => Boolean(newPrice.productPriceTypeId && newPrice.currencyUomId && newPrice.price != null && newPrice.price > 0))
 
 // Tags
 const commitTag = () => {
@@ -552,6 +720,36 @@ const commitTag = () => {
 }
 const removeTag = (tag: string) => {
   tags.value = tags.value.filter((t) => t !== tag)
+}
+
+// Prices
+const priceTypeLabel = (typeId: string) => priceTypes.value.find((t) => t.id === typeId)?.label ?? typeId
+
+const addPrice = () => {
+  if(!canAddPrice.value) {return}
+  draftedPrices.value.push({
+    productPriceTypeId: newPrice.productPriceTypeId!,
+    currencyUomId: newPrice.currencyUomId!,
+    price: Number(newPrice.price)
+  })
+  newPrice.productPriceTypeId = ""
+  newPrice.currencyUomId = ""
+  newPrice.price = undefined
+}
+
+const removePrice = (index: number) => {
+  draftedPrices.value.splice(index, 1)
+}
+
+// Categories
+const addCategory = (category: ProductCategory) => {
+  if(!selectedCategories.value.some((c) => c.productCategoryId === category.productCategoryId)) {
+    selectedCategories.value.push(category)
+  }
+  categoryPickerOpen.value = false
+}
+const removeCategory = (productCategoryId: string) => {
+  selectedCategories.value = selectedCategories.value.filter((c) => c.productCategoryId !== productCategoryId)
 }
 
 // Identifications
@@ -568,6 +766,39 @@ const addIdentification = () => {
 }
 const removeIdentification = (index: number) => {
   identifications.value.splice(index, 1)
+}
+
+// Features — local draft; applyFeature called post-creation
+const draftedFeatures = ref<ProductFeatureApplication[]>([])
+const draftAxes = computed(() => buildFeatureAxes(draftedFeatures.value))
+const draftAppliedIds = computed(() => new Set(draftedFeatures.value.map((f) => f.productFeatureId)))
+
+const onToggleFeature = ({ application, applied }: { application: { productFeatureId: string }; applied: boolean }) => {
+  // On the create page all drafted features are "applied"; clicking removes them
+  if(applied) {
+    draftedFeatures.value = draftedFeatures.value.filter((f) => f.productFeatureId !== application.productFeatureId)
+  }
+}
+
+const onCreateFeatureValue = async ({ featureTypeId, description }: { featureTypeId: string; description: string }) => {
+  try {
+    const { productFeatureId } = await createFeature({ productFeatureTypeId: featureTypeId, description })
+    const featureTypeDescription = featureTypes.value.find((t) => t.id === featureTypeId)?.label ?? featureTypeId
+    draftedFeatures.value.push({
+      productId: "",
+      productFeatureId,
+      productFeatureApplTypeId: FEATURE_APPL_TYPE.standard,
+      featureTypeId,
+      featureTypeDescription,
+      description,
+      fromDate: new Date().toISOString(),
+      thruDate: null,
+      active: true,
+      sequenceNum: null
+    })
+  } catch(error) {
+    toast.error(error, translate("Could not add feature"))
+  }
 }
 
 // Variants
@@ -617,20 +848,31 @@ const submit = async () => {
       heightUomId: form.heightUomId || undefined,
       depthUomId: form.depthUomId || undefined,
       weightUomId: form.weightUomId || undefined,
-      isVirtual: variants.value.length > 0 ? "Y" : undefined
+      isVirtual: "Y",
+      keywords: tags.value,
+      identifications: identifications.value,
     })
 
-    // Post-creation: tags, identifications, and variant associations in parallel
-    await Promise.all([
-      ...tags.value.map((tag) => addProductKeyword(productId, tag)),
-      ...identifications.value.map((ident) => createIdentification(productId, ident)),
-      ...variants.value.map((variant) =>
-        createAssociation(productId, {
-          productIdTo: variant.productId,
-          productAssocTypeId: ASSOC_TYPE.variant
-        })
+    // Create prices post-creation
+    if(draftedPrices.value.length) {
+      await Promise.all(draftedPrices.value.map((p) => createProductPrice(productId, p)))
+    }
+
+    // Add category members post-creation
+    if(selectedCategories.value.length) {
+      await Promise.all(
+        selectedCategories.value.map((c) => addProductCategoryMember(productId, c.productCategoryId))
       )
-    ])
+    }
+
+    // Apply drafted features post-creation
+    if(draftedFeatures.value.length) {
+      await Promise.all(
+        draftedFeatures.value.map((f) =>
+          applyFeature(productId, { productFeatureId: f.productFeatureId, productFeatureApplTypeId: FEATURE_APPL_TYPE.standard })
+        )
+      )
+    }
 
     router.push(`/products/${productId}`)
   } catch(error) {
@@ -730,9 +972,27 @@ const submit = async () => {
   margin-top: 4px;
 }
 
-.no-variants {
+.price-add-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+.price-add-row ion-select,
+.price-add-row ion-input {
+  flex: 1;
+}
+
+.no-variants,
+.no-categories {
   color: var(--ion-color-medium);
   font-size: 13px;
+}
+
+.categories-list {
+  margin-top: 4px;
 }
 
 .create-footer {
