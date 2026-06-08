@@ -53,6 +53,42 @@
       />
     </div>
 
+    <template v-if="draft.productTypeId === 'MARKETING_PKG_PICK'">
+      <div class="comp-head">
+        <span class="comp-title">
+          <ion-icon :icon="cubeOutline" />
+          {{ translate("Components") }}
+        </span>
+        <ion-button
+          fill="clear"
+          size="small"
+          @click="$emit('addComponent')"
+        >
+          {{ translate("Add") }}
+        </ion-button>
+      </div>
+
+      <div
+        v-if="components && components.length"
+        class="comp-grid"
+      >
+        <AssociationItem
+          v-for="assoc in components"
+          :key="`${assoc.relatedProductId}-${assoc.fromDate}`"
+          :association="assoc"
+          show-quantity
+          @expire="$emit('expireComponent', assoc)"
+          @reactivate="$emit('reactivateComponent', assoc)"
+        />
+      </div>
+      <p
+        v-else
+        class="comp-empty"
+      >
+        {{ translate("No components linked") }}
+      </p>
+    </template>
+
     <template #footer>
       <SaveFooter
         :dirty="dirty"
@@ -66,11 +102,13 @@
 </template>
 
 <script setup lang="ts">
-import { IonInput, IonSelect, IonSelectOption, IonTextarea } from "@ionic/vue"
+import { IonButton, IonIcon, IonInput, IonSelect, IonSelectOption, IonTextarea } from "@ionic/vue"
+import { cubeOutline } from "ionicons/icons"
 import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
-import type { CatalogOption } from "@/domain/types/product"
+import AssociationItem from "./AssociationItem.vue"
+import type { CatalogOption, ProductAssociation } from "@/domain/types/product"
 
 defineProps<{
   draft: {
@@ -86,11 +124,15 @@ defineProps<{
   saving: boolean
   staleUnderEdit: boolean
   duplicateHint?: string
+  components?: ProductAssociation[]
 }>()
 
 defineEmits<{
   (event: "save"): void
   (event: "reset"): void
+  (event: "addComponent"): void
+  (event: "expireComponent", assoc: ProductAssociation): void
+  (event: "reactivateComponent", assoc: ProductAssociation): void
 }>()
 </script>
 
@@ -112,5 +154,31 @@ defineEmits<{
   .grid-desc {
     grid-template-columns: 1fr;
   }
+}
+
+.comp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.comp-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comp-empty {
+  color: var(--ion-color-medium);
+  font-size: 13px;
 }
 </style>

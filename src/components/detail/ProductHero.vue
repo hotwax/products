@@ -15,16 +15,6 @@
         >
           {{ translate("Parent product") }} · {{ core?.productId }}
         </p>
-        <ion-button
-          fill="clear"
-          class="edit-btn"
-          @click="$emit('edit')"
-        >
-          <ion-icon
-            slot="icon-only"
-            :icon="pencilOutline"
-          />
-        </ion-button>
       </div>
 
       <ion-list lines="none">
@@ -35,6 +25,17 @@
             <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
             <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
           </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            class="edit-btn"
+            @click="$emit('edit')"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="pencilOutline"
+            />
+          </ion-button>
         </ion-item>
       </ion-list>
     </div>
@@ -97,6 +98,10 @@ const typeLabel = computed(() => {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ion-color-medium);
+}
+
+.edit-btn {
+  align-self: flex-start;
 }
 
 @media (max-width: 960px) {

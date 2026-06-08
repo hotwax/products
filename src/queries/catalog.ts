@@ -14,7 +14,7 @@ function uomOptions(uomTypeEnumId: string) {
     queryFn: async (): Promise<CatalogOption[]> => {
       const rows = (await fetchUoms(uomTypeEnumId)).map((row) => ({
         id: String(row.uomId ?? ""),
-        label: String(row.abbreviation ?? row.uomId ?? "")
+        label: String(row.description ?? row.abbreviation ?? row.uomId ?? "")
       }))
 
       return rows.sort((a, b) => {
@@ -30,15 +30,19 @@ function uomOptions(uomTypeEnumId: string) {
 
 export const lengthUomOptions = () => uomOptions("UT_LENGTH_MEASURE")
 export const weightUomOptions = () => uomOptions("UT_WEIGHT_MEASURE")
-export const currencyUomOptions = () => uomOptions("CURRENCY_MEASURE")
+export const currencyUomOptions = () => uomOptions("UT_CURRENCY_MEASURE")
 
 /** Reference data: effectively immutable per session → staleTime Infinity, explicit refresh only. */
 
-function catalogListOptions(resource: Parameters<typeof fetchCatalogList>[0], idField: string) {
+function catalogListOptions(
+  resource: Parameters<typeof fetchCatalogList>[0],
+  idField: string,
+  extraParams?: Record<string, unknown>
+) {
   return queryOptions({
-    queryKey: qk.catalog.list(resource),
+    queryKey: qk.catalog.list(extraParams ? `${resource}:${JSON.stringify(extraParams)}` : resource),
     queryFn: async (): Promise<CatalogOption[]> =>
-      (await fetchCatalogList(resource)).map((row) => normalizeCatalogOption(row, idField)),
+      (await fetchCatalogList(resource, extraParams)).map((row) => normalizeCatalogOption(row, idField)),
     staleTime: Infinity
   })
 }
@@ -47,9 +51,8 @@ export const productTypesOptions = () => catalogListOptions("productTypes", "pro
 export const featureTypesOptions = () => catalogListOptions("featureTypes", "productFeatureTypeId")
 export const featureApplTypesOptions = () => catalogListOptions("featureApplTypes", "productFeatureApplTypeId")
 export const associationTypesOptions = () => catalogListOptions("associationTypes", "productAssocTypeId")
-export const identificationTypesOptions = () => catalogListOptions("goodIdentificationTypes", "goodIdentificationTypeId")
+export const identificationTypesOptions = () => catalogListOptions("goodIdentificationTypes", "goodIdentificationTypeId", { parentTypeId: "HC_GOOD_ID_TYPE" })
 export const boxTypesOptions = () => catalogListOptions("boxTypes", "shipmentBoxTypeId")
-export const priceTypesOptions = () => catalogListOptions("productPriceTypes", "productPriceTypeId")
 
 export function productStoresOptions() {
   return queryOptions({

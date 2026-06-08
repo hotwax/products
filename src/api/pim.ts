@@ -85,8 +85,11 @@ export function fetchFeatureCatalog(): Promise<Raw[]> {
   return request({ url: "oms/features", method: "get", params: { pageSize: 500, orderByField: "description" } }).then(responseList)
 }
 
-export function fetchCatalogList(resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "goodIdentificationTypes" | "boxTypes"): Promise<Raw[]> {
-  return request({ url: `oms/${resource}`, method: "get", params: { pageSize: 200 } }).then(responseList)
+export function fetchCatalogList(
+  resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "goodIdentificationTypes" | "boxTypes",
+  extraParams?: Record<string, unknown>
+): Promise<Raw[]> {
+  return request({ url: `oms/${resource}`, method: "get", params: { pageSize: 200, ...extraParams } }).then(responseList)
 }
 
 /** Units of measure of a given type (UT_LENGTH_MEASURE, UT_WEIGHT_MEASURE). */
@@ -102,7 +105,7 @@ export function createProductPrice(productId: string, payload: ProductPriceCreat
 // ---------- categories ----------
 export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<{ productCategoryId: string; categoryName: string; description: string }[]> {
   return responseList(await request({
-    url: "oms/productCategories",
+    url: "admin/productCategories",
     method: "get",
     params: { categoryName: categoryName || undefined, pageSize }
   }))

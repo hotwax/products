@@ -6,156 +6,222 @@
           <ion-back-button default-href="/products" />
         </ion-buttons>
         <ion-title>{{ translate("Create product") }}</ion-title>
+        <ion-progress-bar :value="progress"></ion-progress-bar>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
-      <!-- Display -->
-      <CardSection :title="translate('Display')">
-        <div class="grid-4">
-          <ion-input
-            v-model="form.productName"
-            :label="translate('Name')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-input
-            v-model="form.internalName"
-            :label="translate('Internal name')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-input
-            v-model="form.brandName"
-            :label="translate('Brand name')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-select
-            v-model="form.productTypeId"
-            :label="translate('Type')"
-            label-placement="stacked"
-            interface="popover"
-            fill="outline"
-          >
-            <ion-select-option
-              v-for="option in productTypes"
-              :key="option.id"
-              :value="option.id"
-            >
-              {{ option.label }}
-            </ion-select-option>
-          </ion-select>
-        </div>
-        <div class="grid-desc">
-          <ion-textarea
-            v-model="form.description"
-            :label="translate('Desc')"
-            label-placement="stacked"
-            auto-grow
-            fill="outline"
-          />
-          <ion-textarea
-            v-model="form.longDescription"
-            :label="translate('Long desc')"
-            label-placement="stacked"
-            auto-grow
-            fill="outline"
-          />
-        </div>
-      </CardSection>
-
-      <!-- Dates -->
-      <CardSection :title="translate('Dates')">
-        <div class="grid-4">
-          <ion-input
-            v-model="form.introductionDate"
-            type="date"
-            :label="translate('Introduction date')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-input
-            v-model="form.releaseDate"
-            type="date"
-            :label="translate('Release date')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-input
-            v-model="form.supportDiscontinuationDate"
-            type="date"
-            :label="translate('Support discontinuation date')"
-            label-placement="stacked"
-            fill="outline"
-          />
-          <ion-input
-            v-model="form.salesDiscontinuationDate"
-            type="date"
-            :label="translate('Sales discontinuation')"
-            label-placement="stacked"
-            fill="outline"
-          />
-        </div>
-        <ion-item
-          lines="none"
-          class="oos-toggle"
-        >
-          <ion-toggle v-model="form.salesDiscWhenNotAvail">
-            <ion-label>
-              {{ translate("Discontinue when out of stock") }}
-              <p>{{ translate("This item will not come back into stock. Do not accept backorders") }}</p>
-            </ion-label>
-          </ion-toggle>
-        </ion-item>
-      </CardSection>
-
-      <!-- Tags -->
-      <CardSection :title="translate('Tags')">
-        <div class="tag-row">
-          <ion-chip
-            v-for="tag in tags"
-            :key="tag"
-            outline
-          >
-            <ion-label>{{ tag }}</ion-label>
-            <ion-icon
-              :icon="closeCircle"
-              @click="removeTag(tag)"
+      <div v-if="step === 'display'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>{{ translate("Display") }}</ion-list-header>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.productName, 'ion-touched': displayTouched }"
+              v-model="info.productName"
+              :label="translate('Name *')"
+              label-placement="stacked"
+              fill="outline"
+              :error-text="displayErrors.productName"
+              @ion-blur="displayTouched && validateDisplay()"
             />
-          </ion-chip>
-          <p
-            v-if="!tags.length"
-            class="no-tags"
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.internalName, 'ion-touched': displayTouched }"
+              v-model="info.internalName"
+              :label="translate('Internal name *')"
+              label-placement="stacked"
+              fill="outline"
+              :error-text="displayErrors.internalName"
+              @ion-blur="displayTouched && validateDisplay()"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.brandName, 'ion-touched': displayTouched }"
+              v-model="info.brandName"
+              :label="translate('Brand name *')"
+              label-placement="stacked"
+              fill="outline"
+              :error-text="displayErrors.brandName"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-select
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.productTypeId, 'ion-touched': displayTouched }"
+              v-model="info.productTypeId"
+              :label="translate('Type *')"
+              label-placement="stacked"
+              interface="popover"
+              fill="outline"
+              :error-text="displayErrors.productTypeId"
+              @ion-change="displayTouched && validateDisplay()"
+            >
+              <ion-select-option
+                v-for="option in productTypes"
+                :key="option.id"
+                :value="option.id"
+              >
+                {{ option.label }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-textarea
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.description, 'ion-touched': displayTouched }"
+              v-model="info.description"
+              :label="translate('Desc')"
+              label-placement="stacked"
+              auto-grow
+              fill="outline"
+              :error-text="displayErrors.description"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-textarea
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': displayTouched && displayErrors.longDescription, 'ion-touched': displayTouched }"
+              v-model="info.longDescription"
+              :label="translate('Long desc')"
+              label-placement="stacked"
+              auto-grow
+              fill="outline"
+              :error-text="displayErrors.longDescription"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-button slot="end" fill="outline" @click="next('tags')">
+              {{ translate("Next") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <div v-if="step === 'tags'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>
+            <ion-label>{{ translate("Tags") }}</ion-label>
+            <span>{{ tags.length }}</span>
+          </ion-list-header>
+          <div>
+            <ion-chip
+              v-for="tag in tags"
+              :key="tag"
+              outline
+            >
+              <ion-label>{{ tag }}</ion-label>
+              <ion-icon
+                :icon="closeCircle"
+                @click="removeTag(tag)"
+              />
+            </ion-chip>
+          </div>
+          <ion-item>
+            <ion-input
+              v-model="newTag"
+              :placeholder="translate('Add tag')"
+              fill="outline"
+              label-placement="stacked"
+              @keyup.enter="commitTag"
+            />
+            <ion-button
+              fill="clear"
+              :disabled="!newTag.trim()"
+              @click="commitTag"
+            >
+              {{ translate("Add") }}
+            </ion-button>
+          </ion-item>
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('display')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('dates')">
+              {{ translate("Next") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <div v-if="step === 'dates'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>{{ translate("Dates") }}</ion-list-header>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              v-model="dates.introductionDate"
+              type="date"
+              :label="translate('Introduction date')"
+              label-placement="stacked"
+              fill="outline"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              v-model="dates.releaseDate"
+              type="date"
+              :label="translate('Release date')"
+              label-placement="stacked"
+              fill="outline"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              v-model="dates.supportDiscontinuationDate"
+              type="date"
+              :label="translate('Support discontinuation date')"
+              label-placement="stacked"
+              fill="outline"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              v-model="dates.salesDiscontinuationDate"
+              type="date"
+              :label="translate('Sales discontinuation')"
+              label-placement="stacked"
+              fill="outline"
+            />
+          </ion-item>
+          <ion-item
+            lines="none"
+            class="oos-toggle"
           >
-            {{ translate("No tags") }}
-          </p>
-        </div>
-        <div class="add-row">
-          <ion-input
-            v-model="newTag"
-            :placeholder="translate('Add tag')"
-            fill="outline"
-            label-placement="stacked"
-            @keyup.enter="commitTag"
-          />
-          <ion-button
-            fill="clear"
-            :disabled="!newTag.trim()"
-            @click="commitTag"
-          >
-            {{ translate("Add") }}
-          </ion-button>
-        </div>
-      </CardSection>
+            <ion-toggle v-model="dates.salesDiscWhenNotAvail">
+              <ion-label>
+                {{ translate("Discontinue when out of stock") }}
+                <p class="ion-text-wrap">{{ translate("This item will not come back into stock. Do not accept backorders") }}</p>
+              </ion-label>
+            </ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('tags')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('shipping')">
+              {{ translate("Next") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </div>
 
       <!-- Shipping & Handling -->
-      <CardSection :title="translate('Shipping and handling')">
+      <div v-if="step === 'shipping'" class="section">
+        <ion-label class="ion-padding-top">{{ "Shipping and Handling" }}</ion-label>
         <div class="shipping-grid">
           <div class="shipping-fields">
             <div class="measure-row">
               <ion-input
-                v-model="form.productWidth"
+                class="ion-margin-top"
+                v-model="shippingDimensions.productWidth"
                 min="0"
                 placeholder="00"
                 type="number"
@@ -164,7 +230,7 @@
                 fill="outline"
               />
               <ion-select
-                v-model="form.widthUomId"
+                v-model="shippingDimensions.widthUomId"
                 placeholder="unit"
                 :aria-label="translate('Width unit')"
                 interface="popover"
@@ -183,7 +249,8 @@
 
             <div class="measure-row">
               <ion-input
-                v-model="form.productHeight"
+                class="ion-margin-top"
+                v-model="shippingDimensions.productHeight"
                 min="0"
                 placeholder="00"
                 type="number"
@@ -192,7 +259,7 @@
                 fill="outline"
               />
               <ion-select
-                v-model="form.heightUomId"
+                v-model="shippingDimensions.heightUomId"
                 placeholder="unit"
                 :aria-label="translate('Height unit')"
                 interface="popover"
@@ -211,7 +278,8 @@
 
             <div class="measure-row">
               <ion-input
-                v-model="form.productDepth"
+                class="ion-margin-top"
+                v-model="shippingDimensions.productDepth"
                 min="0"
                 placeholder="00"
                 type="number"
@@ -220,7 +288,7 @@
                 fill="outline"
               />
               <ion-select
-                v-model="form.depthUomId"
+                v-model="shippingDimensions.depthUomId"
                 placeholder="unit"
                 :aria-label="translate('Depth unit')"
                 interface="popover"
@@ -239,7 +307,8 @@
 
             <div class="measure-row">
               <ion-input
-                v-model="form.productWeight"
+                class="ion-margin-top"
+                v-model="shippingDimensions.productWeight"
                 min="0"
                 placeholder="00"
                 type="number"
@@ -248,7 +317,7 @@
                 fill="outline"
               />
               <ion-select
-                v-model="form.weightUomId"
+                v-model="shippingDimensions.weightUomId"
                 placeholder="unit"
                 :aria-label="translate('Weight unit')"
                 interface="popover"
@@ -266,75 +335,98 @@
             </div>
 
             <ion-item lines="full">
-              <ion-checkbox v-model="form.inShippingBox">
+              <ion-checkbox v-model="shippingDimensions.inShippingBox">
                 {{ translate("In shipping box") }}
               </ion-checkbox>
             </ion-item>
             <ion-item lines="full">
-              <ion-checkbox v-model="form.chargeShipping">
+              <ion-checkbox v-model="shippingDimensions.chargeShipping">
                 {{ translate("Charge shipping") }}
               </ion-checkbox>
             </ion-item>
 
-            <ion-select
-              v-model="form.defaultShipmentBoxTypeId"
-              :label="translate('Default box type')"
-              label-placement="stacked"
-              interface="popover"
-              fill="outline"
-            >
-              <ion-select-option value="">
-                {{ translate("None") }}
-              </ion-select-option>
-              <ion-select-option
-                v-for="option in boxTypes"
-                :key="option.id"
-                :value="option.id"
+            <ion-item lines="none">
+              <ion-select
+                class="ion-margin-top"
+                v-model="shippingDimensions.defaultShipmentBoxTypeId"
+                :label="translate('Default box type')"
+                label-placement="stacked"
+                interface="popover"
+                fill="outline"
               >
-                {{ option.label }}
-              </ion-select-option>
-            </ion-select>
+                <ion-select-option value="">
+                  {{ translate("None") }}
+                </ion-select-option>
+                <ion-select-option
+                  v-for="option in boxTypes"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.label }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
           </div>
 
           <div class="shipping-illustration">
             <DimensionBox
-              :width="form.productWidth"
-              :height="form.productHeight"
-              :depth="form.productDepth"
-              :width-unit="unitLabel(form.widthUomId)"
-              :height-unit="unitLabel(form.heightUomId)"
-              :depth-unit="unitLabel(form.depthUomId)"
-              :width-factor="lengthUomToMm(form.widthUomId)"
-              :height-factor="lengthUomToMm(form.heightUomId)"
-              :depth-factor="lengthUomToMm(form.depthUomId)"
+              :width="shippingDimensions.productWidth"
+              :height="shippingDimensions.productHeight"
+              :depth="shippingDimensions.productDepth"
+              :width-unit="unitLabel(shippingDimensions.widthUomId)"
+              :height-unit="unitLabel(shippingDimensions.heightUomId)"
+              :depth-unit="unitLabel(shippingDimensions.depthUomId)"
+              :width-factor="lengthUomToMm(shippingDimensions.widthUomId)"
+              :height-factor="lengthUomToMm(shippingDimensions.heightUomId)"
+              :depth-factor="lengthUomToMm(shippingDimensions.depthUomId)"
             />
           </div>
         </div>
-      </CardSection>
+        <ion-item lines="none">
+          <ion-button slot="start" fill="outline" @click="next('dates')">
+            {{ translate("Back") }}
+          </ion-button>
+          <ion-button slot="end" fill="outline" @click="next('inventoryPolicy')">
+            {{ translate("Next") }}
+          </ion-button>
+        </ion-item>
+      </div>
 
       <!-- Inventory Policy -->
-      <CardSection :title="translate('Inventory policy')">
-        <div class="toggle-row">
-          <ion-item lines="none">
-            <ion-toggle v-model="form.returnable">
+      <div v-if="step === 'inventoryPolicy'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>{{ translate("Inventory policy") }}</ion-list-header>
+          <ion-item>
+            <ion-toggle v-model="inventoryPolicy.returnable">
               {{ translate("Returnable") }}
             </ion-toggle>
           </ion-item>
-          <ion-item lines="none">
-            <ion-toggle v-model="form.taxable">
+          <ion-item>
+            <ion-toggle v-model="inventoryPolicy.taxable">
               {{ translate("Taxable") }}
             </ion-toggle>
           </ion-item>
-        </div>
-      </CardSection>
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('shipping')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('identifications')">
+              {{ translate("Next") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </div>
 
       <!-- Identifications -->
-      <CardSection :title="translate('Product identifications')">
-        <ion-list lines="full">
+      <div v-if="step === 'identifications'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>
+            <ion-label>{{ translate("Identifications") }}</ion-label>
+            <span>{{ identifications.length }}</span>
+          </ion-list-header>
           <ion-item
             v-for="(ident, index) in identifications"
             :key="index"
-            lines="full"
           >
             <ion-input
               class="ion-margin-vertical"
@@ -343,23 +435,25 @@
               label-placement="stacked"
               fill="outline"
               @ion-input="ident.idValue = $event.detail.value ?? ''"
-            />
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="danger"
-              size="small"
-              @click="removeIdentification(index)"
             >
-              {{ translate("Remove") }}
-            </ion-button>
+              <ion-button
+                slot="end"
+                fill="clear"
+                color="danger"
+                size="small"
+                @click="removeIdentification(index)"
+              >
+                <ion-icon :icon="closeOutline" slot="icon-only"/>
+              </ion-button>
+            </ion-input>
           </ion-item>
 
-          <ion-item lines="none">
+          <ion-item>
             <ion-select
               v-model="newIdentTypeId"
-              :label="translate('Add identification')"
-              :placeholder="translate('Type')"
+              aria-label="add-identifications"
+              :label="translate('Type')"
+              :placeholder="translate('Select')"
               interface="popover"
               fill="outline"
             >
@@ -371,7 +465,10 @@
                 {{ option.label }}
               </ion-select-option>
             </ion-select>
+          </ion-item>
+          <ion-item>
             <ion-input
+              class="ion-margin-top"
               v-model="newIdentValue"
               :placeholder="translate('Value')"
               fill="outline"
@@ -386,141 +483,132 @@
               {{ translate("Add") }}
             </ion-button>
           </ion-item>
-        </ion-list>
-      </CardSection>
 
-      <!-- Categories -->
-      <CardSection :title="translate('Categories')">
-        <template #action>
-          <ion-button
-            fill="clear"
-            size="small"
-            @click="categoryPickerOpen = true"
-          >
-            {{ translate("Add category") }}
-          </ion-button>
-        </template>
-
-        <div
-          v-if="selectedCategories.length"
-          class="categories-list"
-        >
-          <ion-item
-            v-for="category in selectedCategories"
-            :key="category.productCategoryId"
-            lines="full"
-          >
-            <ion-label>
-              <h3>{{ category.categoryName || category.productCategoryId }}</h3>
-              <p v-if="category.description">
-                {{ category.description }}
-              </p>
-              <p>{{ category.productCategoryId }}</p>
-            </ion-label>
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="danger"
-              size="small"
-              @click="removeCategory(category.productCategoryId)"
-            >
-              {{ translate("Remove") }}
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('inventoryPolicy')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('categories')">
+              {{ translate("Next") }}
             </ion-button>
           </ion-item>
-        </div>
-        <p
-          v-else
-          class="no-categories"
-        >
-          {{ translate("No categories added") }}
-        </p>
+        </ion-list>
+      </div>
 
+      <!-- Categories -->
+      <div v-if="step === 'categories'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>
+            <ion-label>{{ translate("Categories") }}</ion-label>
+            <span>{{ selectedCategories.length }}</span>
+            <ion-button @click="categoryPickerOpen = true">{{ "Add" }}</ion-button>
+          </ion-list-header>
+
+          <ion-item>
+            <ion-badge class="ion-margin-right" @click="removeCategory(category.productCategoryId)" v-for="category in selectedCategories" :key="category.productCategoryId">{{ category.categoryName }}</ion-badge>
+          </ion-item>
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('identifications')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('prices')">
+              {{ translate("Next") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
         <CategoryPicker
           :is-open="categoryPickerOpen"
           :exclude-category-ids="selectedCategoryIds"
           @select="addCategory"
           @dismiss="categoryPickerOpen = false"
         />
-      </CardSection>
+      </div>
 
       <!-- Prices -->
-      <CardSection :title="translate('Prices')">
-        <ion-list lines="full">
-          <ion-item
-            v-for="(price, index) in draftedPrices"
-            :key="index"
-            lines="full"
-          >
-            <ion-label>
-              <p>{{ priceTypeLabel(price.productPriceTypeId) }}</p>
-              <h3>{{ price.currencyUomId }} {{ price.price }}</h3>
-            </ion-label>
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="danger"
-              size="small"
-              @click="removePrice(index)"
+      <div v-if="step === 'prices'" class="section">
+        <ion-list lines="none">
+          <ion-list-header><h4>{{ translate("Prices") }}</h4></ion-list-header>
+          <ion-item>
+            <ion-select
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': pricesTouched && priceErrors.priceUomId, 'ion-touched': pricesTouched }"
+              v-model="priceUomId"
+              :label="translate('Currency')"
+              label-placement="stacked"
+              interface="popover"
+              fill="outline"
+              :error-text="priceErrors.priceUomId"
+              @ion-change="pricesTouched && validatePrices()"
             >
-              {{ translate("Remove") }}
+              <ion-select-option
+                v-for="option in currencies"
+                :key="option.id"
+                :value="option.id"
+              >
+                {{ option.label }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': pricesTouched && priceErrors.DEFAULT_PRICE, 'ion-touched': pricesTouched }"
+              :label="translate('Default Price')"
+              label-placement="stacked"
+              fill="outline"
+              v-model="draftedPrices.DEFAULT_PRICE"
+              type="number"
+              min="0"
+              clear-input
+              :error-text="priceErrors.DEFAULT_PRICE"
+              @ion-blur="pricesTouched && validatePrices()"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': pricesTouched && priceErrors.LIST_PRICE, 'ion-touched': pricesTouched }"
+              :label="translate('List Price')"
+              label-placement="stacked"
+              fill="outline"
+              v-model="draftedPrices.LIST_PRICE"
+              type="number"
+              min="0"
+              clear-input
+              :error-text="priceErrors.LIST_PRICE"
+              @ion-blur="pricesTouched && validatePrices()"
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
+              :class="{ 'ion-invalid': pricesTouched && priceErrors.WHOLESALE_PRICE, 'ion-touched': pricesTouched }"
+              :label="translate('Wholesale Price')"
+              label-placement="stacked"
+              fill="outline"
+              v-model="draftedPrices.WHOLESALE_PRICE"
+              type="number"
+              min="0"
+              clear-input
+              :error-text="priceErrors.WHOLESALE_PRICE"
+              @ion-blur="pricesTouched && validatePrices()"
+            />
+          </ion-item>
+
+          <ion-item>
+            <ion-button slot="start" fill="outline" @click="next('categories')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" @click="next('features')">
+              {{ translate("Next") }}
             </ion-button>
           </ion-item>
-
-          <ion-item lines="none">
-            <div class="price-add-row">
-              <ion-select
-                v-model="newPrice.productPriceTypeId"
-                :label="translate('Type')"
-                label-placement="stacked"
-                interface="popover"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="option in availablePriceTypes"
-                  :key="option.id"
-                  :value="option.id"
-                >
-                  {{ option.label }}
-                </ion-select-option>
-              </ion-select>
-              <ion-select
-                v-model="newPrice.currencyUomId"
-                :label="translate('Currency')"
-                label-placement="stacked"
-                interface="popover"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="option in currencies"
-                  :key="option.id"
-                  :value="option.id"
-                >
-                  {{ option.label }}
-                </ion-select-option>
-              </ion-select>
-              <ion-input
-                v-model="newPrice.price"
-                type="number"
-                min="0"
-                :label="translate('Amount')"
-                label-placement="stacked"
-                fill="outline"
-                @keyup.enter="addPrice"
-              />
-              <ion-button
-                fill="clear"
-                :disabled="!canAddPrice"
-                @click="addPrice"
-              >
-                {{ translate("Add") }}
-              </ion-button>
-            </div>
-          </ion-item>
         </ion-list>
-      </CardSection>
+      </div>
 
       <!-- Features -->
-      <CardSection :title="translate('Features')">
+      <div v-if="step === 'features'" class="section">
         <FeaturesSection
           :family-axes="draftAxes"
           :applied-feature-ids="draftAppliedIds"
@@ -528,24 +616,24 @@
           @toggle="onToggleFeature"
           @create-value="onCreateFeatureValue"
         />
-      </CardSection>
+        <ion-item lines="none">
+          <ion-button slot="start" fill="outline" @click="next('prices')">
+            {{ translate("Back") }}
+          </ion-button>
+          <ion-button slot="end" fill="outline" @click="next('variants')">
+            {{ translate("Next") }}
+          </ion-button>
+        </ion-item>
+      </div>
 
       <!-- Variants -->
-      <CardSection :title="translate('Variants')">
-        <template #action>
-          <ion-button
-            fill="clear"
-            size="small"
-            @click="pickerOpen = true"
-          >
-            {{ translate("Add variant") }}
-          </ion-button>
-        </template>
-
-        <div
-          v-if="variants.length"
-          class="variants-list"
-        >
+      <div v-if="step === 'variants'" class="section">
+        <ion-list lines="none">
+          <ion-list-header>
+            <ion-label>{{ translate("Variants") }}</ion-label>
+            <span>{{ variants.length }}</span>
+            <ion-button @click="pickerOpen = true">{{ translate("Add") }}</ion-button>
+          </ion-list-header>
           <ion-item
             v-for="variant in variants"
             :key="variant.productId"
@@ -571,13 +659,16 @@
               {{ translate("Remove") }}
             </ion-button>
           </ion-item>
-        </div>
-        <p
-          v-else
-          class="no-variants"
-        >
-          {{ translate("No variants added") }}
-        </p>
+
+          <ion-item lines="none">
+            <ion-button slot="start" fill="outline" @click="next('prices')">
+              {{ translate("Back") }}
+            </ion-button>
+            <ion-button slot="end" fill="outline" :disabled="creating" @click="submit">
+              {{ translate("Save") }}
+            </ion-button>
+          </ion-item>
+        </ion-list>
 
         <ProductPicker
           :is-open="pickerOpen"
@@ -586,22 +677,6 @@
           @select="addVariant"
           @dismiss="pickerOpen = false"
         />
-      </CardSection>
-
-      <div class="create-footer">
-        <ion-button
-          expand="block"
-          :disabled="creating || !canCreate"
-          @click="submit"
-        >
-          <ion-spinner
-            v-if="creating"
-            name="crescent"
-          />
-          <template v-else>
-            {{ translate("Create product") }}
-          </template>
-        </ion-button>
       </div>
     </ion-content>
   </ion-page>
@@ -610,31 +685,117 @@
 <script setup lang="ts">
 import {
   IonBackButton, IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon,
-  IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonSpinner,
+  IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonProgressBar,
   IonTextarea, IonThumbnail, IonTitle, IonToggle, IonToolbar,
   IonList, IonListHeader
 } from "@ionic/vue"
 import { computed, reactive, ref } from "vue"
+import { z } from "zod"
 import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
 import { DxpShopifyImg, translate } from "@common"
-import { closeCircle } from "ionicons/icons"
-import CardSection from "@/components/common/CardSection.vue"
+import { closeCircle, closeOutline } from "ionicons/icons"
 import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
 import FeaturesSection from "@/components/detail/FeaturesSection.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
-import { addProductCategoryMember, applyFeature, createFeature, createProduct, createProductPrice } from "@/api/pim"
-import { boxTypesOptions, currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, priceTypesOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"
-import { featureCatalogOptions } from "@/queries/productDetail"
+import { createFeature, createProduct } from "@/api/pim"
+import { boxTypesOptions, currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"
 import { buildFeatureAxes, FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { lengthUomToMm } from "@/domain/product/uom"
 import { productDisplayName } from "@/domain/normalize/product"
 import { useToast } from "@/composables/useToast"
 import type { ProductCategory, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
-import type { ProductPriceCreate } from "@/domain/types/pim"
 
 const toast = useToast()
+
+// ---------- Display validation (Zod) ----------
+const displaySchema = z.object({
+  productName: z.string().trim().min(1, "Product Name is required").max(200, "Max 200 characters"),
+  internalName: z.string().trim().min(1, "Internal Name is required").max(200, "Max 200 characters"),
+  brandName: z.string().trim().min(1, "Brand Name is required").max(100, "Max 100 characters"),
+  productTypeId: z.string().min(1, "Product type is required"),
+  description: z.string().trim().max(5000, "Max 5000 characters").optional(),
+  longDescription: z.string().trim().max(10000, "Max 10000 characters").optional()
+})
+
+type DisplayErrors = Partial<Record<keyof z.infer<typeof displaySchema>, string>>
+const displayErrors = ref<DisplayErrors>({})
+const displayTouched = ref(false)
+
+const validateDisplay = (): boolean => {
+  displayTouched.value = true
+  const result = displaySchema.safeParse(info)
+  if(result.success) {
+    displayErrors.value = {}
+
+    return true
+  }
+  const errors: DisplayErrors = {}
+  for(const issue of result.error.issues) {
+    const field = issue.path[0] as keyof DisplayErrors
+    if(field && !errors[field]) {
+      errors[field] = issue.message
+    }
+  }
+  displayErrors.value = errors
+
+  return false
+}
+
+// ---------- Prices validation (Zod) ----------
+const PRICE_FIELDS = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
+type PriceField = typeof PRICE_FIELDS[number]
+
+const positivePrice = z.string().trim().refine(
+  (v) => v === "" || (!isNaN(Number(v)) && Number(v) > 0),
+  { message: "Must be a positive number" }
+)
+
+const pricesSchema = z.object({
+  priceUomId: z.string(),
+  DEFAULT_PRICE: positivePrice,
+  LIST_PRICE: positivePrice,
+  WHOLESALE_PRICE: positivePrice
+}).superRefine((data, ctx) => {
+  const anyEntered = PRICE_FIELDS.some((f) => data[f].trim() !== "")
+  if(anyEntered && !data.priceUomId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Currency is required when a price is set",
+      path: ["priceUomId"]
+    })
+  }
+})
+
+type PriceErrors = Partial<Record<PriceField | "priceUomId", string>>
+const priceErrors = ref<PriceErrors>({})
+const pricesTouched = ref(false)
+
+const validatePrices = (): boolean => {
+  pricesTouched.value = true
+  const result = pricesSchema.safeParse({
+    priceUomId: priceUomId.value,
+    DEFAULT_PRICE: draftedPrices.value.DEFAULT_PRICE,
+    LIST_PRICE: draftedPrices.value.LIST_PRICE,
+    WHOLESALE_PRICE: draftedPrices.value.WHOLESALE_PRICE
+  })
+  if(result.success) {
+    priceErrors.value = {}
+
+    return true
+  }
+  const errors: PriceErrors = {}
+  for(const issue of result.error.issues) {
+    const field = issue.path[0] as keyof PriceErrors
+    if(field && !errors[field]) {
+      errors[field] = issue.message
+    }
+  }
+  priceErrors.value = errors
+
+  return false
+}
 
 // Reference data
 const productTypesQuery = useQuery(productTypesOptions())
@@ -643,7 +804,6 @@ const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
 const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
-const priceTypesQuery = useQuery(priceTypesOptions())
 const currenciesQuery = useQuery(currencyUomOptions())
 const productTypes = computed(() => productTypesQuery.data.value ?? [])
 const boxTypes = computed(() => boxTypesQuery.data.value ?? [])
@@ -651,7 +811,6 @@ const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
-const priceTypes = computed(() => priceTypesQuery.data.value ?? [])
 const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const info = reactive({
@@ -663,19 +822,15 @@ const info = reactive({
   longDescription: ""
 })
 
-// Form state
-const form = reactive({
-  productName: "",
-  internalName: "",
-  brandName: "",
-  productTypeId: "",
-  description: "",
-  longDescription: "",
+const dates = reactive({
   introductionDate: "",
   releaseDate: "",
   supportDiscontinuationDate: "",
   salesDiscontinuationDate: "",
-  salesDiscWhenNotAvail: false,
+  salesDiscWhenNotAvail: false
+})
+
+const shippingDimensions = reactive({
   productWidth: "" as number | "",
   productHeight: "" as number | "",
   productDepth: "" as number | "",
@@ -687,6 +842,9 @@ const form = reactive({
   inShippingBox: false,
   chargeShipping: false,
   defaultShipmentBoxTypeId: "",
+})
+
+const inventoryPolicy = reactive({
   returnable: true,
   taxable: true
 })
@@ -696,20 +854,24 @@ const newTag = ref("")
 const identifications = ref<Array<{ goodIdentificationTypeId: string; idValue: string }>>([])
 const newIdentTypeId = ref("")
 const newIdentValue = ref("")
-const draftedPrices = ref<ProductPriceCreate[]>([])
-const newPrice = reactive<Partial<ProductPriceCreate>>({ productPriceTypeId: "", currencyUomId: "", price: undefined })
+const draftedPrices = ref({
+  "DEFAULT_PRICE": "",
+  "LIST_PRICE": "",
+  "WHOLESALE_PRICE": ""
+})
 const selectedCategories = ref<ProductCategory[]>([])
 const categoryPickerOpen = ref(false)
 const variants = ref<ProductSummary[]>([])
 const pickerOpen = ref(false)
 const creating = ref(false)
+const step = ref("display")
+const priceUomId = ref("")
 
-const canCreate = computed(() => Boolean(form.productName.trim() || form.internalName.trim()))
+const steps = ["display", "tags", "dates", "shipping", "inventoryPolicy", "identifications", "categories", "prices", "features", "variants"]
+
 const variantIds = computed(() => variants.value.map((v) => v.productId))
 const selectedCategoryIds = computed(() => selectedCategories.value.map((c) => c.productCategoryId))
-const usedPriceTypeIds = computed(() => new Set(draftedPrices.value.map((p) => p.productPriceTypeId)))
-const availablePriceTypes = computed(() => priceTypes.value.filter((t) => !usedPriceTypeIds.value.has(t.id)))
-const canAddPrice = computed(() => Boolean(newPrice.productPriceTypeId && newPrice.currencyUomId && newPrice.price != null && newPrice.price > 0))
+const progress = computed(() => steps.findIndex((s) => s === step.value) / 10)
 
 // Tags
 const commitTag = () => {
@@ -720,25 +882,6 @@ const commitTag = () => {
 }
 const removeTag = (tag: string) => {
   tags.value = tags.value.filter((t) => t !== tag)
-}
-
-// Prices
-const priceTypeLabel = (typeId: string) => priceTypes.value.find((t) => t.id === typeId)?.label ?? typeId
-
-const addPrice = () => {
-  if(!canAddPrice.value) {return}
-  draftedPrices.value.push({
-    productPriceTypeId: newPrice.productPriceTypeId!,
-    currencyUomId: newPrice.currencyUomId!,
-    price: Number(newPrice.price)
-  })
-  newPrice.productPriceTypeId = ""
-  newPrice.currencyUomId = ""
-  newPrice.price = undefined
-}
-
-const removePrice = (index: number) => {
-  draftedPrices.value.splice(index, 1)
 }
 
 // Categories
@@ -813,6 +956,16 @@ const removeVariant = (productId: string) => {
   variants.value = variants.value.filter((v) => v.productId !== productId)
 }
 
+const next = (s: string) => {
+  if(step.value === "display" && s !== "display") {
+    if(!validateDisplay()) {return}
+  }
+  if(step.value === "prices" && s !== "prices") {
+    if(!validatePrices()) {return}
+  }
+  step.value = s
+}
+
 // Shipping helper
 const unitLabel = (uomId: string) => lengthUoms.value.find((uom) => uom.id === uomId)?.label ?? ""
 
@@ -820,59 +973,47 @@ const unitLabel = (uomId: string) => lengthUoms.value.find((uom) => uom.id === u
 const yesNo = (val: boolean): "Y" | "N" => (val ? "Y" : "N")
 
 const submit = async () => {
-  if(!canCreate.value || creating.value) {return}
+  if(creating.value) {return}
   creating.value = true
   try {
     const { productId } = await createProduct({
-      productName: form.productName.trim() || undefined,
-      internalName: form.internalName.trim() || undefined,
-      brandName: form.brandName.trim() || undefined,
-      description: form.description.trim() || undefined,
-      longDescription: form.longDescription.trim() || undefined,
-      productTypeId: form.productTypeId || undefined,
-      introductionDate: form.introductionDate || undefined,
-      releaseDate: form.releaseDate || undefined,
-      supportDiscontinuationDate: form.supportDiscontinuationDate || undefined,
-      salesDiscontinuationDate: form.salesDiscontinuationDate || undefined,
-      salesDiscWhenNotAvail: yesNo(form.salesDiscWhenNotAvail),
-      returnable: yesNo(form.returnable),
-      taxable: yesNo(form.taxable),
-      chargeShipping: yesNo(form.chargeShipping),
-      inShippingBox: yesNo(form.inShippingBox),
-      defaultShipmentBoxTypeId: form.defaultShipmentBoxTypeId || undefined,
-      productWidth: form.productWidth !== "" ? form.productWidth : undefined,
-      productHeight: form.productHeight !== "" ? form.productHeight : undefined,
-      productDepth: form.productDepth !== "" ? form.productDepth : undefined,
-      productWeight: form.productWeight !== "" ? form.productWeight : undefined,
-      widthUomId: form.widthUomId || undefined,
-      heightUomId: form.heightUomId || undefined,
-      depthUomId: form.depthUomId || undefined,
-      weightUomId: form.weightUomId || undefined,
+      productName: info.productName.trim() || undefined,
+      internalName: info.internalName.trim() || undefined,
+      brandName: info.brandName.trim() || undefined,
+      description: info.description.trim() || undefined,
+      longDescription: info.longDescription.trim() || undefined,
+      productTypeId: info.productTypeId || undefined,
+      introductionDate: dates.introductionDate || undefined,
+      releaseDate: dates.releaseDate || undefined,
+      supportDiscontinuationDate: dates.supportDiscontinuationDate || undefined,
+      salesDiscontinuationDate: dates.salesDiscontinuationDate || undefined,
+      salesDiscWhenNotAvail: yesNo(dates.salesDiscWhenNotAvail),
+      returnable: yesNo(inventoryPolicy.returnable),
+      taxable: yesNo(inventoryPolicy.taxable),
+      chargeShipping: yesNo(shippingDimensions.chargeShipping),
+      inShippingBox: yesNo(shippingDimensions.inShippingBox),
+      defaultShipmentBoxTypeId: shippingDimensions.defaultShipmentBoxTypeId || undefined,
+      productWidth: shippingDimensions.productWidth !== "" ? shippingDimensions.productWidth : undefined,
+      productHeight: shippingDimensions.productHeight !== "" ? shippingDimensions.productHeight : undefined,
+      productDepth: shippingDimensions.productDepth !== "" ? shippingDimensions.productDepth : undefined,
+      productWeight: shippingDimensions.productWeight !== "" ? shippingDimensions.productWeight : undefined,
+      widthUomId: shippingDimensions.widthUomId || undefined,
+      heightUomId: shippingDimensions.heightUomId || undefined,
+      depthUomId: shippingDimensions.depthUomId || undefined,
+      weightUomId: shippingDimensions.weightUomId || undefined,
       isVirtual: "Y",
       keywords: tags.value,
       identifications: identifications.value,
+      prices: Object.entries(draftedPrices).map(([type, price]) => ({ 
+        ...price,
+        currencyUomId: priceUomId,
+        productPricePurposeId: "LISTING",
+        productPriceTypeId: type,
+        productStoreId: "STORE" // TODO: Make it dynamic
+      })),
+      categories: selectedCategories.value,
+      features: draftedFeatures.value
     })
-
-    // Create prices post-creation
-    if(draftedPrices.value.length) {
-      await Promise.all(draftedPrices.value.map((p) => createProductPrice(productId, p)))
-    }
-
-    // Add category members post-creation
-    if(selectedCategories.value.length) {
-      await Promise.all(
-        selectedCategories.value.map((c) => addProductCategoryMember(productId, c.productCategoryId))
-      )
-    }
-
-    // Apply drafted features post-creation
-    if(draftedFeatures.value.length) {
-      await Promise.all(
-        draftedFeatures.value.map((f) =>
-          applyFeature(productId, { productFeatureId: f.productFeatureId, productFeatureApplTypeId: FEATURE_APPL_TYPE.standard })
-        )
-      )
-    }
 
     router.push(`/products/${productId}`)
   } catch(error) {
@@ -883,6 +1024,11 @@ const submit = async () => {
 </script>
 
 <style scoped>
+div.section {
+  width: 375px;
+  margin: auto;
+}
+
 .grid-4 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -898,7 +1044,6 @@ const submit = async () => {
 
 .oos-toggle {
   margin-top: 8px;
-  --padding-start: 0;
 }
 
 .tag-row {
@@ -926,7 +1071,7 @@ const submit = async () => {
 
 .shipping-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 443px) 1fr;
+  grid-template-columns: 375px 1fr;
   gap: 24px;
 }
 
@@ -970,19 +1115,6 @@ const submit = async () => {
 
 .variants-list {
   margin-top: 4px;
-}
-
-.price-add-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 0;
-}
-
-.price-add-row ion-select,
-.price-add-row ion-input {
-  flex: 1;
 }
 
 .no-variants,

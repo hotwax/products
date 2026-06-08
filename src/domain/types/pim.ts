@@ -82,8 +82,8 @@ export interface FeatureCreate {
 }
 
 export interface ProductPriceCreate {
-  productPriceTypeId: string
-  currencyUomId: string
+  productPriceTypeId: string,
+  currencyUomId: string,
   price: number
 }
 

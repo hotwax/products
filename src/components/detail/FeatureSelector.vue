@@ -31,21 +31,40 @@
         </ion-chip>
       </div>
     </div>
+    <div
+      v-if="showAddVariant"
+      class="add-variant-row"
+    >
+      <ion-button
+        fill="clear"
+        size="small"
+        @click="$emit('addVariant')"
+      >
+        {{ translate("Add variant") }}
+      </ion-button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IonChip, IonIcon, IonLabel } from "@ionic/vue"
+import { IonButton, IonChip, IonIcon, IonLabel } from "@ionic/vue"
 import { checkmarkOutline } from "ionicons/icons"
 import { translate } from "@common"
 import type { FeatureAxisOption } from "@/domain/product/family"
 
-defineProps<{
-  options: FeatureAxisOption[]
-  selected: Record<string, string>
-}>()
+withDefaults(
+  defineProps<{
+    options: FeatureAxisOption[]
+    selected: Record<string, string>
+    showAddVariant?: boolean
+  }>(),
+  { showAddVariant: false }
+)
 
-defineEmits<{ (event: "select", axis: string, value: string): void }>()
+defineEmits<{
+  (event: "select", axis: string, value: string): void
+  (event: "addVariant"): void
+}>()
 </script>
 
 <style scoped>
@@ -84,5 +103,11 @@ defineEmits<{ (event: "select", axis: string, value: string): void }>()
 
 .value-chip--selected ion-icon {
   color: var(--ion-color-primary);
+}
+
+.add-variant-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 0 0;
 }
 </style>
