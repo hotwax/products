@@ -40,9 +40,6 @@
       </ion-list>
     </div>
 
-    <div class="hero-side">
-      <slot name="side" />
-    </div>
   </div>
 </template>
 
@@ -71,7 +68,7 @@ const typeLabel = computed(() => {
 <style scoped>
 .hero {
   display: grid;
-  grid-template-columns: minmax(220px, 343px) 1fr minmax(260px, 343px);
+  grid-template-columns: minmax(220px, 343px) 1fr;
   gap: 16px;
   padding: 16px;
   align-items: start;

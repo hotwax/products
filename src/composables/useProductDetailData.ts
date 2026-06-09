@@ -195,6 +195,8 @@ export function useProductDetailData(routeProductId: Ref<string>) {
     categories: computed(() => categoriesQuery.data.value ?? []),
     categoriesLoading: categoriesQuery.isLoading,
 
+    prices: computed(() => coreQuery.data.value?.prices ?? []),
+
     productTypes: computed(() => productTypesQuery.data.value ?? []),
     boxTypes: computed(() => boxTypesQuery.data.value ?? [])
   }

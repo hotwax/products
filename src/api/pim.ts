@@ -102,16 +102,23 @@ export function createProductPrice(productId: string, payload: ProductPriceCreat
   return request({ url: `oms/products/${productId}/prices`, method: "post", data: payload })
 }
 
+export function expireProductPrice(productId: string, productPriceTypeId: string, currencyUomId: string, fromDate: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/prices/expire`, method: "post", data: { productPriceTypeId, currencyUomId, fromDate } })
+}
+
 // ---------- categories ----------
 export function fetchProductCategoryMembers(productId: string): Promise<Raw[]> {
-  return request({ url: `oms/products/${productId}/categories`, method: "get", params: { pageSize: 200 } }).then(responseList)
+  return request({ url: "admin/productCategories/member", method: "get", params: { 
+    pageSize: 200,
+    productId
+  }}).then(responseList)
 }
 
 export function expireProductCategoryMember(productId: string, productCategoryId: string, fromDate: string): Promise<unknown> {
   return request({ url: `oms/products/${productId}/categories/expire`, method: "post", data: { productCategoryId, fromDate } })
 }
 
-export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<{ productCategoryId: string; categoryName: string; description: string }[]> {
+export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<any> {
   return responseList(await request({
     url: "admin/productCategories",
     method: "get",

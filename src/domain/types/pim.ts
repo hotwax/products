@@ -1,5 +1,13 @@
 /** Request payloads for the pim component's write APIs (/rest/s1/pim). One place to track the contract. */
 
+export interface PriceEntry {
+  productPriceTypeId: string
+  currencyUomId: string
+  price: number
+  productPricePurposeId?: string
+  productStoreId?: string
+}
+
 /** PATCH semantics: only send changed fields; empty string clears a field server-side. */
 export interface ProductFieldsPatch {
   productName?: string
@@ -32,6 +40,7 @@ export interface ProductFieldsPatch {
   /** attribute-backed toggles (no Product columns; pim maps to ProductAttribute) */
   requiresInspection?: "Y" | "N"
   autoApproveSubstitutes?: "Y" | "N"
+  prices?: PriceEntry[]
 }
 
 export interface IdentificationCreate {
@@ -82,9 +91,11 @@ export interface FeatureCreate {
 }
 
 export interface ProductPriceCreate {
-  productPriceTypeId: string,
-  currencyUomId: string,
+  productPriceTypeId: string
+  currencyUomId: string
   price: number
+  productPricePurposeId?: string
+  productStoreId?: string
 }
 
 export interface ProductCreatePayload {

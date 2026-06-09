@@ -28,18 +28,7 @@
           :family-anchor="hasParent"
           :product-types="productTypes"
           @edit="scrollToDisplay"
-        >
-          <template #side>
-            <IdentificationsCard
-              :product-id="editingProductId"
-              :identifications="identifications"
-              :identification-types="identificationTypes"
-              @add="onAddIdentification"
-              @update-value="onUpdateIdentification"
-              @expire="onExpireIdentification"
-            />
-          </template>
-        </ProductHero>
+        />
 
         <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
              exists, else a thumbnail strip; a standalone product edits its own features -->
@@ -101,6 +90,15 @@
           @reactivate-component="onReactivateAssociation"
         />
 
+        <IdentificationsCard
+          :product-id="editingProductId"
+          :identifications="identifications"
+          :identification-types="identificationTypes"
+          @add="onAddIdentification"
+          @update-value="onUpdateIdentification"
+          @expire="onExpireIdentification"
+        />
+
         <DatesCard
           :draft="editor.dates.draft"
           :can-copy-from-parent="segment === 'variant' && hasParent"
@@ -127,6 +125,16 @@
           :categories="categories"
           @add="(cat: ProductCategory) => categoryMutations.add.mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName }).catch((error) => toast.error(error, translate('Could not add category')))"
           @expire="(mem: ProductCategoryMembership) => categoryMutations.expire.mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate }).catch((error) => toast.error(error, translate('Could not remove category')))"
+        />
+
+        <PricesCard
+          :draft="priceDraft.draft"
+          :currencies="currencies"
+          :dirty="priceDraft.dirty.value"
+          :saving="pricesSaving"
+          :stale-under-edit="priceDraft.staleUnderEdit.value"
+          @save="onSavePrices"
+          @reset="priceDraft.reset"
         />
 
         <InventoryPolicyCard
@@ -202,6 +210,7 @@ import ShippingHandlingCard from "@/components/detail/ShippingHandlingCard.vue"
 import HistoryCard from "@/components/detail/HistoryCard.vue"
 import TagsCard from "@/components/detail/TagsCard.vue"
 import CategoriesCard from "@/components/detail/CategoriesCard.vue"
+import PricesCard from "@/components/detail/PricesCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import AddVariantModal from "@/components/detail/AddVariantModal.vue"
 import { errorMessage } from "@/api/http"
@@ -212,8 +221,10 @@ import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
 import { useTagMutations } from "@/mutations/useTagMutations"
 import { useCategoryMutations } from "@/mutations/useCategoryMutations"
+import { updateProductFields } from "@/api/pim"
 import { useToast } from "@/composables/useToast"
-import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
+import { currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
+import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
@@ -248,7 +259,8 @@ const {
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
   audit, productTypes, boxTypes,
   anchorTags, selectedVariantTags,
-  categories
+  categories,
+  prices
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
@@ -256,6 +268,49 @@ const editor = useProductEditor(editingProductId, core, parentProductId)
 const identificationMutations = useIdentificationMutations(() => editingProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value)
 const categoryMutations = useCategoryMutations(() => editingProductId.value)
+
+// ---------- prices ----------
+const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
+type PriceType = typeof PRICE_TYPES[number]
+
+const priceSource = computed(() => {
+  const active = prices.value.filter((p: ProductPrice) => p.active)
+
+  return {
+    currencyUomId: active[0]?.currencyUomId ?? "USD",
+    DEFAULT_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? "",
+    LIST_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? "",
+    WHOLESALE_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
+  }
+})
+
+const priceDraft = useCardDraft(priceSource)
+const pricesSaving = ref(false)
+
+const onSavePrices = async () => {
+  if(pricesSaving.value) {return}
+  pricesSaving.value = true
+  try {
+    const prices = PRICE_TYPES
+      .filter((type) => (priceDraft.draft[type as PriceType] ?? "").trim())
+      .map((type) => ({
+        productPriceTypeId: type,
+        currencyUomId: priceDraft.draft.currencyUomId,
+        price: Number(priceDraft.draft[type as PriceType]),
+        productPricePurposeId: "LISTING",
+        productStoreId: "STORE",
+        productStoreGroupId: "STORE_GROUP"
+      }))
+
+    await updateProductFields(editingProductId.value, { prices })
+    await queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) })
+    toast.success(translate("Prices saved"))
+  } catch(error) {
+    toast.error(error, translate("Could not save prices"))
+  } finally {
+    pricesSaving.value = false
+  }
+}
 
 // tags on the anchor (virtual) product
 const tagMutations = useTagMutations(() => parentProductId.value)
@@ -270,10 +325,12 @@ const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
+const currenciesQuery = useQuery(currencyUomOptions())
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
 const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
+const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 

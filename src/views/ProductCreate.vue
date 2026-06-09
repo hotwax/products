@@ -865,7 +865,7 @@ const variants = ref<ProductSummary[]>([])
 const pickerOpen = ref(false)
 const creating = ref(false)
 const step = ref("display")
-const priceUomId = ref("")
+const priceUomId = ref("USD")
 
 const steps = ["display", "tags", "dates", "shipping", "inventoryPolicy", "identifications", "categories", "prices", "features", "variants"]
 

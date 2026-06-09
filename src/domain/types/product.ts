@@ -57,6 +57,7 @@ export interface GroupIdFacet {
 
 /** The editable product record (oms/products/{id} entity fields the editor binds to). */
 export interface ProductCore {
+  prices: ProductPrice[]
   productId: string
   productTypeId: string
   productName: string
@@ -161,6 +162,16 @@ export interface ProductCategory {
   productCategoryId: string
   categoryName: string
   description: string
+}
+
+export interface ProductPrice {
+  productPriceTypeId: string
+  productPricePurposeId: string
+  currencyUomId: string
+  price: number
+  fromDate: string
+  thruDate: string | null
+  active: boolean
 }
 
 export interface ProductCategoryMembership {
