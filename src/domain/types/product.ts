@@ -201,6 +201,7 @@ export interface ProductHistoryEntry {
   newValue: string
   changedByUserId: string
   changedDate: string
+  pkPrimaryValue: string
 }
 
 export interface ImportHistoryEntry {

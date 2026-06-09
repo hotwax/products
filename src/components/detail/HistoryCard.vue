@@ -9,7 +9,7 @@
         :key="entry.id"
       >
         <ion-label>
-          <h3>{{ fieldLabel(entry) }}</h3>
+          <h3>{{ fieldLabel(entry) }} : {{ entry.pkPrimaryValue }}</h3>
           <p>
             <template v-if="entry.oldValue">
               {{ entry.oldValue }} →
