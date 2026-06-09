@@ -163,6 +163,14 @@ export interface ProductCategory {
   description: string
 }
 
+export interface ProductCategoryMembership {
+  productCategoryId: string
+  categoryName: string
+  fromDate: string
+  thruDate: string | null
+  active: boolean
+}
+
 export interface StoreCatalogExposure {
   productStoreId: string
   storeName: string

@@ -1,10 +1,10 @@
 import { queryOptions } from "@tanstack/vue-query"
-import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductRecord } from "@/api/pim"
+import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductCategoryMembers, fetchProductRecord } from "@/api/pim"
 import { fetchEntityAuditLogs } from "@/api/catalog"
 import { runProductSolrQuery, solrDocs } from "@/api/solr"
 import { escapeSolrValue } from "@/domain/solr/productQuery"
 import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
-import type { ProductSummary } from "@/domain/types/product"
+import type { ProductCategoryMembership, ProductSummary } from "@/domain/types/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
@@ -108,6 +108,23 @@ export function auditHistoryOptions(productId: string) {
     queryKey: qk.product.audit(productId),
     queryFn: async () => (await fetchEntityAuditLogs(productId)).map(normalizeAuditEntry),
     staleTime: 60_000
+  })
+}
+
+export function categoriesOptions(productId: string) {
+  return queryOptions({
+    queryKey: qk.product.categories(productId),
+    queryFn: async (): Promise<ProductCategoryMembership[]> => {
+      const rows = await fetchProductCategoryMembers(productId)
+
+      return rows.map((raw) => ({
+        productCategoryId: String(raw.productCategoryId ?? ""),
+        categoryName: String(raw.categoryName ?? raw.productCategoryId ?? ""),
+        fromDate: String(raw.fromDate ?? ""),
+        thruDate: raw.thruDate ? String(raw.thruDate) : null,
+        active: !raw.thruDate || new Date(String(raw.thruDate)) > new Date()
+      }))
+    }
   })
 }
 

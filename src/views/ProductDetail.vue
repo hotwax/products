@@ -116,10 +116,17 @@
           :anchor-tags="anchorTags"
           :variant-tags="selectedVariantTags"
           :has-parent="hasParent"
+          :segment="segment"
           @add-tag="(tag) => tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
           @remove-tag="(tag) => tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
           @add-variant-tag="(tag) => variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
           @remove-variant-tag="(tag) => variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
+        />
+
+        <CategoriesCard
+          :categories="categories"
+          @add="(cat: ProductCategory) => categoryMutations.add.mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName }).catch((error) => toast.error(error, translate('Could not add category')))"
+          @expire="(mem: ProductCategoryMembership) => categoryMutations.expire.mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate }).catch((error) => toast.error(error, translate('Could not remove category')))"
         />
 
         <InventoryPolicyCard
@@ -194,6 +201,7 @@ import InventoryPolicyCard from "@/components/detail/InventoryPolicyCard.vue"
 import ShippingHandlingCard from "@/components/detail/ShippingHandlingCard.vue"
 import HistoryCard from "@/components/detail/HistoryCard.vue"
 import TagsCard from "@/components/detail/TagsCard.vue"
+import CategoriesCard from "@/components/detail/CategoriesCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import AddVariantModal from "@/components/detail/AddVariantModal.vue"
 import { errorMessage } from "@/api/http"
@@ -203,12 +211,13 @@ import { useIdentificationMutations } from "@/mutations/useIdentificationMutatio
 import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
 import { useTagMutations } from "@/mutations/useTagMutations"
+import { useCategoryMutations } from "@/mutations/useCategoryMutations"
 import { useToast } from "@/composables/useToast"
 import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { FeatureAxis, ProductAssociation, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
+import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 
 const props = defineProps<{ productId: string }>()
@@ -238,13 +247,16 @@ const {
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
   audit, productTypes, boxTypes,
-  anchorTags, selectedVariantTags
+  anchorTags, selectedVariantTags,
+  categories
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
 
 const identificationMutations = useIdentificationMutations(() => editingProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value)
+const categoryMutations = useCategoryMutations(() => editingProductId.value)
+
 // tags on the anchor (virtual) product
 const tagMutations = useTagMutations(() => parentProductId.value)
 // tags on the selected variant — uses family cache path

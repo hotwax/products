@@ -1,89 +1,45 @@
 <template>
   <CardSection :title="translate('Tags')">
-    <template v-if="hasParent">
-      <div class="tag-group">
-        <p class="group-label">
-          {{ translate("Virtual") }}
-        </p>
-        <div class="tag-row">
-          <ion-chip
-            v-for="tag in anchorTags"
-            :key="tag"
-            outline
-          >
-            <ion-label>{{ tag }}</ion-label>
-            <ion-icon
-              :icon="closeCircle"
-              @click="$emit('removeTag', tag)"
-            />
-          </ion-chip>
-          <p
-            v-if="!anchorTags.length"
-            class="no-tags"
-          >
-            {{ translate("No tags") }}
-          </p>
-        </div>
-        <div class="add-row">
-          <ion-input
-            v-model="newTag"
-            :placeholder="translate('Add tag')"
-            fill="outline"
-            label-placement="stacked"
-            @keyup.enter="commitTag"
+    <!-- Variant segment: show variant tags only -->
+    <template v-if="isVariantSegment">
+      <div class="tag-row">
+        <ion-chip
+          v-for="tag in variantTags"
+          :key="tag"
+          outline
+        >
+          <ion-label>{{ tag }}</ion-label>
+          <ion-icon
+            :icon="closeCircle"
+            @click="$emit('removeVariantTag', tag)"
           />
-          <ion-button
-            fill="clear"
-            :disabled="!newTag.trim()"
-            @click="commitTag"
-          >
-            {{ translate("Add") }}
-          </ion-button>
-        </div>
+        </ion-chip>
+        <p
+          v-if="!variantTags.length"
+          class="no-tags"
+        >
+          {{ translate("No tags") }}
+        </p>
       </div>
-
-      <div class="tag-group">
-        <p class="group-label">
-          {{ translate("Variant") }}
-        </p>
-        <div class="tag-row">
-          <ion-chip
-            v-for="tag in variantTags"
-            :key="tag"
-            outline
-          >
-            <ion-label>{{ tag }}</ion-label>
-            <ion-icon
-              :icon="closeCircle"
-              @click="$emit('removeVariantTag', tag)"
-            />
-          </ion-chip>
-          <p
-            v-if="!variantTags.length"
-            class="no-tags"
-          >
-            {{ translate("No tags") }}
-          </p>
-        </div>
-        <div class="add-row">
-          <ion-input
-            v-model="newVariantTag"
-            :placeholder="translate('Add tag')"
-            fill="outline"
-            label-placement="stacked"
-            @keyup.enter="commitVariantTag"
-          />
-          <ion-button
-            fill="clear"
-            :disabled="!newVariantTag.trim()"
-            @click="commitVariantTag"
-          >
-            {{ translate("Add") }}
-          </ion-button>
-        </div>
+      <div class="add-row">
+        <ion-input
+          v-model="newVariantTag"
+          :placeholder="translate('Add tag')"
+          fill="outline"
+          label-placement="stacked"
+          @keyup.enter="commitVariantTag"
+        />
+        <ion-button
+          fill="clear"
+          :disabled="!newVariantTag.trim()"
+          @click="commitVariantTag"
+        >
+          {{ translate("Add") }}
+        </ion-button>
       </div>
     </template>
 
+    <!-- Parent/standalone segment: show anchor (virtual) tags -->
     <template v-else>
       <div class="tag-row">
         <ion-chip
@@ -126,16 +82,20 @@
 
 <script setup lang="ts">
 import { IonButton, IonChip, IonIcon, IonInput, IonLabel } from "@ionic/vue"
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import { closeCircle } from "ionicons/icons"
 import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 
-const props = defineProps<{
-  anchorTags: string[]
-  variantTags: string[]
-  hasParent: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    anchorTags: string[]
+    variantTags: string[]
+    hasParent: boolean
+    segment?: "parent" | "variant"
+  }>(),
+  { segment: "parent" }
+)
 
 const emit = defineEmits<{
   (event: "addTag", tag: string): void
@@ -146,6 +106,9 @@ const emit = defineEmits<{
 
 const newTag = ref("")
 const newVariantTag = ref("")
+
+// Show variant tags only when explicitly in the variant segment of a product with a parent
+const isVariantSegment = computed(() => props.hasParent && props.segment === "variant")
 
 const commitTag = () => {
   const tag = newTag.value.trim()
@@ -163,22 +126,6 @@ const commitVariantTag = () => {
 </script>
 
 <style scoped>
-.tag-group {
-  margin-bottom: 16px;
-}
-
-.tag-group:last-child {
-  margin-bottom: 0;
-}
-
-.group-label {
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  margin: 0 0 6px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 .tag-row {
   display: flex;
   flex-wrap: wrap;

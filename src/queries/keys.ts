@@ -17,7 +17,8 @@ export const qk = {
     family: (productId: string) => ["product", productId, "family"] as const,
     features: (productId: string) => ["product", productId, "features"] as const,
     audit: (productId: string) => ["product", productId, "audit"] as const,
-    solr: (productId: string) => ["product", productId, "solr"] as const
+    solr: (productId: string) => ["product", productId, "solr"] as const,
+    categories: (productId: string) => ["product", productId, "categories"] as const
   },
   catalog: {
     all: ["catalog"] as const,

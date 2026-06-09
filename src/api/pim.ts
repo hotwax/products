@@ -103,6 +103,14 @@ export function createProductPrice(productId: string, payload: ProductPriceCreat
 }
 
 // ---------- categories ----------
+export function fetchProductCategoryMembers(productId: string): Promise<Raw[]> {
+  return request({ url: `oms/products/${productId}/categories`, method: "get", params: { pageSize: 200 } }).then(responseList)
+}
+
+export function expireProductCategoryMember(productId: string, productCategoryId: string, fromDate: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/categories/expire`, method: "post", data: { productCategoryId, fromDate } })
+}
+
 export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<{ productCategoryId: string; categoryName: string; description: string }[]> {
   return responseList(await request({
     url: "admin/productCategories",
@@ -117,7 +125,10 @@ export function addProductCategoryMember(productId: string, productCategoryId: s
 
 // ---------- keywords / tags ----------
 export function addProductKeyword(productId: string, keyword: string): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/keywords`, method: "post", data: { keyword } })
+  return request({ url: `oms/products/${productId}/keywords`, method: "post", data: { 
+    keyword,
+    keywordTypeId: "KWT_TAG"
+  } })
 }
 
 export function removeProductKeyword(productId: string, keyword: string): Promise<unknown> {
