@@ -33,10 +33,9 @@
           <ion-checkbox
             slot="start"
             :checked="selectedMap.has(product.productId)"
-            @click.stop
-            @ion-change="toggle(product)"
+            style="pointer-events: none"
           />
-          <ion-thumbnail>
+          <ion-thumbnail slot="start">
             <DxpShopifyImg
               :src="product.imageUrl"
               size="thumb"

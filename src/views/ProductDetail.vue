@@ -71,7 +71,7 @@
           ref="displayCardRef"
           :draft="editor.display.draft"
           :product-types="productTypes"
-          :dirty="editor.display.dirty.value"
+          :dirty="editor.display.dirty.value || stagedComponents.length > 0"
           :saving="editor.saving.value"
           :stale-under-edit="editor.display.staleUnderEdit.value"
           :components="[...associationGroups.components, ...stagedComponentAssociations]"
@@ -139,14 +139,14 @@
 
         <InventoryPolicyCard
           :draft="editor.policy.draft"
-          :substitutes="associationGroups.substitutes"
-          :dirty="editor.policy.dirty.value"
+          :substitutes="[...associationGroups.substitutes, ...stagedSubstituteAssociations]"
+          :dirty="editor.policy.dirty.value || stagedSubstitutes.length > 0"
           :saving="editor.saving.value"
           :stale-under-edit="editor.policy.staleUnderEdit.value"
-          @save="editor.savePolicy"
-          @reset="editor.policy.reset"
+          @save="onSavePolicyWithSubstitutes"
+          @reset="onResetPolicy"
           @add-substitute="picker = 'substitute'"
-          @expire-substitute="onExpireAssociation"
+          @expire-substitute="onExpireOrRemoveSubstitute"
           @reactivate-substitute="onReactivateAssociation"
         />
 
@@ -488,26 +488,50 @@ const onVariantCreated = async (productId: string) => {
 const picker = ref<null | "substitute" | "component" | "display-component">(null)
 
 // Components staged inside DisplayCard (MARKETING_PKG_PICK) — saved only on footer Save
-const stagedComponents = ref<ProductSummary[]>([])
+const stagedComponents = ref<Array<{ product: ProductSummary; quantity: number }>>([])
 
 const stagedComponentAssociations = computed<ProductAssociation[]>(() =>
-  stagedComponents.value.map((p) => ({
+  stagedComponents.value.map(({ product, quantity }) => ({
     productId: editingProductId.value,
-    productIdTo: p.productId,
+    productIdTo: product.productId,
     productAssocTypeId: ASSOC_TYPE.component,
     fromDate: "",
     thruDate: undefined,
     active: true,
     direction: "outgoing" as const,
     sequenceNum: null,
-    quantity: 1,
+    quantity,
     scrapFactor: null,
     instruction: "",
     reason: "",
-    relatedProductId: p.productId,
-    relatedName: productDisplayName(p),
-    relatedSku: p.sku,
-    relatedImageUrl: p.imageUrl
+    relatedProductId: product.productId,
+    relatedName: productDisplayName(product),
+    relatedSku: product.sku,
+    relatedImageUrl: product.imageUrl
+  }))
+)
+
+// Substitutes staged inside InventoryPolicyCard — saved only on footer Save
+const stagedSubstitutes = ref<Array<{ product: ProductSummary; quantity: number }>>([])
+
+const stagedSubstituteAssociations = computed<ProductAssociation[]>(() =>
+  stagedSubstitutes.value.map(({ product, quantity }) => ({
+    productId: editingProductId.value,
+    productIdTo: product.productId,
+    productAssocTypeId: ASSOC_TYPE.substitute,
+    fromDate: "",
+    thruDate: undefined,
+    active: true,
+    direction: "outgoing" as const,
+    sequenceNum: null,
+    quantity,
+    scrapFactor: null,
+    instruction: "",
+    reason: "",
+    relatedProductId: product.productId,
+    relatedName: productDisplayName(product),
+    relatedSku: product.sku,
+    relatedImageUrl: product.imageUrl
   }))
 )
 
@@ -515,28 +539,36 @@ const excludedPickerIds = computed(() => [
   editingProductId.value,
   ...associationGroups.value.substitutes.map((assoc: ProductAssociation) => assoc.relatedProductId),
   ...associationGroups.value.components.map((assoc: ProductAssociation) => assoc.relatedProductId),
-  ...stagedComponents.value.map((p) => p.productId)
+  ...stagedComponents.value.map(({ product }) => product.productId),
+  ...stagedSubstitutes.value.map(({ product }) => product.productId)
 ])
 
-const onPickProduct = (product: ProductSummary) => {
+const onPickProduct = (items: Array<{ product: ProductSummary; quantity: number }>) => {
   if(picker.value === "display-component") {
     picker.value = null
-    stagedComponents.value.push(product)
+    for(const item of items) { stagedComponents.value.push(item) }
     return
   }
-  const typeId = picker.value === "component" ? ASSOC_TYPE.component : ASSOC_TYPE.substitute
+  if(picker.value === "substitute") {
+    picker.value = null
+    for(const item of items) { stagedSubstitutes.value.push(item) }
+    return
+  }
+  // kit component — save immediately
   picker.value = null
-  associationMutations.add
-    .mutateAsync({
-      productIdTo: product.productId,
-      productAssocTypeId: typeId,
-      quantity: typeId === ASSOC_TYPE.component ? 1 : undefined,
-      relatedName: productDisplayName(product),
-      relatedSku: product.sku,
-      relatedImageUrl: product.imageUrl
-    })
-    .then(() => toast.success(translate("Link added")))
-    .catch((error) => toast.error(error, translate("Could not add link")))
+  for(const { product, quantity } of items) {
+    associationMutations.add
+      .mutateAsync({
+        productIdTo: product.productId,
+        productAssocTypeId: ASSOC_TYPE.component,
+        quantity,
+        relatedName: productDisplayName(product),
+        relatedSku: product.sku,
+        relatedImageUrl: product.imageUrl
+      })
+      .catch((error) => toast.error(error, translate("Could not add link")))
+  }
+  toast.success(translate("Link(s) added"))
 }
 
 // Save display fields first, then flush staged components as associations
@@ -544,18 +576,41 @@ const onSaveDisplayWithComponents = async () => {
   await editor.saveDisplay()
   const toCreate = [...stagedComponents.value]
   stagedComponents.value = []
-  for(const product of toCreate) {
+  for(const { product, quantity } of toCreate) {
     await associationMutations.add
       .mutateAsync({
         productIdTo: product.productId,
         productAssocTypeId: ASSOC_TYPE.component,
-        quantity: 1,
+        quantity,
         relatedName: productDisplayName(product),
         relatedSku: product.sku,
         relatedImageUrl: product.imageUrl
       })
       .catch((error) => toast.error(error, translate("Could not add component")))
   }
+}
+
+// Save policy fields first, then flush staged substitutes
+const onSavePolicyWithSubstitutes = async () => {
+  await editor.savePolicy()
+  const toCreate = [...stagedSubstitutes.value]
+  stagedSubstitutes.value = []
+  for(const { product } of toCreate) {
+    await associationMutations.add
+      .mutateAsync({
+        productIdTo: product.productId,
+        productAssocTypeId: ASSOC_TYPE.substitute,
+        relatedName: productDisplayName(product),
+        relatedSku: product.sku,
+        relatedImageUrl: product.imageUrl
+      })
+      .catch((error) => toast.error(error, translate("Could not add substitute")))
+  }
+}
+
+const onResetPolicy = () => {
+  editor.policy.reset()
+  stagedSubstitutes.value = []
 }
 
 const assocKey = (assoc: ProductAssociation) => ({
@@ -571,9 +626,19 @@ const onExpireAssociation = (assoc: ProductAssociation) =>
 
 // For DisplayCard components: remove staged items locally; expire already-saved ones via API
 const onExpireOrRemoveComponent = (assoc: ProductAssociation) => {
-  const stagedIdx = stagedComponents.value.findIndex((p) => p.productId === assoc.relatedProductId)
+  const stagedIdx = stagedComponents.value.findIndex(({ product }) => product.productId === assoc.relatedProductId)
   if(stagedIdx !== -1) {
     stagedComponents.value.splice(stagedIdx, 1)
+    return
+  }
+  onExpireAssociation(assoc)
+}
+
+// For InventoryPolicyCard substitutes: remove staged items locally; expire already-saved ones via API
+const onExpireOrRemoveSubstitute = (assoc: ProductAssociation) => {
+  const stagedIdx = stagedSubstitutes.value.findIndex(({ product }) => product.productId === assoc.relatedProductId)
+  if(stagedIdx !== -1) {
+    stagedSubstitutes.value.splice(stagedIdx, 1)
     return
   }
   onExpireAssociation(assoc)

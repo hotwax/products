@@ -48,7 +48,7 @@ export function fetchAssociations(productId: string): Promise<Raw[]> {
 }
 
 export function createAssociation(productId: string, payload: AssociationCreate): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/associations`, method: "post", data: payload })
+  return request({ url: `oms/products/${productId}/assocs`, method: "post", data: payload })
 }
 
 export function updateAssociation(productId: string, payload: AssociationUpdate): Promise<unknown> {
@@ -56,11 +56,14 @@ export function updateAssociation(productId: string, payload: AssociationUpdate)
 }
 
 export function expireAssociation(productId: string, key: AssociationKey, thruDate?: string): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/associations/expire`, method: "post", data: { ...key, thruDate } })
+  return request({ url: `oms/products/${productId}/assocs`, method: "post", data: { ...key, thruDate } })
 }
 
 export function reactivateAssociation(productId: string, key: AssociationKey): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/associations/reactivate`, method: "post", data: key })
+  return request({ url: `oms/products/${productId}/assocs`, method: "post", data: {
+    ...key,
+    thruDate: null
+  }})
 }
 
 export function resequenceAssociations(productId: string, items: (AssociationKey & { sequenceNum: number })[]): Promise<unknown> {

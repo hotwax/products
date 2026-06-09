@@ -946,9 +946,11 @@ const onCreateFeatureValue = async ({ featureTypeId, description }: { featureTyp
 
 // Variants
 const variantName = productDisplayName
-const addVariant = (product: ProductSummary) => {
-  if(!variants.value.some((v) => v.productId === product.productId)) {
-    variants.value.push(product)
+const addVariant = (items: Array<{ product: ProductSummary; quantity: number }>) => {
+  for(const { product } of items) {
+    if(!variants.value.some((v) => v.productId === product.productId)) {
+      variants.value.push(product)
+    }
   }
   pickerOpen.value = false
 }
