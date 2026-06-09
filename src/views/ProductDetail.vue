@@ -354,12 +354,13 @@ const onToggleFeature = (payload: { axis: FeatureAxis; application: ProductFeatu
   const editingParent = segment.value === "parent" || !hasParent.value
   const applType = editingParent ? FEATURE_APPL_TYPE.selectable : FEATURE_APPL_TYPE.standard
   if(payload.applied) {
-    const existing = editingFeatureAxes.value
-      .flatMap((axis: FeatureAxis) => axis.applications)
-      .find((appl: ProductFeatureApplication) => appl.productFeatureId === payload.application.productFeatureId)
-    if(!existing) {return}
+    // const existing = editingFeatureAxes.value
+    //   .flatMap((axis: FeatureAxis) => axis.applications)
+    //   .find((appl: ProductFeatureApplication) => appl.productFeatureId === payload.application.productFeatureId)
+    // console.log('existing', existing)
+    // if(!existing) {return}
     featureMutations.remove
-      .mutateAsync({ productFeatureId: existing.productFeatureId, fromDate: existing.fromDate })
+      .mutateAsync({ productId: parentProductId.value, productFeatureId: payload.application.productFeatureId, fromDate: payload.application.fromDate })
       .catch((error) => toast.error(error, translate("Could not remove feature")))
   } else {
     featureMutations.apply

@@ -3,6 +3,7 @@ import { applyFeature, createFeature, removeFeatureApplication } from "@/api/pim
 import type { FeatureApply, FeatureCreate } from "@/domain/types/pim"
 import type { ProductFeatureApplication } from "@/domain/types/product"
 import { qk } from "@/queries/keys"
+import { DateTime } from "luxon"
 
 /** Feature chip edits: optimistic apply/remove; creating a brand-new feature value first writes the
  *  catalog row (idempotent server-side) then applies it. */
@@ -49,8 +50,8 @@ export function useFeatureMutations(productId: () => string) {
   })
 
   const remove = useMutation({
-    mutationFn: ({ productFeatureId, fromDate }: { productFeatureId: string; fromDate: string }) =>
-      removeFeatureApplication(productId(), productFeatureId, fromDate),
+    mutationFn: ({ productId, productFeatureId, fromDate }: { productId: string, productFeatureId: string; fromDate: string }) =>
+      removeFeatureApplication(productId, productFeatureId, fromDate, DateTime.now().toMillis()),
     onMutate: async ({ productFeatureId, fromDate }) => {
       const previous = await snapshot()
       queryClient.setQueryData<ProductFeatureApplication[]>(listKey(), (rows = []) =>

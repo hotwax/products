@@ -79,7 +79,9 @@ export function featureApplicationsOptions(productId: string) {
       const features = featureCatalogMap(catalog)
       const typeLabels = catalogOptionMap(types)
 
-      return rows.map((row) => normalizeFeatureApplication(row, features, typeLabels))
+      return rows
+        .filter((row) => !row.thruDate)
+        .map((row) => normalizeFeatureApplication(row, features, typeLabels))
     }
   })
 }

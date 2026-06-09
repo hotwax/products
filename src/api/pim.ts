@@ -3,6 +3,7 @@ import type {
   IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch, ProductPriceCreate
 } from "@/domain/types/pim"
 import { request, responseList } from "./http"
+import { DateTime } from "luxon"
 
 /** All calls against the oms component (/rest/s1/oms/...) — writes plus the reference reads it owns. */
 
@@ -31,11 +32,14 @@ export function createIdentification(productId: string, payload: IdentificationC
 }
 
 export function updateIdentification(productId: string, key: IdentificationKey, idValue: string): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/identifications`, method: "put", data: { ...key, idValue } })
+  return request({ url: `oms/products/${productId}/identifications`, method: "post", data: { ...key, idValue } })
 }
 
 export function expireIdentification(productId: string, key: IdentificationKey): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/identifications/expire`, method: "post", data: key })
+  return request({ url: `oms/products/${productId}/identifications`, method: "post", data: {
+    ...key,
+    thruDate: DateTime.now().toMillis()
+  }})
 }
 
 // ---------- associations ----------
@@ -72,8 +76,8 @@ export function applyFeature(productId: string, payload: FeatureApply): Promise<
   return request({ url: `oms/products/${productId}/features`, method: "post", data: payload })
 }
 
-export function removeFeatureApplication(productId: string, productFeatureId: string, fromDate: string): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/features/remove`, method: "post", data: { productFeatureId, fromDate } })
+export function removeFeatureApplication(productId: string, productFeatureId: string, fromDate: string, thruDate: string | number): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/features`, method: "post", data: { productId, productFeatureId, fromDate, thruDate } })
 }
 
 export function createFeature(payload: FeatureCreate): Promise<{ productFeatureId: string }> {
