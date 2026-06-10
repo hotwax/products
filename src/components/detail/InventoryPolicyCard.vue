@@ -2,17 +2,26 @@
   <CardSection :title="translate('Inventory policy')">
     <div class="toggle-row">
       <ion-item lines="none">
-        <ion-toggle v-model="draft.returnable">
+        <ion-toggle
+          v-model="draft.returnable"
+          :disabled="!canEdit"
+        >
           {{ translate("Returnable") }}
         </ion-toggle>
       </ion-item>
       <ion-item lines="none">
-        <ion-toggle v-model="draft.taxable">
+        <ion-toggle
+          v-model="draft.taxable"
+          :disabled="!canEdit"
+        >
           {{ translate("Taxable") }}
         </ion-toggle>
       </ion-item>
       <ion-item lines="none">
-        <ion-toggle v-model="draft.chargeShipping">
+        <ion-toggle
+          v-model="draft.chargeShipping"
+          :disabled="!canEdit"
+        >
           {{ translate("Charge shipping") }}
         </ion-toggle>
       </ion-item>
@@ -24,6 +33,7 @@
         {{ translate("Substitutes") }}
       </span>
       <ion-button
+        v-if="canEdit"
         fill="clear"
         size="small"
         @click="$emit('addSubstitute')"
@@ -40,6 +50,7 @@
         v-for="assoc in substitutes"
         :key="`${assoc.relatedProductId}-${assoc.fromDate}`"
         :association="assoc"
+        :can-edit="canEdit"
         @expire="$emit('expireSubstitute', assoc)"
         @reactivate="$emit('reactivateSubstitute', assoc)"
       />
@@ -55,6 +66,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="$emit('save')"
         @reset="$emit('reset')"
@@ -72,7 +84,7 @@ import SaveFooter from "@/components/common/SaveFooter.vue"
 import AssociationItem from "./AssociationItem.vue"
 import type { ProductAssociation } from "@/domain/types/product"
 
-defineProps<{
+withDefaults(defineProps<{
   draft: {
     returnable: boolean
     taxable: boolean
@@ -82,7 +94,10 @@ defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
   (event: "save"): void

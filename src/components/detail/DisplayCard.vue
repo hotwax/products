@@ -5,23 +5,27 @@
         v-model="draft.productName"
         :label="translate('Name')"
         label-placement="stacked"
+        :disabled="!canEdit"
       />
       <ion-input
         v-model="draft.internalName"
         :label="translate('Internal name')"
         label-placement="stacked"
         :helper-text="duplicateHint"
+        :disabled="!canEdit"
       />
       <ion-input
         v-model="draft.brandName"
         :label="translate('Brand name')"
         label-placement="stacked"
+        :disabled="!canEdit"
       />
       <ion-select
         v-model="draft.productTypeId"
         :label="translate('Type')"
         label-placement="stacked"
         interface="popover"
+        :disabled="!canEdit"
       >
         <ion-select-option
           v-for="option in productTypes"
@@ -38,12 +42,14 @@
         :label="translate('Desc')"
         label-placement="stacked"
         auto-grow
+        :disabled="!canEdit"
       />
       <ion-textarea
         v-model="draft.longDescription"
         :label="translate('Long desc')"
         label-placement="stacked"
         auto-grow
+        :disabled="!canEdit"
       />
     </div>
 
@@ -51,6 +57,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="$emit('save')"
         @reset="$emit('reset')"
@@ -66,7 +73,7 @@ import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
 import type { CatalogOption } from "@/domain/types/product"
 
-defineProps<{
+withDefaults(defineProps<{
   draft: {
     productName: string
     internalName: string
@@ -79,8 +86,12 @@ defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
+  canEdit?: boolean
   duplicateHint?: string
-}>()
+}>(), {
+  canEdit: true,
+  duplicateHint: ""
+})
 
 defineEmits<{
   (event: "save"): void

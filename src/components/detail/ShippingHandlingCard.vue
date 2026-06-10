@@ -2,7 +2,7 @@
   <CardSection :title="translate('Shipping and handling')">
     <template #action>
       <ion-button
-        v-if="canCopyFromParent"
+        v-if="canCopyFromParent && canEdit"
         fill="clear"
         size="small"
         @click="$emit('copyFromParent')"
@@ -19,12 +19,14 @@
             type="number"
             :label="translate('Width')"
             label-placement="stacked"
+            :disabled="!canEdit"
           />
           <ion-select
             v-model="draft.widthUomId"
             :aria-label="translate('Width unit')"
             interface="popover"
             class="uom-select"
+            :disabled="!canEdit"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -42,12 +44,14 @@
             type="number"
             :label="translate('Height')"
             label-placement="stacked"
+            :disabled="!canEdit"
           />
           <ion-select
             v-model="draft.heightUomId"
             :aria-label="translate('Height unit')"
             interface="popover"
             class="uom-select"
+            :disabled="!canEdit"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -65,12 +69,14 @@
             type="number"
             :label="translate('Depth')"
             label-placement="stacked"
+            :disabled="!canEdit"
           />
           <ion-select
             v-model="draft.depthUomId"
             :aria-label="translate('Depth unit')"
             interface="popover"
             class="uom-select"
+            :disabled="!canEdit"
           >
             <ion-select-option
               v-for="uom in lengthUoms"
@@ -88,12 +94,14 @@
             type="number"
             :label="translate('Weight')"
             label-placement="stacked"
+            :disabled="!canEdit"
           />
           <ion-select
             v-model="draft.weightUomId"
             :aria-label="translate('Weight unit')"
             interface="popover"
             class="uom-select"
+            :disabled="!canEdit"
           >
             <ion-select-option
               v-for="uom in weightUoms"
@@ -106,12 +114,18 @@
         </div>
 
         <ion-item lines="full">
-          <ion-checkbox v-model="draft.inShippingBox">
+          <ion-checkbox
+            v-model="draft.inShippingBox"
+            :disabled="!canEdit"
+          >
             {{ translate("In shipping box") }}
           </ion-checkbox>
         </ion-item>
         <ion-item lines="full">
-          <ion-checkbox v-model="draft.chargeShipping">
+          <ion-checkbox
+            v-model="draft.chargeShipping"
+            :disabled="!canEdit"
+          >
             {{ translate("Charge shipping") }}
           </ion-checkbox>
         </ion-item>
@@ -120,6 +134,7 @@
           :label="translate('Default box type')"
           label-placement="stacked"
           interface="popover"
+          :disabled="!canEdit"
         >
           <ion-select-option value="">
             {{ translate("None") }}
@@ -153,6 +168,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="$emit('save')"
         @reset="$emit('reset')"
@@ -170,7 +186,7 @@ import DimensionBox from "./DimensionBox.vue"
 import { lengthUomToMm } from "@/domain/product/uom"
 import type { CatalogOption } from "@/domain/types/product"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   draft: {
     productWidth: number | ""
     productHeight: number | ""
@@ -191,7 +207,10 @@ const props = defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
   (event: "save"): void

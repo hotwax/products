@@ -2,6 +2,7 @@
   <CardSection :title="translate('Product identifications')">
     <template #action>
       <ion-button
+        v-if="canEdit"
         fill="clear"
         size="small"
         @click="editing = !editing"
@@ -39,7 +40,7 @@
         </ion-item>
       </template>
 
-      <template v-else>
+      <template v-else-if="canEdit">
         <ion-item
           v-for="row in activeRows"
           :key="rowKey(row)"
@@ -48,6 +49,7 @@
             :value="drafts[rowKey(row)] ?? row.idValue"
             :label="row.typeDescription"
             label-placement="stacked"
+            :disabled="!canEdit"
             @ion-input="drafts[rowKey(row)] = $event.detail.value ?? ''"
             @ion-blur="commitValue(row)"
           />
@@ -68,6 +70,7 @@
             :label="translate('Add identification')"
             :placeholder="translate('Type')"
             interface="popover"
+            :disabled="!canEdit"
           >
             <ion-select-option
               v-for="option in availableTypes"
@@ -80,6 +83,7 @@
           <ion-input
             v-model="newValue"
             :placeholder="translate('Value')"
+            :disabled="!canEdit"
             @keyup.enter="addNew"
           />
           <ion-button
@@ -104,11 +108,14 @@ import CardSection from "@/components/common/CardSection.vue"
 import type { CatalogOption, ProductIdentification } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   productId: string
   identifications: ProductIdentification[]
   identificationTypes: CatalogOption[]
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 const emit = defineEmits<{
   (event: "add", payload: IdentificationCreate): void
@@ -131,6 +138,7 @@ const availableTypes = computed(() => {
 })
 
 const commitValue = (row: ProductIdentification) => {
+  if(!props.canEdit) {return}
   const value = (drafts[rowKey(row)] ?? row.idValue).trim()
   if(value && value !== row.idValue) {
     emit("updateValue", { key: { goodIdentificationTypeId: row.goodIdentificationTypeId, fromDate: row.fromDate }, idValue: value })
@@ -138,6 +146,7 @@ const commitValue = (row: ProductIdentification) => {
 }
 
 const addNew = () => {
+  if(!props.canEdit) {return}
   if(!newTypeId.value || !newValue.value.trim()) {return}
   emit("add", { goodIdentificationTypeId: newTypeId.value, idValue: newValue.value.trim() })
   newTypeId.value = ""

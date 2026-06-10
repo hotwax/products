@@ -104,7 +104,12 @@
               {{ indexStatus ? (indexStatus.reachable ? `${indexStatus.core} · ${translate("reachable")}` : translate("unreachable")) : "—" }}
             </ion-label>
           </ion-item>
-          <ion-button fill="outline" :disabled="reindexing" @click="refreshProductData()">
+          <ion-button
+            v-if="canReindexProducts"
+            fill="outline"
+            :disabled="reindexing"
+            @click="refreshProductData()"
+          >
             <ion-spinner v-if="reindexing" slot="start" name="crescent" />
             <ion-icon v-else slot="start" :icon="refreshOutline" />
             {{ translate("Rebuild search index") }}
@@ -256,6 +261,7 @@ import { fetchIndexStatus, reindexProducts } from "@/api/pim"
 import { qk } from "@/queries/keys"
 import { useToast } from "@/composables/useToast"
 import { useUserStore } from "@/store/user"
+import { SEARCH_REINDEX_PERMISSION } from "@/auth/permissions"
 
 const props = defineProps({
   showBrowserTimeZone: {
@@ -291,6 +297,7 @@ const reindexMutation = useMutation({
   onError: (error) => toast.error(error, translate("Could not rebuild the index"))
 })
 const reindexing = computed(() => reindexMutation.isPending.value)
+const canReindexProducts = computed(() => userStore.hasPermission(SEARCH_REINDEX_PERMISSION))
 const userProfile = computed(() => userStore.getUserProfile)
 const currentProductStore = computed(() => userStore.getCurrentProductStore)
 const productStores = computed(() => userProfile.value?.stores || [])
@@ -334,6 +341,7 @@ onBeforeMount(async () => {
 })
 
 async function refreshProductData() {
+  if(!canReindexProducts.value) {return}
   await reindexMutation.mutateAsync()
 }
 

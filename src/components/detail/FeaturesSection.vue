@@ -3,6 +3,7 @@
     <div class="features-head">
       <span class="features-title">{{ translate("Features") }}</span>
       <ion-button
+        v-if="canApplyFeatures"
         fill="clear"
         size="small"
         @click="addAxisOpen = true"
@@ -25,7 +26,8 @@
           :key="appl.productFeatureId"
           :outline="!isApplied(appl.productFeatureId)"
           :color="isApplied(appl.productFeatureId) ? 'primary' : undefined"
-          @click="$emit('toggle', { axis, application: appl, applied: isApplied(appl.productFeatureId) })"
+          :disabled="!canToggle(appl)"
+          @click="emitToggle(axis, appl)"
         >
           <ion-icon
             v-if="isApplied(appl.productFeatureId)"
@@ -35,6 +37,7 @@
         </ion-chip>
 
         <ion-chip
+          v-if="canApplyFeatures"
           outline
           class="add-chip"
           @click="openAddValue(axis.featureTypeId, axis.featureTypeDescription)"
@@ -102,11 +105,16 @@ import { computed, ref } from "vue"
 import { translate } from "@common"
 import type { CatalogOption, FeatureAxis, ProductFeatureApplication } from "@/domain/types/product"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   familyAxes: FeatureAxis[]
   appliedFeatureIds: Set<string>
   featureTypes: CatalogOption[]
-}>()
+  canApplyFeatures?: boolean
+  canRemoveFeatures?: boolean
+}>(), {
+  canApplyFeatures: true,
+  canRemoveFeatures: true
+})
 
 const emit = defineEmits<{
   (event: "toggle", payload: { axis: FeatureAxis; application: ProductFeatureApplication; applied: boolean }): void
@@ -117,6 +125,13 @@ const addAxisOpen = ref(false)
 const addValueAxis = ref<{ id: string; label: string } | null>(null)
 
 const isApplied = (productFeatureId: string) => props.appliedFeatureIds.has(productFeatureId)
+const canToggle = (application: ProductFeatureApplication) =>
+  isApplied(application.productFeatureId) ? props.canRemoveFeatures : props.canApplyFeatures
+
+const emitToggle = (axis: FeatureAxis, application: ProductFeatureApplication) => {
+  if(!canToggle(application)) {return}
+  emit("toggle", { axis, application, applied: isApplied(application.productFeatureId) })
+}
 
 const unusedFeatureTypes = computed(() => {
   const used = new Set(props.familyAxes.map((axis) => axis.featureTypeId))
@@ -125,10 +140,12 @@ const unusedFeatureTypes = computed(() => {
 })
 
 const openAddValue = (id: string, label: string) => {
+  if(!props.canApplyFeatures) {return}
   addValueAxis.value = { id, label }
 }
 
 const pickAxis = (option: CatalogOption) => {
+  if(!props.canApplyFeatures) {return}
   addAxisOpen.value = false
   openAddValue(option.id, option.label)
 }
@@ -138,6 +155,7 @@ const addValueButtons = computed(() => [
   {
     text: translate("Add"),
     handler: (data: { value?: string }) => {
+      if(!props.canApplyFeatures) {return}
       const description = data.value?.trim()
       if(description && addValueAxis.value) {
         emit("createValue", { featureTypeId: addValueAxis.value.id, description })
