@@ -18,6 +18,7 @@
             button
             router-link="/products"
             router-direction="root"
+            :class="{ selected: selectedPage.includes('/products') }"
           >
             <ion-icon
               slot="start"
@@ -31,6 +32,7 @@
             button
             router-link="/data-fixes/duplicates"
             router-direction="root"
+            :class="{ selected: selectedPage === '/data-fixes/duplicates' }"
           >
             <ion-icon
               slot="start"
@@ -44,6 +46,7 @@
             button
             router-link="/data-fixes/missing"
             router-direction="root"
+            :class="{ selected: selectedPage === '/data-fixes/missing' }"
           >
             <ion-icon
               slot="start"
@@ -57,6 +60,7 @@
             button
             router-link="/imports"
             router-direction="root"
+            :class="{ selected: selectedPage === '/imports' }"
           >
             <ion-icon
               slot="start"
@@ -70,6 +74,7 @@
             button
             router-link="/settings"
             router-direction="root"
+            :class="{ selected: selectedPage === '/settings' }"
           >
             <ion-icon
               slot="start"
@@ -90,6 +95,23 @@ import { translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
 import router from "@/router"
+import { computed } from "vue"
 
 const { isAuthenticated } = useAuth()
+
+const selectedPage = computed(() => {
+  return router.currentRoute.value.path
+})
 </script>
+
+<style scoped>
+  ion-menu.md ion-item.selected ion-icon {
+    color: var(--ion-color-secondary);
+  }
+  ion-menu.ios ion-item.selected ion-icon {
+    color: var(--ion-color-secondary);
+  }
+  ion-item.selected {
+    --color: var(--ion-color-secondary);
+  }
+</style>

@@ -99,6 +99,10 @@ export function fetchCatalogList(
   return request({ url: `oms/${resource}`, method: "get", params: { pageSize: 200, ...extraParams } }).then(responseList)
 }
 
+export function fetchBoxTypes(extraParams?: Record<string, unknown>): Promise<Raw[]> {
+  return request({ url: "oms/shippingGateways/shipmentBoxTypes", method: "get", params: { pageSize: 200, ...extraParams } }).then(responseList)
+}
+
 /** Units of measure of a given type (UT_LENGTH_MEASURE, UT_WEIGHT_MEASURE). */
 export function fetchUoms(uomTypeEnumId: string): Promise<Raw[]> {
   return request({ url: "admin/uoms", method: "get", params: { uomTypeEnumId, pageSize: 200 } }).then(responseList)

@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/vue-query"
-import { fetchCatalogList, fetchUoms } from "@/api/pim"
+import { fetchBoxTypes, fetchCatalogList, fetchUoms } from "@/api/pim"
 import { fetchImportHistories, fetchProductStores } from "@/api/catalog"
 import { normalizeCatalogOption } from "@/domain/normalize/identification"
 import { normalizeImportEntry } from "@/domain/normalize/history"
@@ -47,12 +47,25 @@ function catalogListOptions(
   })
 }
 
+function boxListOptions(
+  resource: Parameters<typeof fetchCatalogList>[0],
+  idField: string,
+  extraParams?: Record<string, unknown>
+) {
+  return queryOptions({
+    queryKey: qk.catalog.list(extraParams ? `${resource}:${JSON.stringify(extraParams)}` : resource),
+    queryFn: async (): Promise<CatalogOption[]> =>
+      (await fetchBoxTypes(extraParams)).map((row) => normalizeCatalogOption(row, idField)),
+    staleTime: Infinity
+  })
+}
+
 export const productTypesOptions = () => catalogListOptions("productTypes", "productTypeId")
 export const featureTypesOptions = () => catalogListOptions("featureTypes", "productFeatureTypeId")
 export const featureApplTypesOptions = () => catalogListOptions("featureApplTypes", "productFeatureApplTypeId")
 export const associationTypesOptions = () => catalogListOptions("associationTypes", "productAssocTypeId")
 export const identificationTypesOptions = () => catalogListOptions("goodIdentificationTypes", "goodIdentificationTypeId", { parentTypeId: "HC_GOOD_ID_TYPE" })
-export const boxTypesOptions = () => catalogListOptions("boxTypes", "shipmentBoxTypeId")
+export const boxTypesOptions = () => boxListOptions("boxTypes", "shipmentBoxTypeId")
 
 export function productStoresOptions() {
   return queryOptions({
