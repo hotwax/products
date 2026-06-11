@@ -70,6 +70,19 @@
             slot="end"
             fill="clear"
             size="small"
+            @click="onAddTagToSelected"
+          >
+            <ion-icon
+              slot="start"
+              :icon="pricetagOutline"
+            />
+            {{ translate("Add tag") }}
+          </ion-button>
+          <ion-button
+            v-if="selectedProductIds.length"
+            slot="end"
+            fill="clear"
+            size="small"
             @click="clearSelection"
           >
             {{ translate("Clear") }}
@@ -159,6 +172,13 @@
         @toggle="toggleTag"
         @dismiss="isTagModalOpen = false"
       />
+
+      <AddTagModal
+        :is-open="isAddTagModalOpen"
+        :facets="tagFacets"
+        @add="onTagSelected"
+        @dismiss="isAddTagModalOpen = false"
+      />
     </ion-content>
   </ion-page>
 </template>
@@ -167,18 +187,21 @@
 import {
   IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent,
   IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
-  IonSkeletonText, IonThumbnail, IonTitle, IonToolbar
+  IonSkeletonText, IonThumbnail, IonTitle, IonToolbar, loadingController
 } from "@ionic/vue"
-import { addOutline, closeCircleOutline } from "ionicons/icons"
+import { addOutline, closeCircleOutline, pricetagOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
 import { translate } from "@common"
 import EmptyState from "@/components/EmptyState.vue"
 import ErrorState from "@/components/ErrorState.vue"
 import ProductRow from "@/components/workbench/ProductRow.vue"
+import AddTagModal from "@/components/workbench/AddTagModal.vue"
 import TagFilterModal from "@/components/workbench/TagFilterModal.vue"
 import WorkbenchFilters from "@/components/workbench/WorkbenchFilters.vue"
 import { errorMessage } from "@/api/http"
+import { addProductKeyword, triggerSolrIndex } from "@/api/pim"
 import { useProductWorkbench } from "@/composables/useProductWorkbench"
+import { useToast } from "@/composables/useToast"
 import { familyRouteFor } from "@/domain/product/family"
 
 const {
@@ -190,12 +213,46 @@ const {
 } = useProductWorkbench()
 
 const isTagModalOpen = ref(false)
+const isAddTagModalOpen = ref(false)
+const toast = useToast()
 
 const resultsLabel = computed(() =>
   total.value === 1 ? translate("1 result") : `${total.value} ${translate("results")}`)
 const errorText = computed(() => errorMessage(error.value, translate("Search is unavailable")))
 
 const onInfinite = (event: CustomEvent) => loadMore(() => (event.target as any)?.complete())
+
+const onAddTagToSelected = () => {
+  isAddTagModalOpen.value = true
+}
+
+const onTagSelected = async (tags: string[]) => {
+  isAddTagModalOpen.value = false
+  const ids = [...selectedProductIds.value]
+  let failed = 0
+  for(const productId of ids) {
+    for(const tag of tags) {
+      try {
+        await addProductKeyword(productId, tag)
+      } catch {
+        failed++
+      }
+    }
+    triggerSolrIndex(productId)
+  }
+  if(failed) {
+    toast.error(null, translate(`Could not add tag to ${failed} product(s)`))
+  } else {
+    toast.success(translate(`${tags.length > 1 ? tags.length + " tags" : "Tag"} added to ${ids.length} product(s)`))
+  }
+  clearSelection()
+
+  const loading = await loadingController.create({ message: translate("Updating products...") })
+  await loading.present()
+  await new Promise((resolve) => setTimeout(resolve, 3000))
+  await refetch()
+  await loading.dismiss()
+}
 </script>
 
 <style scoped>

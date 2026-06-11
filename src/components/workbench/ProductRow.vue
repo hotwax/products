@@ -76,7 +76,7 @@ const props = withDefaults(
     maxTags?: number
     variantCounts?: Record<string, number>
   }>(),
-  { routerLink: undefined, selectable: false, selected: false, maxTags: 3, variantCounts: () => ({}) }
+  { routerLink: undefined, selectable: false, selected: false, maxTags: 8, variantCounts: () => ({}) }
 )
 
 defineEmits<{ (event: "toggleSelect"): void }>()

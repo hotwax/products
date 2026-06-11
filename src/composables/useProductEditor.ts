@@ -67,7 +67,7 @@ function shippingSlice(core: ProductCore) {
 export function useProductEditor(editingProductId: Ref<string>, core: ComputedRef<ProductCore | null>, parentProductId: Ref<string>) {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const updateMutation = useUpdateProductFields(() => editingProductId.value)
+  const updateMutation = useUpdateProductFields(() => editingProductId.value, () => parentProductId.value)
 
   const display = useCardDraft(computed(() => (core.value ? displaySlice(core.value) : null)))
   const dates = useCardDraft(computed(() => (core.value ? datesSlice(core.value) : null)))

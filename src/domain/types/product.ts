@@ -156,6 +156,7 @@ export interface FeatureAxis {
 export interface CatalogOption {
   id: string
   label: string
+  abbreviation?: string
 }
 
 export interface ProductCategory {
@@ -217,3 +218,10 @@ export interface ImportHistoryEntry {
 }
 
 export type PresellState = "preorder" | "backorder" | null
+
+export interface ShopifyShopProduct {
+  shopId: string
+  productId: string
+  shopifyProductId: string
+  shopifyInventoryItemId: string
+}

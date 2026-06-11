@@ -89,10 +89,7 @@ export const useUserStore = defineStore("user", {
         productStore = this.current.stores?.find((store: any) => store.productStoreId === productStoreInfo.productStoreId)
       }
 
-      this.currentProductStore = productStore || {
-        productStoreId: "",
-        storeName: "None"
-      }
+      this.currentProductStore = productStore
     },
     async setUserTimeZone(tzId: string) {
       if(this.current.timeZone === tzId) {return tzId}

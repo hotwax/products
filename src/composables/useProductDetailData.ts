@@ -2,7 +2,7 @@ import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
 import router from "../router"
 import {
-  associationsOptions, auditHistoryOptions, categoriesOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions, productSolrOptions
+  associationsOptions, auditHistoryOptions, categoriesOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions, productSolrOptions, shopifyShopProductsOptions
 } from "@/queries/productDetail"
 import { boxTypesOptions, productTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE, groupAssociations } from "@/domain/normalize/association"
@@ -143,6 +143,7 @@ export function useProductDetailData(routeProductId: Ref<string>) {
   const anchorSolrQuery = useQuery(computed(() => productSolrOptions(anchorProductId.value)))
   // categories are fetched per editing product (parent or variant)
   const categoriesQuery = useQuery(computed(() => categoriesOptions(editingProductId.value)))
+  const shopifyShopProductsQuery = useQuery(computed(() => shopifyShopProductsOptions(editingProductId.value)))
 
   // reference data the cards need
   const productTypesQuery = useQuery(productTypesOptions())
@@ -196,6 +197,8 @@ export function useProductDetailData(routeProductId: Ref<string>) {
     categoriesLoading: categoriesQuery.isLoading,
 
     prices: computed(() => coreQuery.data.value?.prices ?? []),
+
+    shopifyShopProducts: computed(() => shopifyShopProductsQuery.data.value ?? []),
 
     productTypes: computed(() => productTypesQuery.data.value ?? []),
     boxTypes: computed(() => boxTypesQuery.data.value ?? [])

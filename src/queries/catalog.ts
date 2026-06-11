@@ -14,6 +14,7 @@ function uomOptions(uomTypeEnumId: string) {
     queryFn: async (): Promise<CatalogOption[]> => {
       const rows = (await fetchUoms(uomTypeEnumId)).map((row) => ({
         id: String(row.uomId ?? ""),
+        abbreviation: String(row.abbreviation),
         label: String(row.description ?? row.abbreviation ?? row.uomId ?? "")
       }))
 

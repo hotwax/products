@@ -1,10 +1,10 @@
 import { queryOptions } from "@tanstack/vue-query"
-import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductCategoryMembers, fetchProductRecord } from "@/api/pim"
+import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductCategoryMembers, fetchProductRecord, fetchShopifyShopProducts } from "@/api/pim"
 import { fetchEntityAuditLogs } from "@/api/catalog"
 import { runProductSolrQuery, solrDocs } from "@/api/solr"
 import { escapeSolrValue } from "@/domain/solr/productQuery"
 import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
-import type { ProductCategoryMembership, ProductSummary } from "@/domain/types/product"
+import type { ProductCategoryMembership, ProductSummary, ShopifyShopProduct } from "@/domain/types/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
@@ -136,5 +136,21 @@ export function featureCatalogOptions() {
     queryKey: qk.catalog.features(),
     queryFn: fetchFeatureCatalog,
     staleTime: Infinity
+  })
+}
+
+export function shopifyShopProductsOptions(productId: string) {
+  return queryOptions({
+    queryKey: qk.product.shopifyShopProducts(productId),
+    queryFn: async (): Promise<ShopifyShopProduct[]> => {
+      const rows = await fetchShopifyShopProducts(productId)
+
+      return rows.map((raw) => ({
+        shopId: String(raw.shopId ?? ""),
+        productId: String(raw.productId ?? productId),
+        shopifyProductId: String(raw.shopifyProductId ?? ""),
+        shopifyInventoryItemId: String(raw.shopifyInventoryItemId ?? "")
+      }))
+    }
   })
 }

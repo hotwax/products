@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query"
-import { addProductCategoryMember, expireProductCategoryMember } from "@/api/pim"
+import { addProductCategoryMember, expireProductCategoryMember, triggerSolrIndex } from "@/api/pim"
 import type { ProductCategoryMembership } from "@/domain/types/product"
 import { qk } from "@/queries/keys"
 
-export function useCategoryMutations(productId: () => string) {
+export function useCategoryMutations(productId: () => string, parentProductId: () => string) {
   const queryClient = useQueryClient()
   const listKey = () => qk.product.categories(productId())
 
@@ -15,6 +15,7 @@ export function useCategoryMutations(productId: () => string) {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: listKey() })
+    triggerSolrIndex(parentProductId())
   }
 
   const add = useMutation({

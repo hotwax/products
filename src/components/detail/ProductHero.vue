@@ -79,7 +79,7 @@ const typeLabel = computed(() => {
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 8px;
-  background: var(--ion-color-step-100, #f0f0f3);
+  object-fit: contain;
 }
 
 .hero-main-head {

@@ -2,19 +2,38 @@ import type {
   AssociationCreate, AssociationKey, AssociationUpdate, DedupChange, FeatureApply, FeatureCreate,
   IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch, ProductPriceCreate
 } from "@/domain/types/pim"
-import { request, responseList } from "./http"
+import { formRequest, request, responseList } from "./http"
 import { DateTime } from "luxon"
+import { useUserStore } from "@/store/user"
 
 /** All calls against the oms component (/rest/s1/oms/...) — writes plus the reference reads it owns. */
 
 type Raw = Record<string, unknown>
+
+/** Fire-and-forget Solr re-index for a product family. Errors are swallowed intentionally —
+ *  a failed index should never block or surface as a save error. */
+export function triggerSolrIndex(parentProductId: string): void {
+  console.log('parentProductId',parentProductId)
+  request({ url: "admin/solr/indexProduct", method: "post", data: { productId: parentProductId, indexVariants: true } }).catch(() => {})
+}
 
 // ---------- product ----------
 export function fetchProductRecord(productId: string): Promise<Raw> {
   return request<Raw>({ url: `oms/products/${productId}`, method: "get" })
 }
 
-export function createProduct(payload: ProductCreatePayload): Promise<{ productId: string }> {
+export function createProduct(payload: ProductCreatePayload, imageFile?: File): Promise<{ productId: string }> {
+  if(imageFile) {
+    console.log('imageFile', imageFile)
+    const form = new FormData()
+    for(const [key, value] of Object.entries(payload)) {
+      if(value !== undefined && value !== null) form.append(key, String(value))
+    }
+    form.append("detailImageUrl", imageFile)
+
+    return formRequest<{ productId: string }>("oms/products", form)
+  }
+
   return request<{ productId: string }>({ url: "oms/products", method: "post", data: payload })
 }
 
@@ -84,19 +103,19 @@ export function removeFeatureApplication(productId: string, productFeatureId: st
 }
 
 export function createFeature(payload: FeatureCreate): Promise<{ productFeatureId: string }> {
-  return request({ url: "oms/features", method: "post", data: payload })
+  return request({ url: "oms/products/features", method: "post", data: payload })
 }
 
 // ---------- reference catalogs ----------
 export function fetchFeatureCatalog(): Promise<Raw[]> {
-  return request({ url: "oms/features", method: "get", params: { pageSize: 500, orderByField: "description" } }).then(responseList)
+  return request({ url: "oms/products/features", method: "get", params: { pageSize: 500, orderByField: "description" } }).then(responseList)
 }
 
 export function fetchCatalogList(
   resource: "productTypes" | "featureTypes" | "featureApplTypes" | "associationTypes" | "goodIdentificationTypes" | "boxTypes",
   extraParams?: Record<string, unknown>
 ): Promise<Raw[]> {
-  return request({ url: `oms/${resource}`, method: "get", params: { pageSize: 200, ...extraParams } }).then(responseList)
+  return request({ url: resource === "goodIdentificationTypes" ? `oms/goodIdentificationTypes` : `oms/products/${resource}`, method: "get", params: { pageSize: 200, ...extraParams } }).then(responseList)
 }
 
 export function fetchBoxTypes(extraParams?: Record<string, unknown>): Promise<Raw[]> {
@@ -129,11 +148,11 @@ export function expireProductCategoryMember(productId: string, productCategoryId
   return request({ url: `oms/products/${productId}/categories/expire`, method: "post", data: { productCategoryId, fromDate } })
 }
 
-export async function fetchProductCategories(categoryName = "", pageSize = 50): Promise<any> {
+export async function fetchProductCategories(pageSize = 50): Promise<any> {
   return responseList(await request({
-    url: "admin/productCategories",
+    url: "oms/productStores/categories",
     method: "get",
-    params: { categoryName: categoryName || undefined, pageSize }
+    params: { pageSize, productStoreId: useUserStore().currentProductStore.productStoreId}
   }))
 }
 
@@ -141,11 +160,30 @@ export function addProductCategoryMember(productId: string, productCategoryId: s
   return request({ url: `oms/products/${productId}/categories`, method: "post", data: { productCategoryId } })
 }
 
+// ---------- shopify shop products ----------
+export function fetchShopifyShopProducts(productId: string): Promise<Raw[]> {
+  return request({ url: `oms/products/${productId}/shopifyShopProducts`, method: "get", params: { productId, pageSize: 100 } }).then(responseList)
+}
+
+export function upsertShopifyShopProduct(payload: {
+  productId: string
+  shopId: string
+  shopifyProductId?: string
+  shopifyInventoryItemId?: string
+}): Promise<unknown> {
+  return request({ url: `oms/products/${payload.productId}/shopifyShopProducts`, method: "post", data: payload })
+}
+
+export function deleteShopifyShopProduct(productId: string, shopId: string): Promise<unknown> {
+  return request({ url: `oms/products/${productId}/shopifyShopProducts`, method: "delete", data: { productId, shopId } })
+}
+
 // ---------- keywords / tags ----------
 export function addProductKeyword(productId: string, keyword: string): Promise<unknown> {
   return request({ url: `oms/products/${productId}/keywords`, method: "post", data: { 
     keyword,
-    keywordTypeId: "KWT_TAG"
+    keywordTypeId: "KWT_TAG",
+    statusId: "KW_APPROVED"
   } })
 }
 

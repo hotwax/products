@@ -133,8 +133,17 @@
           :dirty="priceDraft.dirty.value"
           :saving="pricesSaving"
           :stale-under-edit="priceDraft.staleUnderEdit.value"
+          :can-copy-from-parent="segment === 'variant' && hasParent"
           @save="onSavePrices"
           @reset="priceDraft.reset"
+          @copy-from-parent="onCopyPricesFromParent"
+        />
+
+        <ShopifyShopProductsCard
+          :shopify-shop-products="shopifyShopProducts"
+          :saving="shopifyMutations.upsert.isPending.value || shopifyMutations.remove.isPending.value"
+          @upsert="(p) => shopifyMutations.upsert.mutateAsync(p).catch((error) => toast.error(error, translate('Could not save Shopify shop product')))"
+          @remove="(shopId) => shopifyMutations.remove.mutateAsync(shopId).catch((error) => toast.error(error, translate('Could not remove Shopify shop product')))"
         />
 
         <InventoryPolicyCard
@@ -211,6 +220,7 @@ import HistoryCard from "@/components/detail/HistoryCard.vue"
 import TagsCard from "@/components/detail/TagsCard.vue"
 import CategoriesCard from "@/components/detail/CategoriesCard.vue"
 import PricesCard from "@/components/detail/PricesCard.vue"
+import ShopifyShopProductsCard from "@/components/detail/ShopifyShopProductsCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import AddVariantModal from "@/components/detail/AddVariantModal.vue"
 import { errorMessage } from "@/api/http"
@@ -221,9 +231,11 @@ import { useAssociationMutations } from "@/mutations/useAssociationMutations"
 import { useFeatureMutations } from "@/mutations/useFeatureMutations"
 import { useTagMutations } from "@/mutations/useTagMutations"
 import { useCategoryMutations } from "@/mutations/useCategoryMutations"
-import { updateProductFields } from "@/api/pim"
+import { useShopifyShopProductMutations } from "@/mutations/useShopifyShopProductMutations"
+import { triggerSolrIndex, updateProductFields } from "@/api/pim"
 import { useToast } from "@/composables/useToast"
 import { currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
+import { productCoreOptions } from "@/queries/productDetail"
 import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
@@ -260,14 +272,16 @@ const {
   audit, productTypes, boxTypes,
   anchorTags, selectedVariantTags,
   categories,
-  prices
+  prices,
+  shopifyShopProducts
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
 
-const identificationMutations = useIdentificationMutations(() => editingProductId.value)
-const associationMutations = useAssociationMutations(() => editingProductId.value)
-const categoryMutations = useCategoryMutations(() => editingProductId.value)
+const identificationMutations = useIdentificationMutations(() => editingProductId.value, () => parentProductId.value)
+const associationMutations = useAssociationMutations(() => editingProductId.value, () => parentProductId.value)
+const categoryMutations = useCategoryMutations(() => editingProductId.value, () => parentProductId.value)
+const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.value, () => parentProductId.value)
 
 // ---------- prices ----------
 const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
@@ -303,6 +317,7 @@ const onSavePrices = async () => {
       }))
 
     await updateProductFields(editingProductId.value, { prices })
+    triggerSolrIndex(parentProductId.value)
     await queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) })
     toast.success(translate("Prices saved"))
   } catch(error) {
@@ -312,12 +327,22 @@ const onSavePrices = async () => {
   }
 }
 
+const onCopyPricesFromParent = async () => {
+  if(!parentProductId.value) {return}
+  const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
+  const active = parent.prices.filter((p) => p.active)
+  priceDraft.draft.currencyUomId = active[0]?.currencyUomId ?? priceDraft.draft.currencyUomId
+  priceDraft.draft.DEFAULT_PRICE = active.find((p) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? ""
+  priceDraft.draft.LIST_PRICE = active.find((p) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? ""
+  priceDraft.draft.WHOLESALE_PRICE = active.find((p) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
+}
+
 // tags on the anchor (virtual) product
-const tagMutations = useTagMutations(() => parentProductId.value)
+const tagMutations = useTagMutations(() => parentProductId.value, { parentProductId: () => parentProductId.value })
 // tags on the selected variant — uses family cache path
-const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value })
+const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value, parentProductId: () => parentProductId.value })
 // feature edits apply to whichever family member is being edited
-const featureMutations = useFeatureMutations(() => editingProductId.value)
+const featureMutations = useFeatureMutations(() => editingProductId.value, () => parentProductId.value)
 // "new value" chips extend the family's selectable axes on the parent
 const familyFeatureMutations = useFeatureMutations(() => featureFamilyId.value)
 

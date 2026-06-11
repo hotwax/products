@@ -1,5 +1,16 @@
 <template>
   <CardSection :title="translate('Prices')">
+    <template #action>
+      <ion-button
+        v-if="canCopyFromParent"
+        fill="clear"
+        size="small"
+        @click="$emit('copyFromParent')"
+      >
+        {{ translate("Copy from parent") }}
+      </ion-button>
+    </template>
+
     <div class="prices-grid">
       <ion-select
         v-model="draft.currencyUomId"
@@ -73,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonInput, IonSelect, IonSelectOption } from "@ionic/vue"
+import { IonButton, IonInput, IonSelect, IonSelectOption } from "@ionic/vue"
 import { ref } from "vue"
 import { z } from "zod"
 import { translate } from "@common"
@@ -118,11 +129,13 @@ const props = defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
+  canCopyFromParent?: boolean
 }>()
 
 const emit = defineEmits<{
   (event: "save"): void
   (event: "reset"): void
+  (event: "copyFromParent"): void
 }>()
 
 const touched = ref(false)

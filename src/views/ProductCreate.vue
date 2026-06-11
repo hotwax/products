@@ -108,7 +108,7 @@
             <ion-label>{{ translate("Tags") }}</ion-label>
             <span>{{ tags.length }}</span>
           </ion-list-header>
-          <div>
+          <div class="ion-margin-start">
             <ion-chip
               v-for="tag in tags"
               :key="tag"
@@ -214,137 +214,12 @@
       </div>
 
       <!-- Shipping & Handling -->
-      <div v-if="step === 'shipping'" class="section">
-        <ion-label class="ion-padding-top">{{ "Shipping and Handling" }}</ion-label>
+      <div v-if="step === 'shipping'" class="section-grid">
+        <ion-list lines="none">
+          <ion-list-header>{{ translate("Shipping and Handling") }}</ion-list-header>
+        </ion-list>
         <div class="shipping-grid">
           <div class="shipping-fields">
-            <div class="measure-row">
-              <ion-input
-                class="ion-margin-top"
-                v-model="shippingDimensions.productWidth"
-                min="0"
-                placeholder="00"
-                type="number"
-                :label="translate('Width')"
-                label-placement="stacked"
-                fill="outline"
-              />
-              <ion-select
-                v-model="shippingDimensions.widthUomId"
-                placeholder="unit"
-                :aria-label="translate('Width unit')"
-                interface="popover"
-                class="uom-select"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="uom in lengthUoms"
-                  :key="uom.id"
-                  :value="uom.id"
-                >
-                  {{ uom.label }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <div class="measure-row">
-              <ion-input
-                class="ion-margin-top"
-                v-model="shippingDimensions.productHeight"
-                min="0"
-                placeholder="00"
-                type="number"
-                :label="translate('Height')"
-                label-placement="stacked"
-                fill="outline"
-              />
-              <ion-select
-                v-model="shippingDimensions.heightUomId"
-                placeholder="unit"
-                :aria-label="translate('Height unit')"
-                interface="popover"
-                class="uom-select"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="uom in lengthUoms"
-                  :key="uom.id"
-                  :value="uom.id"
-                >
-                  {{ uom.label }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <div class="measure-row">
-              <ion-input
-                class="ion-margin-top"
-                v-model="shippingDimensions.productDepth"
-                min="0"
-                placeholder="00"
-                type="number"
-                :label="translate('Depth')"
-                label-placement="stacked"
-                fill="outline"
-              />
-              <ion-select
-                v-model="shippingDimensions.depthUomId"
-                placeholder="unit"
-                :aria-label="translate('Depth unit')"
-                interface="popover"
-                class="uom-select"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="uom in lengthUoms"
-                  :key="uom.id"
-                  :value="uom.id"
-                >
-                  {{ uom.label }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <div class="measure-row">
-              <ion-input
-                class="ion-margin-top"
-                v-model="shippingDimensions.productWeight"
-                min="0"
-                placeholder="00"
-                type="number"
-                :label="translate('Weight')"
-                label-placement="stacked"
-                fill="outline"
-              />
-              <ion-select
-                v-model="shippingDimensions.weightUomId"
-                placeholder="unit"
-                :aria-label="translate('Weight unit')"
-                interface="popover"
-                class="uom-select"
-                fill="outline"
-              >
-                <ion-select-option
-                  v-for="uom in weightUoms"
-                  :key="uom.id"
-                  :value="uom.id"
-                >
-                  {{ uom.label }}
-                </ion-select-option>
-              </ion-select>
-            </div>
-
-            <ion-item lines="full">
-              <ion-checkbox v-model="shippingDimensions.inShippingBox">
-                {{ translate("In shipping box") }}
-              </ion-checkbox>
-            </ion-item>
-            <ion-item lines="full">
-              <ion-checkbox v-model="shippingDimensions.chargeShipping">
-                {{ translate("Charge shipping") }}
-              </ion-checkbox>
-            </ion-item>
-
             <ion-item lines="none">
               <ion-select
                 class="ion-margin-top"
@@ -365,6 +240,129 @@
                   {{ option.label }}
                 </ion-select-option>
               </ion-select>
+            </ion-item>
+
+            <div class="measure-row">
+              <ion-input
+                class="ion-margin-top"
+                v-model="shippingDimensions.productWidth"
+                min="0"
+                placeholder="00"
+                type="number"
+                :label="translate('Width')"
+                label-placement="stacked"
+                fill="outline"
+              />
+              <ion-select
+                v-model="shippingDimensions.widthUomId"
+                placeholder="unit"
+                :aria-label="translate('Width unit')"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="uom in lengthUoms"
+                  :key="uom.id"
+                  :value="uom.id"
+                >
+                  {{ uom.abbreviation }}
+                </ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="measure-row">
+              <ion-input
+                class="ion-margin-top"
+                v-model="shippingDimensions.productHeight"
+                min="0"
+                placeholder="00"
+                type="number"
+                :label="translate('Height')"
+                label-placement="stacked"
+                fill="outline"
+              />
+              <ion-select
+                v-model="shippingDimensions.heightUomId"
+                placeholder="unit"
+                :aria-label="translate('Height unit')"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="uom in lengthUoms"
+                  :key="uom.id"
+                  :value="uom.id"
+                >
+                  {{ uom.abbreviation }}
+                </ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="measure-row">
+              <ion-input
+                class="ion-margin-top"
+                v-model="shippingDimensions.productDepth"
+                min="0"
+                placeholder="00"
+                type="number"
+                :label="translate('Depth')"
+                label-placement="stacked"
+                fill="outline"
+              />
+              <ion-select
+                v-model="shippingDimensions.depthUomId"
+                placeholder="unit"
+                :aria-label="translate('Depth unit')"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="uom in lengthUoms"
+                  :key="uom.id"
+                  :value="uom.id"
+                >
+                  {{ uom.abbreviation }}
+                </ion-select-option>
+              </ion-select>
+            </div>
+
+            <div class="measure-row">
+              <ion-input
+                class="ion-margin-top"
+                v-model="shippingDimensions.productWeight"
+                min="0"
+                placeholder="00"
+                type="number"
+                :label="translate('Weight')"
+                label-placement="stacked"
+                fill="outline"
+              />
+              <ion-select
+                v-model="shippingDimensions.weightUomId"
+                placeholder="unit"
+                :aria-label="translate('Weight unit')"
+                interface="popover"
+                fill="outline"
+              >
+                <ion-select-option
+                  v-for="uom in weightUoms"
+                  :key="uom.id"
+                  :value="uom.id"
+                >
+                  {{ uom.abbreviation }}
+                </ion-select-option>
+              </ion-select>
+            </div>
+
+            <ion-item lines="full">
+              <ion-checkbox v-model="shippingDimensions.inShippingBox">
+                {{ translate("In shipping box") }}
+              </ion-checkbox>
+            </ion-item>
+            <ion-item lines="full">
+              <ion-checkbox v-model="shippingDimensions.chargeShipping">
+                {{ translate("Charge shipping") }}
+              </ion-checkbox>
             </ion-item>
           </div>
 
@@ -396,7 +394,7 @@
       <div v-if="step === 'inventoryPolicy'" class="section">
         <ion-list lines="none">
           <ion-list-header>{{ translate("Inventory policy") }}</ion-list-header>
-          <ion-item>
+          <ion-item lines="full">
             <ion-toggle v-model="inventoryPolicy.returnable">
               {{ translate("Returnable") }}
             </ion-toggle>
@@ -422,68 +420,20 @@
         <ion-list lines="none">
           <ion-list-header>
             <ion-label>{{ translate("Identifications") }}</ion-label>
-            <span>{{ identifications.length }}</span>
           </ion-list-header>
           <ion-item
-            v-for="(ident, index) in identifications"
-            :key="index"
+            v-for="type in identificationTypes"
+            :key="type.id"
           >
             <ion-input
-              class="ion-margin-vertical"
-              :value="ident.idValue"
-              :label="identTypeLabel(ident.goodIdentificationTypeId)"
+              class="ion-margin-top"
+              v-model="identValues[type.id]"
+              :label="type.label"
               label-placement="stacked"
               fill="outline"
-              @ion-input="ident.idValue = $event.detail.value ?? ''"
-            >
-              <ion-button
-                slot="end"
-                fill="clear"
-                color="danger"
-                size="small"
-                @click="removeIdentification(index)"
-              >
-                <ion-icon :icon="closeOutline" slot="icon-only"/>
-              </ion-button>
-            </ion-input>
-          </ion-item>
-
-          <ion-item>
-            <ion-select
-              v-model="newIdentTypeId"
-              aria-label="add-identifications"
-              :label="translate('Type')"
-              :placeholder="translate('Select')"
-              interface="popover"
-              fill="outline"
-            >
-              <ion-select-option
-                v-for="option in availableIdentTypes"
-                :key="option.id"
-                :value="option.id"
-              >
-                {{ option.label }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-          <ion-item>
-            <ion-input
-              class="ion-margin-top"
-              v-model="newIdentValue"
-              :placeholder="translate('Value')"
-              fill="outline"
-              @keyup.enter="addIdentification"
+              clear-input
             />
-            <ion-button
-              slot="end"
-              size="small"
-              :disabled="!newIdentTypeId || !newIdentValue.trim()"
-              @click="addIdentification"
-            >
-              {{ translate("Add") }}
-            </ion-button>
           </ion-item>
-
           <ion-item>
             <ion-button slot="start" fill="outline" @click="next('inventoryPolicy')">
               {{ translate("Back") }}
@@ -501,12 +451,13 @@
           <ion-list-header>
             <ion-label>{{ translate("Categories") }}</ion-label>
             <span>{{ selectedCategories.length }}</span>
-            <ion-button @click="categoryPickerOpen = true">{{ "Add" }}</ion-button>
           </ion-list-header>
 
-          <ion-item>
-            <ion-badge class="ion-margin-right" @click="removeCategory(category.productCategoryId)" v-for="category in selectedCategories" :key="category.productCategoryId">{{ category.categoryName }}</ion-badge>
-          </ion-item>
+          <div class="ion-margin-right">
+            <ion-chip :outline="!isCategorySelected(category.productCategoryId)" @click="!isCategorySelected(category.productCategoryId) ? addCategory(category) : removeCategory(category.productCategoryId)" v-for="category in categories" :key="category.productCategoryId">
+              {{ category.categoryName }}
+            </ion-chip>
+          </div>
           <ion-item>
             <ion-button slot="start" fill="outline" @click="next('identifications')">
               {{ translate("Back") }}
@@ -560,7 +511,6 @@
               v-model="draftedPrices.DEFAULT_PRICE"
               type="number"
               min="0"
-              clear-input
               :error-text="priceErrors.DEFAULT_PRICE"
               @ion-blur="pricesTouched && validatePrices()"
             />
@@ -575,7 +525,6 @@
               v-model="draftedPrices.LIST_PRICE"
               type="number"
               min="0"
-              clear-input
               :error-text="priceErrors.LIST_PRICE"
               @ion-blur="pricesTouched && validatePrices()"
             />
@@ -590,7 +539,6 @@
               v-model="draftedPrices.WHOLESALE_PRICE"
               type="number"
               min="0"
-              clear-input
               :error-text="priceErrors.WHOLESALE_PRICE"
               @ion-blur="pricesTouched && validatePrices()"
             />
@@ -620,14 +568,14 @@
           <ion-button slot="start" fill="outline" @click="next('prices')">
             {{ translate("Back") }}
           </ion-button>
-          <ion-button slot="end" fill="outline" @click="next('variants')">
-            {{ translate("Next") }}
+          <ion-button slot="end" fill="outline" :disabled="creating" @click="submit">
+            {{ translate("Save") }}
           </ion-button>
         </ion-item>
       </div>
 
       <!-- Variants -->
-      <div v-if="step === 'variants'" class="section">
+      <!-- <div v-if="step === 'variants'" class="section">
         <ion-list lines="none">
           <ion-list-header>
             <ion-label>{{ translate("Variants") }}</ion-label>
@@ -677,7 +625,7 @@
           @select="addVariant"
           @dismiss="pickerOpen = false"
         />
-      </div>
+      </div> -->
     </ion-content>
   </ion-page>
 </template>
@@ -686,26 +634,27 @@
 import {
   IonBackButton, IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon,
   IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonProgressBar,
-  IonTextarea, IonThumbnail, IonTitle, IonToggle, IonToolbar,
-  IonList, IonListHeader
+  IonTextarea, IonTitle, IonToggle, IonToolbar,
+  IonList, IonListHeader,
+  onIonViewWillEnter
 } from "@ionic/vue"
 import { computed, reactive, ref } from "vue"
 import { z } from "zod"
 import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
-import { DxpShopifyImg, translate } from "@common"
-import { closeCircle, closeOutline } from "ionicons/icons"
+import { emitter, translate } from "@common"
+import { closeCircle } from "ionicons/icons"
 import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
 import FeaturesSection from "@/components/detail/FeaturesSection.vue"
-import ProductPicker from "@/components/detail/ProductPicker.vue"
-import { createFeature, createProduct } from "@/api/pim"
+import { createFeature, createProduct, fetchProductCategories, triggerSolrIndex } from "@/api/pim"
 import { boxTypesOptions, currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"
 import { buildFeatureAxes, FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { lengthUomToMm } from "@/domain/product/uom"
 import { productDisplayName } from "@/domain/normalize/product"
 import { useToast } from "@/composables/useToast"
 import type { ProductCategory, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
+import { useUserStore } from "@/store/user"
 
 const toast = useToast()
 
@@ -771,6 +720,7 @@ const pricesSchema = z.object({
 type PriceErrors = Partial<Record<PriceField | "priceUomId", string>>
 const priceErrors = ref<PriceErrors>({})
 const pricesTouched = ref(false)
+const currentProductStore = computed(() => useUserStore().getCurrentProductStore)
 
 const validatePrices = (): boolean => {
   pricesTouched.value = true
@@ -851,15 +801,14 @@ const inventoryPolicy = reactive({
 
 const tags = ref<string[]>([])
 const newTag = ref("")
-const identifications = ref<Array<{ goodIdentificationTypeId: string; idValue: string }>>([])
-const newIdentTypeId = ref("")
-const newIdentValue = ref("")
+const identValues = reactive<Record<string, string>>({})
 const draftedPrices = ref({
   "DEFAULT_PRICE": "",
   "LIST_PRICE": "",
   "WHOLESALE_PRICE": ""
 })
 const selectedCategories = ref<ProductCategory[]>([])
+const categories = ref();
 const categoryPickerOpen = ref(false)
 const variants = ref<ProductSummary[]>([])
 const pickerOpen = ref(false)
@@ -867,7 +816,7 @@ const creating = ref(false)
 const step = ref("display")
 const priceUomId = ref("USD")
 
-const steps = ["display", "tags", "dates", "shipping", "inventoryPolicy", "identifications", "categories", "prices", "features", "variants"]
+const steps = ["display", "tags", "dates", "shipping", "inventoryPolicy", "identifications", "categories", "prices", "features"]
 
 const variantIds = computed(() => variants.value.map((v) => v.productId))
 const selectedCategoryIds = computed(() => selectedCategories.value.map((c) => c.productCategoryId))
@@ -889,27 +838,22 @@ const addCategory = (category: ProductCategory) => {
   if(!selectedCategories.value.some((c) => c.productCategoryId === category.productCategoryId)) {
     selectedCategories.value.push(category)
   }
-  categoryPickerOpen.value = false
 }
+
 const removeCategory = (productCategoryId: string) => {
   selectedCategories.value = selectedCategories.value.filter((c) => c.productCategoryId !== productCategoryId)
 }
 
-// Identifications
-const usedIdentTypeIds = computed(() => new Set(identifications.value.map((i) => i.goodIdentificationTypeId)))
-const availableIdentTypes = computed(() => identificationTypes.value.filter((t) => !usedIdentTypeIds.value.has(t.id)))
-const identTypeLabel = (typeId: string) => identificationTypes.value.find((t) => t.id === typeId)?.label ?? typeId
+const isCategorySelected = computed(() => (productCategoryId: string) => {
+  return selectedCategories.value.some((c) => c.productCategoryId === productCategoryId)
+})
 
-const addIdentification = () => {
-  const value = newIdentValue.value.trim()
-  if(!newIdentTypeId.value || !value) {return}
-  identifications.value.push({ goodIdentificationTypeId: newIdentTypeId.value, idValue: value })
-  newIdentTypeId.value = ""
-  newIdentValue.value = ""
-}
-const removeIdentification = (index: number) => {
-  identifications.value.splice(index, 1)
-}
+// Identifications — flat record; only non-empty entries are submitted
+const filledIdentifications = computed(() =>
+  Object.entries(identValues)
+    .filter(([, idValue]) => idValue.trim())
+    .map(([goodIdentificationTypeId, idValue]) => ({ goodIdentificationTypeId, idValue }))
+)
 
 // Features — local draft; applyFeature called post-creation
 const draftedFeatures = ref<ProductFeatureApplication[]>([])
@@ -977,6 +921,7 @@ const yesNo = (val: boolean): "Y" | "N" => (val ? "Y" : "N")
 const submit = async () => {
   if(creating.value) {return}
   creating.value = true
+
   try {
     const { productId } = await createProduct({
       productName: info.productName.trim() || undefined,
@@ -1004,30 +949,56 @@ const submit = async () => {
       depthUomId: shippingDimensions.depthUomId || undefined,
       weightUomId: shippingDimensions.weightUomId || undefined,
       isVirtual: "Y",
-      keywords: tags.value,
-      identifications: identifications.value,
-      prices: Object.entries(draftedPrices).map(([type, price]) => ({ 
-        ...price,
-        currencyUomId: priceUomId,
+      keywords: tags.value.map((keyword) => ({
+        keywordTypeId: "KWT_TAG",
+        statusId: "KW_APPROVED",
+        keyword
+      })),
+      identifications: filledIdentifications.value,
+      prices: Object.entries(draftedPrices.value).filter(([type, price]) => price).map(([type, price]) => ({
+        price,
+        currencyUomId: priceUomId.value,
         productPricePurposeId: "LISTING",
         productPriceTypeId: type,
-        productStoreId: "STORE" // TODO: Make it dynamic
+        productStoreId: currentProductStore.value.productStoreId,
+        productStoreGroupId: currentProductStore.value.primaryStoreGroupId
       })),
       categories: selectedCategories.value,
-      features: draftedFeatures.value
+      featureAppls: draftedFeatures.value.map((feature) => {
+        delete feature?.productId
+        return {
+          ...feature
+        }
+      })
     })
 
-    router.push(`/products/${productId}`)
+    triggerSolrIndex(productId)
+    emitter.emit("presentLoader", "Creating product...")
+    setTimeout(() => {
+      router.replace(`/products/${productId}`)
+      emitter.emit("dismissLoader")
+    }, 3000)
+
   } catch(error) {
     toast.error(error, translate("Could not create product"))
     creating.value = false
   }
 }
+
+onIonViewWillEnter(async () => {
+  categories.value = await fetchProductCategories();
+})
+
 </script>
 
 <style scoped>
 div.section {
   width: 375px;
+  margin: auto;
+}
+
+div.section-grid {
+  width: 610px;
   margin: auto;
 }
 
@@ -1075,6 +1046,7 @@ div.section {
   display: grid;
   grid-template-columns: 375px 1fr;
   gap: 24px;
+  justify-content: center;
 }
 
 .shipping-fields {
@@ -1085,6 +1057,7 @@ div.section {
 
 .shipping-fields ion-item {
   --padding-start: 0;
+  --padding-end: 0;
 }
 
 .measure-row {
@@ -1092,11 +1065,6 @@ div.section {
   grid-template-columns: 1fr max-content;
   gap: 8px;
   align-items: end;
-}
-
-.uom-select {
-  border-bottom: 1px solid var(--ion-color-step-200, #cccccc);
-  min-height: 44px;
 }
 
 .shipping-illustration {

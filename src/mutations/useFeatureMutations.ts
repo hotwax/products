@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query"
-import { applyFeature, createFeature, removeFeatureApplication } from "@/api/pim"
+import { applyFeature, createFeature, removeFeatureApplication, triggerSolrIndex } from "@/api/pim"
 import type { FeatureApply, FeatureCreate } from "@/domain/types/pim"
 import type { ProductFeatureApplication } from "@/domain/types/product"
 import { qk } from "@/queries/keys"
@@ -7,13 +7,14 @@ import { DateTime } from "luxon"
 
 /** Feature chip edits: optimistic apply/remove; creating a brand-new feature value first writes the
  *  catalog row (idempotent server-side) then applies it. */
-export function useFeatureMutations(productId: () => string) {
+export function useFeatureMutations(productId: () => string, parentProductId: () => string) {
   const queryClient = useQueryClient()
   const listKey = () => qk.product.features(productId())
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: listKey() })
     queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+    triggerSolrIndex(parentProductId())
   }
 
   const snapshot = async () => {

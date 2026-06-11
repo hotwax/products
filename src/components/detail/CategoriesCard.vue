@@ -2,28 +2,11 @@
   <CardSection :title="translate('Categories')">
     <div
       v-if="activeCategories.length"
-      class="cat-list"
     >
-      <ion-item
-        v-for="cat in activeCategories"
-        :key="cat.productCategoryId"
-        lines="none"
-        class="cat-item"
-      >
-        <ion-label>
-          <h3>{{ cat.categoryName || cat.productCategoryId }}</h3>
-          <p>{{ cat.productCategoryId }}</p>
-        </ion-label>
-        <ion-button
-          slot="end"
-          fill="clear"
-          color="danger"
-          size="small"
-          @click="$emit('expire', cat)"
-        >
-          {{ translate("Remove") }}
-        </ion-button>
-      </ion-item>
+      <ion-chip outline v-for="cat in activeCategories" :key="cat.productCategoryId">
+        {{ cat.categoryName || cat.productCategoryId }}
+        <ion-icon :icon="closeOutline" @click="$emit('expire', cat)" />
+      </ion-chip>
     </div>
     <p
       v-else
@@ -58,7 +41,7 @@
 <script setup lang="ts">
 import { IonButton, IonIcon, IonItem, IonLabel } from "@ionic/vue"
 import { computed, ref } from "vue"
-import { addOutline } from "ionicons/icons"
+import { addOutline, closeOutline } from "ionicons/icons"
 import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import CategoryPicker from "./CategoryPicker.vue"
@@ -86,12 +69,6 @@ const onSelect = (category: ProductCategory) => {
 </script>
 
 <style scoped>
-.cat-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .cat-item {
   border: 1px solid var(--ion-color-step-150, #e2e2e6);
   border-radius: 8px;

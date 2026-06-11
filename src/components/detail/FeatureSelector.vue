@@ -32,7 +32,6 @@
       </div>
     </div>
     <div
-      v-if="showAddVariant"
       class="add-variant-row"
     >
       <ion-button

@@ -1,7 +1,7 @@
 <template>
   <CardSection :title="translate('Inventory policy')">
     <div class="toggle-row">
-      <ion-item lines="none">
+      <ion-item lines="none" class="ion-border-end">
         <ion-toggle v-model="draft.returnable">
           {{ translate("Returnable") }}
         </ion-toggle>
@@ -9,11 +9,6 @@
       <ion-item lines="none">
         <ion-toggle v-model="draft.taxable">
           {{ translate("Taxable") }}
-        </ion-toggle>
-      </ion-item>
-      <ion-item lines="none">
-        <ion-toggle v-model="draft.chargeShipping">
-          {{ translate("Charge shipping") }}
         </ion-toggle>
       </ion-item>
     </div>
@@ -128,5 +123,9 @@ defineEmits<{
 .subs-empty {
   color: var(--ion-color-medium);
   font-size: 13px;
+}
+
+.ion-border-end {
+  border-right: 1px solid;
 }
 </style>

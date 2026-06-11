@@ -47,6 +47,43 @@
           </ion-chip>
         </div>
       </div>
+
+      <!-- Image upload -->
+      <div class="image-upload">
+        <div
+          class="image-preview"
+          @click="triggerFilePicker"
+        >
+          <img
+            v-if="imagePreviewUrl"
+            :src="imagePreviewUrl"
+            alt="Product image preview"
+          />
+          <div
+            v-else
+            class="image-placeholder"
+          >
+            <ion-icon :icon="imageOutline" />
+            <p>{{ translate("Tap to upload image") }}</p>
+          </div>
+        </div>
+        <ion-button
+          v-if="imagePreviewUrl"
+          fill="clear"
+          size="small"
+          color="danger"
+          @click="clearImage"
+        >
+          {{ translate("Remove image") }}
+        </ion-button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/*"
+          style="display: none"
+          @change="onFileChange"
+        />
+      </div>
     </ion-content>
 
     <ion-footer>
@@ -76,9 +113,9 @@ import {
   IonModal, IonSpinner, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, reactive, ref, watch } from "vue"
-import { checkmarkOutline } from "ionicons/icons"
+import { checkmarkOutline, imageOutline } from "ionicons/icons"
 import { translate } from "@common"
-import { createProduct, createAssociation, applyFeature } from "@/api/pim"
+import { createProduct, createAssociation, applyFeature, triggerSolrIndex } from "@/api/pim"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import type { FeatureAxis } from "@/domain/types/product"
@@ -98,13 +135,34 @@ const emit = defineEmits<{
 const selection = reactive<Record<string, string>>({})
 const creating = ref(false)
 
+// Image upload
+const fileInput = ref<HTMLInputElement | null>(null)
+const imageFile = ref<File | null>(null)
+const imagePreviewUrl = ref<string | null>(null)
+
+const triggerFilePicker = () => fileInput.value?.click()
+
+const onFileChange = (event: Event) => {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if(!file) {return}
+  imageFile.value = file
+  imagePreviewUrl.value = URL.createObjectURL(file)
+}
+
+const clearImage = () => {
+  imageFile.value = null
+  if(imagePreviewUrl.value) URL.revokeObjectURL(imagePreviewUrl.value)
+  imagePreviewUrl.value = null
+  if(fileInput.value) fileInput.value.value = ""
+}
+
 /** All axes must have exactly one value selected before the variant can be created */
 const hasSelection = computed(
   () => props.featureAxes.length > 0 &&
     props.featureAxes.every((axis) => Boolean(selection[axis.featureTypeId]))
 )
 
-// Reset selection when modal opens
+// Reset selection and image when modal opens
 watch(
   () => props.isOpen,
   (open) => {
@@ -112,6 +170,7 @@ watch(
     for(const key of Object.keys(selection)) {
       delete selection[key]
     }
+    clearImage()
   }
 )
 
@@ -127,14 +186,16 @@ const createVariant = async () => {
   if(!hasSelection.value || creating.value) {return}
   creating.value = true
   try {
-    // 1. Create the new variant product
-    const { productId } = await createProduct({ isVariant: "Y" })
+    // 1. Create the new variant product (with image if provided)
+    const { productId } = await createProduct({ isVariant: "Y" }, imageFile.value ?? undefined)
 
     // 2. Link it to the parent as a variant association
     await createAssociation(props.parentProductId, {
       productIdTo: productId,
       productAssocTypeId: ASSOC_TYPE.variant
     })
+
+    triggerSolrIndex(props.parentProductId)
 
     // 3. Apply each selected feature to the new variant
     const selectedFeatureIds = Object.values(selection).filter(Boolean)
@@ -188,5 +249,50 @@ const createVariant = async () => {
 
 .value-chip--selected ion-icon {
   color: var(--ion-color-primary);
+}
+
+.image-upload {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-preview {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1;
+  border: 2px dashed var(--ion-color-medium);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ion-color-medium);
+}
+
+.image-placeholder ion-icon {
+  font-size: 36px;
+}
+
+.image-placeholder p {
+  margin: 0;
+  font-size: 13px;
 }
 </style>
