@@ -13,6 +13,25 @@
 
     <div class="shipping-grid">
       <div class="shipping-fields">
+        <ion-select
+          v-model="draft.defaultShipmentBoxTypeId"
+          :label="translate('Default box type')"
+          label-placement="stacked"
+          interface="popover"
+          fill="outline"
+        >
+          <ion-select-option value="">
+            {{ translate("None") }}
+          </ion-select-option>
+          <ion-select-option
+            v-for="option in boxTypes"
+            :key="option.id"
+            :value="option.id"
+          >
+            {{ option.label }}
+          </ion-select-option>
+        </ion-select>
+
         <div class="measure-row">
           <ion-input
             min="0"
@@ -28,7 +47,6 @@
             v-model="draft.widthUomId"
             :aria-label="translate('Width unit')"
             interface="popover"
-            class="uom-select"
             fill="outline"
           >
             <ion-select-option
@@ -36,7 +54,7 @@
               :key="uom.id"
               :value="uom.id"
             >
-              {{ uom.label }}
+              {{ uom.abbreviation }}
             </ion-select-option>
           </ion-select>
         </div>
@@ -56,7 +74,6 @@
             v-model="draft.heightUomId"
             :aria-label="translate('Height unit')"
             interface="popover"
-            class="uom-select"
             fill="outline"
           >
             <ion-select-option
@@ -64,7 +81,7 @@
               :key="uom.id"
               :value="uom.id"
             >
-              {{ uom.label }}
+              {{ uom.abbreviation }}
             </ion-select-option>
           </ion-select>
         </div>
@@ -84,7 +101,6 @@
             v-model="draft.depthUomId"
             :aria-label="translate('Depth unit')"
             interface="popover"
-            class="uom-select"
             fill="outline"
           >
             <ion-select-option
@@ -92,7 +108,7 @@
               :key="uom.id"
               :value="uom.id"
             >
-              {{ uom.label }}
+              {{ uom.abbreviation }}
             </ion-select-option>
           </ion-select>
         </div>
@@ -112,7 +128,6 @@
             v-model="draft.weightUomId"
             :aria-label="translate('Weight unit')"
             interface="popover"
-            class="uom-select"
             fill="outline"
           >
             <ion-select-option
@@ -120,7 +135,7 @@
               :key="uom.id"
               :value="uom.id"
             >
-              {{ uom.label }}
+              {{ uom.abbreviation }}
             </ion-select-option>
           </ion-select>
         </div>
@@ -135,24 +150,6 @@
             {{ translate("Charge shipping") }}
           </ion-checkbox>
         </ion-item>
-        <ion-select
-          v-model="draft.defaultShipmentBoxTypeId"
-          :label="translate('Default box type')"
-          label-placement="stacked"
-          interface="popover"
-          fill="outline"
-        >
-          <ion-select-option value="">
-            {{ translate("None") }}
-          </ion-select-option>
-          <ion-select-option
-            v-for="option in boxTypes"
-            :key="option.id"
-            :value="option.id"
-          >
-            {{ option.label }}
-          </ion-select-option>
-        </ion-select>
       </div>
 
       <div class="shipping-illustration">
@@ -245,6 +242,7 @@ const unitLabel = (uomId: string) => props.lengthUoms.find((uom) => uom.id === u
   grid-template-columns: 1fr max-content;
   gap: 8px;
   align-items: end;
+  margin-top: 5px;
 }
 
 .uom-select {

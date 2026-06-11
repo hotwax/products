@@ -10,6 +10,7 @@ export function normalizeAuditEntry(record: Raw): ProductHistoryEntry {
     productId: textValue(record.pkPrimaryValue ?? record.productId),
     changedEntityName: textValue(record.changedEntityName),
     changedFieldName: textValue(record.changedFieldName),
+    pkPrimaryValue: textValue(record.pkPrimaryValue),
     oldValue: textValue(record.oldValueText ?? record.oldValue),
     newValue: textValue(record.newValueText ?? record.newValue),
     changedByUserId: textValue(record.changedByUserId ?? record.changedByUser),

@@ -15,16 +15,6 @@
         >
           {{ translate("Parent product") }} · {{ core?.productId }}
         </p>
-        <ion-button
-          fill="clear"
-          class="edit-btn"
-          @click="$emit('edit')"
-        >
-          <ion-icon
-            slot="icon-only"
-            :icon="pencilOutline"
-          />
-        </ion-button>
       </div>
 
       <ion-list lines="none">
@@ -35,13 +25,21 @@
             <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
             <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
           </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            class="edit-btn"
+            @click="$emit('edit')"
+          >
+            <ion-icon
+              slot="icon-only"
+              :icon="pencilOutline"
+            />
+          </ion-button>
         </ion-item>
       </ion-list>
     </div>
 
-    <div class="hero-side">
-      <slot name="side" />
-    </div>
   </div>
 </template>
 
@@ -70,7 +68,7 @@ const typeLabel = computed(() => {
 <style scoped>
 .hero {
   display: grid;
-  grid-template-columns: minmax(220px, 343px) 1fr minmax(260px, 343px);
+  grid-template-columns: minmax(220px, 343px) 1fr;
   gap: 16px;
   padding: 16px;
   align-items: start;
@@ -81,7 +79,7 @@ const typeLabel = computed(() => {
   aspect-ratio: 1;
   object-fit: cover;
   border-radius: 8px;
-  background: var(--ion-color-step-100, #f0f0f3);
+  object-fit: contain;
 }
 
 .hero-main-head {
@@ -97,6 +95,10 @@ const typeLabel = computed(() => {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ion-color-medium);
+}
+
+.edit-btn {
+  align-self: flex-start;
 }
 
 @media (max-width: 960px) {

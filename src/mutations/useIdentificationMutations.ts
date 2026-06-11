@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query"
-import { createIdentification, expireIdentification, updateIdentification } from "@/api/pim"
+import { createIdentification, expireIdentification, triggerSolrIndex, updateIdentification } from "@/api/pim"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import type { ProductIdentification } from "@/domain/types/product"
 import { qk } from "@/queries/keys"
 
 /** Identification list edits: optimistic add/expire with snapshot rollback. */
-export function useIdentificationMutations(productId: () => string) {
+export function useIdentificationMutations(productId: () => string, parentProductId: () => string) {
   const queryClient = useQueryClient()
   const listKey = () => qk.product.identifications(productId())
 
@@ -14,6 +14,7 @@ export function useIdentificationMutations(productId: () => string) {
     queryClient.invalidateQueries({ queryKey: qk.product.audit(productId()) })
     queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
     queryClient.invalidateQueries({ queryKey: qk.quality.all, refetchType: "active" })
+    triggerSolrIndex(parentProductId())
   }
 
   const snapshot = async () => {

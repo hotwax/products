@@ -1,4 +1,4 @@
-import type { ProductCore, ProductSummary } from "../types/product"
+import type { ProductCore, ProductPrice, ProductSummary } from "../types/product"
 import { flagValue, isoDate, numberValue, stringArray, textValue } from "./value"
 
 type Raw = Record<string, unknown>
@@ -28,6 +28,20 @@ export function normalizeProductSummary(doc: Raw): ProductSummary {
     lastModifiedDate: isoDate(doc.lastModifiedDate) ?? "",
     variantCount: numberValue(doc.variantCount) ?? 0
   }
+}
+
+function normalizePrices(raw: unknown): ProductPrice[] {
+  if(!Array.isArray(raw)) {return []}
+
+  return raw.map((row: Raw) => ({
+    productPriceTypeId: textValue(row.productPriceTypeId),
+    productPricePurposeId: textValue(row.productPricePurposeId) || "LISTING",
+    currencyUomId: textValue(row.currencyUomId),
+    price: numberValue(row.price) ?? 0,
+    fromDate: textValue(row.fromDate),
+    thruDate: row.thruDate ? textValue(row.thruDate) : null,
+    active: !row.thruDate || new Date(textValue(row.thruDate)) > new Date()
+  }))
 }
 
 /** oms/products/{id} entity record → ProductCore (the editor's source of truth). */
@@ -65,7 +79,8 @@ export function normalizeProductCore(record: Raw): ProductCore {
     imageUrl: firstText(record.smallImageUrl, record.mediumImageUrl, record.largeImageUrl, record.detailImageUrl, record.originalImageUrl),
     createdDate: isoDate(record.createdDate),
     lastModifiedDate: isoDate(record.lastModifiedDate ?? record.lastUpdatedStamp),
-    lastModifiedByUserLogin: textValue(record.lastModifiedByUserLogin)
+    lastModifiedByUserLogin: textValue(record.lastModifiedByUserLogin),
+    prices: normalizePrices(record.prices)
   }
 }
 

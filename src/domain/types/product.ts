@@ -57,6 +57,7 @@ export interface GroupIdFacet {
 
 /** The editable product record (oms/products/{id} entity fields the editor binds to). */
 export interface ProductCore {
+  prices: ProductPrice[]
   productId: string
   productTypeId: string
   productName: string
@@ -155,6 +156,31 @@ export interface FeatureAxis {
 export interface CatalogOption {
   id: string
   label: string
+  abbreviation?: string
+}
+
+export interface ProductCategory {
+  productCategoryId: string
+  categoryName: string
+  description: string
+}
+
+export interface ProductPrice {
+  productPriceTypeId: string
+  productPricePurposeId: string
+  currencyUomId: string
+  price: number
+  fromDate: string
+  thruDate: string | null
+  active: boolean
+}
+
+export interface ProductCategoryMembership {
+  productCategoryId: string
+  categoryName: string
+  fromDate: string
+  thruDate: string | null
+  active: boolean
 }
 
 export interface StoreCatalogExposure {
@@ -176,6 +202,7 @@ export interface ProductHistoryEntry {
   newValue: string
   changedByUserId: string
   changedDate: string
+  pkPrimaryValue: string
 }
 
 export interface ImportHistoryEntry {
@@ -191,3 +218,10 @@ export interface ImportHistoryEntry {
 }
 
 export type PresellState = "preorder" | "backorder" | null
+
+export interface ShopifyShopProduct {
+  shopId: string
+  productId: string
+  shopifyProductId: string
+  shopifyInventoryItemId: string
+}

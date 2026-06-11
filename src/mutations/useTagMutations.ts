@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query"
-import { addProductKeyword, removeProductKeyword } from "@/api/pim"
+import { addProductKeyword, removeProductKeyword, triggerSolrIndex } from "@/api/pim"
 import { qk } from "@/queries/keys"
 import type { ProductSummary } from "@/domain/types/product"
 
@@ -11,7 +11,7 @@ import type { ProductSummary } from "@/domain/types/product"
  */
 export function useTagMutations(
   productId: () => string,
-  options?: { anchorProductId?: () => string }
+  options?: { anchorProductId?: () => string; parentProductId?: () => string }
 ) {
   const queryClient = useQueryClient()
 
@@ -19,6 +19,7 @@ export function useTagMutations(
 
   const solrKey = () => qk.product.solr(productId())
   const familyKey = () => qk.product.family(options?.anchorProductId?.() ?? "")
+  const getParentProductId = options?.parentProductId ?? productId
 
   const invalidate = () => {
     if(isVariant) {
@@ -27,6 +28,7 @@ export function useTagMutations(
       queryClient.invalidateQueries({ queryKey: solrKey() })
     }
     queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+    triggerSolrIndex(getParentProductId())
   }
 
   const snapshotSolr = async () => {

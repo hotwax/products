@@ -1,10 +1,10 @@
 import { queryOptions } from "@tanstack/vue-query"
-import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductRecord } from "@/api/pim"
+import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetchIdentifications, fetchProductCategoryMembers, fetchProductRecord, fetchShopifyShopProducts } from "@/api/pim"
 import { fetchEntityAuditLogs } from "@/api/catalog"
 import { runProductSolrQuery, solrDocs } from "@/api/solr"
 import { escapeSolrValue } from "@/domain/solr/productQuery"
 import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
-import type { ProductSummary } from "@/domain/types/product"
+import type { ProductCategoryMembership, ProductSummary, ShopifyShopProduct } from "@/domain/types/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
 import { normalizeAssociations } from "@/domain/normalize/association"
 import { featureCatalogMap, normalizeFeatureApplication } from "@/domain/normalize/feature"
@@ -79,7 +79,9 @@ export function featureApplicationsOptions(productId: string) {
       const features = featureCatalogMap(catalog)
       const typeLabels = catalogOptionMap(types)
 
-      return rows.map((row) => normalizeFeatureApplication(row, features, typeLabels))
+      return rows
+        .filter((row) => !row.thruDate)
+        .map((row) => normalizeFeatureApplication(row, features, typeLabels))
     }
   })
 }
@@ -111,11 +113,44 @@ export function auditHistoryOptions(productId: string) {
   })
 }
 
+export function categoriesOptions(productId: string) {
+  return queryOptions({
+    queryKey: qk.product.categories(productId),
+    queryFn: async (): Promise<ProductCategoryMembership[]> => {
+      const rows = await fetchProductCategoryMembers(productId)
+
+      return rows.map((raw) => ({
+        productCategoryId: String(raw.productCategoryId ?? ""),
+        categoryName: String(raw.categoryName ?? raw.productCategoryId ?? ""),
+        fromDate: String(raw.fromDate ?? ""),
+        thruDate: raw.thruDate ? String(raw.thruDate) : null,
+        active: !raw.thruDate || new Date(String(raw.thruDate)) > new Date()
+      }))
+    }
+  })
+}
+
 /** Full ProductFeature catalog rows (raw) — shared by feature pickers and appl normalization. */
 export function featureCatalogOptions() {
   return queryOptions({
     queryKey: qk.catalog.features(),
     queryFn: fetchFeatureCatalog,
     staleTime: Infinity
+  })
+}
+
+export function shopifyShopProductsOptions(productId: string) {
+  return queryOptions({
+    queryKey: qk.product.shopifyShopProducts(productId),
+    queryFn: async (): Promise<ShopifyShopProduct[]> => {
+      const rows = await fetchShopifyShopProducts(productId)
+
+      return rows.map((raw) => ({
+        shopId: String(raw.shopId ?? ""),
+        productId: String(raw.productId ?? productId),
+        shopifyProductId: String(raw.shopifyProductId ?? ""),
+        shopifyInventoryItemId: String(raw.shopifyInventoryItemId ?? "")
+      }))
+    }
   })
 }

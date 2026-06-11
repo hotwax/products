@@ -2,7 +2,7 @@ import { type Ref, computed, ref, watch } from "vue"
 import { useQuery } from "@tanstack/vue-query"
 import router from "../router"
 import {
-  associationsOptions, auditHistoryOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions, productSolrOptions
+  associationsOptions, auditHistoryOptions, categoriesOptions, familyMembersOptions, featureApplicationsOptions, identificationsOptions, productCoreOptions, productSolrOptions, shopifyShopProductsOptions
 } from "@/queries/productDetail"
 import { boxTypesOptions, productTypesOptions } from "@/queries/catalog"
 import { ASSOC_TYPE, groupAssociations } from "@/domain/normalize/association"
@@ -141,6 +141,9 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
   // anchor product from Solr to get its tags (family members query only fetches isVariant:true)
   const anchorSolrQuery = useQuery(computed(() => productSolrOptions(anchorProductId.value)))
+  // categories are fetched per editing product (parent or variant)
+  const categoriesQuery = useQuery(computed(() => categoriesOptions(editingProductId.value)))
+  const shopifyShopProductsQuery = useQuery(computed(() => shopifyShopProductsOptions(editingProductId.value)))
 
   // reference data the cards need
   const productTypesQuery = useQuery(productTypesOptions())
@@ -189,6 +192,13 @@ export function useProductDetailData(routeProductId: Ref<string>) {
 
     anchorTags: computed(() => anchorSolrQuery.data.value?.tags ?? []),
     selectedVariantTags: computed(() => familyMembers.value.find((m) => m.productId === selectedVariantId.value)?.tags ?? []),
+
+    categories: computed(() => categoriesQuery.data.value ?? []),
+    categoriesLoading: categoriesQuery.isLoading,
+
+    prices: computed(() => coreQuery.data.value?.prices ?? []),
+
+    shopifyShopProducts: computed(() => shopifyShopProductsQuery.data.value ?? []),
 
     productTypes: computed(() => productTypesQuery.data.value ?? []),
     boxTypes: computed(() => boxTypesQuery.data.value ?? [])
