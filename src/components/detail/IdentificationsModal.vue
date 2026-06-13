@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonButtons, IonContent, IonHeader, IonInput, IonItem, IonList, IonModal, IonTitle, IonToolbar } from "@ionic/vue"
+import { IonButton, IonButtons, IonFab, IonFabButton, IonIcon, IonContent, IonHeader, IonInput, IonItem, IonList, IonModal, IonTitle, IonToolbar } from "@ionic/vue"
 import { computed, reactive, watch } from "vue"
 import { translate } from "@common"
 import type { CatalogOption, ProductIdentification } from "@/domain/types/product"

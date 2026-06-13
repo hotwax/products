@@ -45,7 +45,7 @@
           @click="toggleTag(tag)"
         >
           <ion-label>{{ tag }}</ion-label>
-          <ion-icon :icon="closeCircleOutline" />
+          <ion-icon :icon="closeOutline" />
         </ion-chip>
       </div>
 
@@ -189,7 +189,7 @@ import {
   IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
   IonSkeletonText, IonThumbnail, IonTitle, IonToolbar, loadingController
 } from "@ionic/vue"
-import { addOutline, closeCircleOutline, pricetagOutline } from "ionicons/icons"
+import { addOutline, closeCircleOutline, closeOutline, pricetagOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
 import { translate } from "@common"
 import EmptyState from "@/components/EmptyState.vue"

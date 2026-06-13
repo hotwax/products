@@ -10,7 +10,7 @@
         >
           <ion-label>{{ tag }}</ion-label>
           <ion-icon
-            :icon="closeCircle"
+            :icon="closeOutline"
             @click="$emit('removeVariantTag', tag)"
           />
         </ion-chip>
@@ -49,7 +49,7 @@
         >
           <ion-label>{{ tag }}</ion-label>
           <ion-icon
-            :icon="closeCircle"
+            :icon="closeOutline"
             @click="$emit('removeTag', tag)"
           />
         </ion-chip>
@@ -83,7 +83,7 @@
 <script setup lang="ts">
 import { IonButton, IonChip, IonIcon, IonInput, IonLabel } from "@ionic/vue"
 import { computed, ref } from "vue"
-import { closeCircle } from "ionicons/icons"
+import { closeCircle, closeOutline } from "ionicons/icons"
 import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 

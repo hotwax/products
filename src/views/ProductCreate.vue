@@ -116,7 +116,7 @@
             >
               <ion-label>{{ tag }}</ion-label>
               <ion-icon
-                :icon="closeCircle"
+                :icon="closeOutline"
                 @click="removeTag(tag)"
               />
             </ion-chip>
@@ -643,9 +643,10 @@ import { z } from "zod"
 import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
 import { emitter, translate } from "@common"
-import { closeCircle } from "ionicons/icons"
+import { closeCircle, closeOutline } from "ionicons/icons"
 import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
+import ProductPicker from "@/components/detail/ProductPicker.vue"
 import FeaturesSection from "@/components/detail/FeaturesSection.vue"
 import { createFeature, createProduct, fetchProductCategories, triggerSolrIndex } from "@/api/pim"
 import { boxTypesOptions, currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions, productTypesOptions } from "@/queries/catalog"

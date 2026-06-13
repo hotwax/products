@@ -25,6 +25,7 @@
 
 <script setup lang="ts">
 import {
+  IonIcon,
   IonButton,
   IonCard,
   IonCardContent,
