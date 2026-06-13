@@ -200,7 +200,7 @@ import {
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
   IonSegmentButton, IonTitle, IonToolbar, alertController
 } from "@ionic/vue"
-import { computed, ref, toRef, type ComponentPublicInstance } from "vue"
+import { computed, ref, toRef, watch, type ComponentPublicInstance } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
 import { useQuery, useQueryClient } from "@tanstack/vue-query"
 import { qk } from "@/queries/keys"
@@ -240,8 +240,9 @@ import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductSummary } from "@/domain/types/product"
+import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
+import { useUserStore } from "@/store/user"
 
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
@@ -249,6 +250,8 @@ const toast = useToast()
 const contentRef = ref<ComponentPublicInstance | null>(null)
 const segmentRef = ref<ComponentPublicInstance | null>(null)
 const displayCardRef = ref<ComponentPublicInstance | null>(null)
+
+const currentProductStore = computed(() => useUserStore().getCurrentProductStore)
 
 const scrollToDisplay = async () => {
   // scroll to the segment when it's visible (product has variants), otherwise the DisplayCard
@@ -301,22 +304,49 @@ const priceSource = computed(() => {
 const priceDraft = useCardDraft(priceSource)
 const pricesSaving = ref(false)
 
+// When switching between parent and variant, force-reset the draft so stale edits
+// from the previous product don't keep dirty=true on the new one.
+watch(editingProductId, () => priceDraft.reset())
+
 const onSavePrices = async () => {
   if(pricesSaving.value) {return}
   pricesSaving.value = true
   try {
-    const prices = PRICE_TYPES
-      .filter((type) => (priceDraft.draft[type as PriceType] ?? "").trim())
-      .map((type) => ({
-        productPriceTypeId: type,
-        currencyUomId: priceDraft.draft.currencyUomId,
-        price: Number(priceDraft.draft[type as PriceType]),
-        productPricePurposeId: "LISTING",
-        productStoreId: "STORE",
-        productStoreGroupId: "STORE_GROUP"
-      }))
+    const activePrices = prices.value.filter((p: ProductPrice) => p.active)
+    const now = new Date().toISOString()
 
-    await updateProductFields(editingProductId.value, { prices })
+    const pricePayload = PRICE_TYPES
+      .map((type) => {
+        const draftVal = (priceDraft.draft[type as PriceType] ?? "").trim()
+        const savedVal = (priceSource.value[type as PriceType] ?? "").trim()
+        if(draftVal === savedVal) return null
+        if(draftVal) {
+          return {
+            productPriceTypeId: type,
+            currencyUomId: priceDraft.draft.currencyUomId,
+            price: Number(draftVal),
+            productPricePurposeId: "LISTING",
+            productStoreId: currentProductStore.value.productStoreId,
+            productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+          }
+        }
+        const existing = activePrices.find((p: ProductPrice) => p.productPriceTypeId === type)
+        if(!existing) return null
+        return {
+          productPriceTypeId: type,
+          currencyUomId: existing.currencyUomId,
+          productPricePurposeId: "LISTING",
+          productStoreId: currentProductStore.value.productStoreId,
+          productStoreGroupId: currentProductStore.value.primaryStoreGroupId,
+          thruDate: now
+        }
+      })
+      .filter(Boolean)
+
+    if(!pricePayload.length) return
+
+    await updateProductFields(editingProductId.value, { prices: pricePayload })
+
     triggerSolrIndex(parentProductId.value)
     await queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) })
     toast.success(translate("Prices saved"))
