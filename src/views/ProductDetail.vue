@@ -374,7 +374,7 @@ const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anc
 // feature edits apply to whichever family member is being edited
 const featureMutations = useFeatureMutations(() => editingProductId.value, () => parentProductId.value)
 // "new value" chips extend the family's selectable axes on the parent
-const familyFeatureMutations = useFeatureMutations(() => featureFamilyId.value)
+const familyFeatureMutations = useFeatureMutations(() => featureFamilyId.value, () => parentProductId.value)
 
 const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())

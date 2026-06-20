@@ -7,9 +7,48 @@ import { DateTime } from "luxon"
 
 /** Feature chip edits: optimistic apply/remove; creating a brand-new feature value first writes the
  *  catalog row (idempotent server-side) then applies it. */
-export function useFeatureMutations(productId: () => string, parentProductId: () => string) {
+export function useFeatureMutations(productId: () => string, parentProductId: () => string = productId) {
   const queryClient = useQueryClient()
   const listKey = () => qk.product.features(productId())
+
+  const cacheCreatedFeature = (productFeatureId: string, payload: FeatureCreate) => {
+    queryClient.setQueryData<Record<string, unknown>[]>(qk.catalog.features(), (rows) => {
+      if(!rows || rows.some((row) => row.productFeatureId === productFeatureId)) {return rows}
+
+      return [...rows, {
+        productFeatureId,
+        productFeatureTypeId: payload.productFeatureTypeId,
+        description: payload.description
+      }]
+    })
+  }
+
+  const cacheCreatedFeatureApplication = (
+    productFeatureId: string,
+    payload: FeatureCreate & { productFeatureApplTypeId?: string },
+    fromDate: unknown
+  ) => {
+    const effectiveFromDate = typeof fromDate === "number"
+      ? DateTime.fromMillis(fromDate).toISO()
+      : typeof fromDate === "string" ? fromDate : new Date().toISOString()
+
+    queryClient.setQueryData<ProductFeatureApplication[]>(listKey(), (rows = []) => {
+      if(rows.some((row) => row.productFeatureId === productFeatureId)) {return rows}
+
+      return [...rows, {
+        productId: productId(),
+        productFeatureId,
+        productFeatureApplTypeId: payload.productFeatureApplTypeId ?? "STANDARD_FEATURE",
+        featureTypeId: payload.productFeatureTypeId,
+        featureTypeDescription: payload.productFeatureTypeId,
+        description: payload.description,
+        fromDate: effectiveFromDate ?? new Date().toISOString(),
+        thruDate: null,
+        active: true,
+        sequenceNum: null
+      }]
+    })
+  }
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: listKey() })
@@ -71,12 +110,17 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
   const createAndApply = useMutation({
     mutationFn: async (payload: FeatureCreate & { productFeatureApplTypeId?: string }) => {
       const { productFeatureId } = await createFeature(payload)
-      await applyFeature(productId(), { productFeatureId, productFeatureApplTypeId: payload.productFeatureApplTypeId })
+      const applied = await applyFeature(productId(), { productFeatureId, productFeatureApplTypeId: payload.productFeatureApplTypeId }) as { fromDate?: unknown }
 
-      return productFeatureId
+      return { productFeatureId, payload, fromDate: applied?.fromDate }
+    },
+    onSuccess: ({ productFeatureId, payload, fromDate }) => {
+      cacheCreatedFeature(productFeatureId, payload)
+      cacheCreatedFeatureApplication(productFeatureId, payload, fromDate)
     },
     onSettled: () => {
-      invalidate()
+      queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+      triggerSolrIndex(parentProductId())
       queryClient.invalidateQueries({ queryKey: qk.catalog.features() })
     }
   })
