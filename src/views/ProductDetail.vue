@@ -24,10 +24,11 @@
 
       <template v-else>
         <ProductHero
-          :core="anchorCore"
-          :family-anchor="hasParent"
+          :core="core"
+          :family-anchor="heroFamilyAnchor"
           :product-types="productTypes"
           @edit="scrollToDisplay"
+          @edit-image="onEditImageUrl"
         />
 
         <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
@@ -269,7 +270,7 @@ const {
   editingProductId, parentProductId, segment, setSegment, hasParent,
   variants, selectedVariantId, selectVariant,
   featureOptions, hasFeatureSelection, selectedVariantSelection, selectByFeature,
-  anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
+  core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
   audit, productTypes, boxTypes,
@@ -280,6 +281,7 @@ const {
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
+const heroFamilyAnchor = computed(() => hasParent.value && core.value?.productId === parentProductId.value)
 
 const identificationMutations = useIdentificationMutations(() => editingProductId.value, () => parentProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value, () => parentProductId.value)
@@ -388,6 +390,50 @@ const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
 const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
+
+const onEditImageUrl = async () => {
+  const alert = await alertController.create({
+    header: translate("Image URL"),
+    inputs: [
+      {
+        name: "imageUrl",
+        type: "url",
+        value: core.value?.imageUrl ?? "",
+        placeholder: "https://cdn.example.com/product.jpg"
+      }
+    ],
+    buttons: [
+      {
+        text: translate("Cancel"),
+        role: "cancel"
+      },
+      {
+        text: translate("Save"),
+        role: "confirm"
+      }
+    ]
+  })
+
+  await alert.present()
+  const { data, role } = await alert.onDidDismiss<{ values?: { imageUrl?: string } }>()
+  if(role !== "confirm") {return}
+
+  const imageUrl = (data?.values?.imageUrl ?? "").trim()
+  if(imageUrl === (core.value?.imageUrl ?? "")) {return}
+
+  try {
+    await updateProductFields(editingProductId.value, { smallImageUrl: imageUrl })
+    triggerSolrIndex(parentProductId.value)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) }),
+      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value) }),
+      queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+    ])
+    toast.success(translate("Saved"))
+  } catch(error) {
+    toast.error(error, translate("Could not save image URL"))
+  }
+}
 
 const isKit = computed(() => {
   const typeId = core.value?.productTypeId ?? ""
