@@ -22,6 +22,7 @@
             button
             :router-link="item.path"
             router-direction="root"
+            :class="{ selected: isSelected(item.path) }"
           >
             <ion-icon
               slot="start"
@@ -56,4 +57,21 @@ const menuItems = computed(() => [
   { path: "/imports", label: "Imports", icon: cloudDownloadOutline, permissionId: PRODUCT_READ_PERMISSION },
   { path: "/settings", label: "Settings", icon: settingsOutline, permissionId: "" }
 ].filter((item) => !item.permissionId || userStore.hasPermission(item.permissionId)))
+
+const selectedPage = computed(() => router.currentRoute.value.path)
+
+const isSelected = (path: string) =>
+  path === "/products" ? selectedPage.value.includes("/products") : selectedPage.value === path
 </script>
+
+<style scoped>
+  ion-menu.md ion-item.selected ion-icon {
+    color: var(--ion-color-secondary);
+  }
+  ion-menu.ios ion-item.selected ion-icon {
+    color: var(--ion-color-secondary);
+  }
+  ion-item.selected {
+    --color: var(--ion-color-secondary);
+  }
+</style>

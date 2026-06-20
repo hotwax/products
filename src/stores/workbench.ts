@@ -10,6 +10,7 @@ export const useWorkbenchStore = defineStore("workbench", {
     productKind: "All" as ProductKind,
     productStoreId: "All",
     tags: [] as string[],
+    groupIds: [] as string[],
     sort: "Alphabet" as ProductSortOption,
     pageSize: 25,
     selectedProductIds: [] as string[]
@@ -22,6 +23,7 @@ export const useWorkbenchStore = defineStore("workbench", {
         productKind: state.productKind,
         productStoreId: state.productStoreId,
         tags: [...state.tags],
+        groupIds: [...state.groupIds],
         sort: state.sort,
         pageSize: state.pageSize
       }
@@ -32,12 +34,18 @@ export const useWorkbenchStore = defineStore("workbench", {
     toggleTag(tag: string) {
       this.tags = this.tags.includes(tag) ? this.tags.filter((existing) => existing !== tag) : [...this.tags, tag]
     },
+    toggleGroupId(groupId: string) {
+      this.groupIds = this.groupIds.includes(groupId)
+        ? this.groupIds.filter((existing) => existing !== groupId)
+        : [...this.groupIds, groupId]
+    },
     clearFilters() {
       this.queryString = ""
       this.productTypeId = "FINISHED_GOOD"
       this.productKind = "All"
       this.productStoreId = "All"
       this.tags = []
+      this.groupIds = []
       this.sort = "Alphabet"
       this.clearSelection()
     },

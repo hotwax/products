@@ -86,38 +86,6 @@
       <section>
         <ion-card>
           <ion-card-header>
-            <ion-card-subtitle>{{ translate("Diagnostics") }}</ion-card-subtitle>
-            <ion-card-title>{{ translate("Product data") }}</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            {{ translate("Rebuild the product search index when results look stale or empty.") }}
-          </ion-card-content>
-          <ion-item lines="full">
-            <ion-label>
-              <p>{{ translate("Indexed products") }}</p>
-              {{ indexStatus?.productCount ?? "—" }}
-            </ion-label>
-          </ion-item>
-          <ion-item lines="none">
-            <ion-label>
-              <p>{{ translate("Search index") }}</p>
-              {{ indexStatus ? (indexStatus.reachable ? `${indexStatus.core} · ${translate("reachable")}` : translate("unreachable")) : "—" }}
-            </ion-label>
-          </ion-item>
-          <ion-button
-            v-if="canReindexProducts"
-            fill="outline"
-            :disabled="reindexing"
-            @click="refreshProductData()"
-          >
-            <ion-spinner v-if="reindexing" slot="start" name="crescent" />
-            <ion-icon v-else slot="start" :icon="refreshOutline" />
-            {{ translate("Rebuild search index") }}
-          </ion-button>
-        </ion-card>
-
-        <ion-card>
-          <ion-card-header>
             <ion-card-title>{{ translate("Timezone") }}</ion-card-title>
           </ion-card-header>
           <ion-card-content>
@@ -250,18 +218,15 @@ import {
   IonTitle,
   IonToolbar
 } from "@ionic/vue"
-import { closeOutline, openOutline, refreshOutline, saveOutline } from "ionicons/icons"
+import { closeOutline, openOutline, saveOutline } from "ionicons/icons"
 import { DateTime } from "luxon"
 import { computed, onBeforeMount, ref } from "vue"
 import { commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query"
-import { fetchIndexStatus, reindexProducts } from "@/api/pim"
 import { qk } from "@/queries/keys"
 import { useToast } from "@/composables/useToast"
 import { useUserStore } from "@/store/user"
-import { SEARCH_REINDEX_PERMISSION } from "@/auth/permissions"
 
 const props = defineProps({
   showBrowserTimeZone: {
@@ -279,25 +244,7 @@ const props = defineProps({
 })
 
 const userStore = useUserStore()
-const queryClient = useQueryClient()
-const toast = useToast()
 
-const indexStatusQuery = useQuery({ queryKey: qk.indexStatus, queryFn: fetchIndexStatus, staleTime: 30_000 })
-const indexStatus = computed(() => indexStatusQuery.data.value ?? null)
-const reindexMutation = useMutation({
-  mutationFn: () => reindexProducts(),
-  onSuccess: async ({ indexedCount }) => {
-    toast.success(`${indexedCount} ${translate("products indexed")}`)
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: qk.indexStatus }),
-      queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" }),
-      queryClient.invalidateQueries({ queryKey: qk.quality.all, refetchType: "active" })
-    ])
-  },
-  onError: (error) => toast.error(error, translate("Could not rebuild the index"))
-})
-const reindexing = computed(() => reindexMutation.isPending.value)
-const canReindexProducts = computed(() => userStore.hasPermission(SEARCH_REINDEX_PERMISSION))
 const userProfile = computed(() => userStore.getUserProfile)
 const currentProductStore = computed(() => userStore.getCurrentProductStore)
 const productStores = computed(() => userProfile.value?.stores || [])
@@ -339,11 +286,6 @@ onBeforeMount(async () => {
   findTimeZone()
   isLoading.value = false
 })
-
-async function refreshProductData() {
-  if(!canReindexProducts.value) {return}
-  await reindexMutation.mutateAsync()
-}
 
 function setCurrentProductStore(event: CustomEvent) {
   if(currentProductStore.value.productStoreId !== event.detail.value) {

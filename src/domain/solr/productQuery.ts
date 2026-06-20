@@ -36,6 +36,7 @@ export function productScopeFilters(params: Partial<ProductSearchParams>): strin
   if(params.productKind === "Virtuals") {filters.push("isVirtual:true")}
   if(params.productStoreId && params.productStoreId !== "All") {filters.push(`productStoreIds:${escapeSolrValue(params.productStoreId)}`)}
   for(const tag of params.tags ?? []) {filters.push(`tags:"${tag.replace(/"/g, "\\\"")}"`)}
+  for(const groupId of params.groupIds ?? []) {filters.push(`groupId:${escapeSolrValue(groupId)}`)}
 
   return filters
 }
@@ -44,7 +45,7 @@ export function productSearchQueryText(queryString: string): string {
   const tokens = queryString.trim().split(/\s+/).filter(Boolean).map(escapeSolrValue)
   if(!tokens.length) {return "*:*"}
 
-  return `searchText:(${tokens.join(" ")})`
+  return `*${tokens.join(" ")}*`
 }
 
 export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: number): SolrJsonQuery {
@@ -54,7 +55,11 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
     sort: productSort(params.sort),
     limit: params.pageSize,
     offset: pageIndex * params.pageSize,
-    params: { "q.op": "AND" }
+    params: {
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId groupId parentProductName productName internalName sku"
+    }
   }
 }
 
@@ -66,5 +71,21 @@ export function tagFacetPayload(params: ProductSearchParams): SolrJsonQuery {
     limit: 0,
     facet: { tags: { type: "terms", field: "tags", limit: 200, mincount: 1 } },
     params: { "q.op": "AND" }
+  }
+}
+
+/** GroupId facet over the current scope minus the groupId filter and productKind check (isVariant/isVirtual)
+ *  so facet counts reflect all docs in the group regardless of variant/virtual split. */
+export function groupIdFacetPayload(params: ProductSearchParams): SolrJsonQuery {
+  return {
+    query: productSearchQueryText(params.queryString),
+    filter: productScopeFilters({ ...params, groupIds: [], productKind: undefined }),
+    limit: 0,
+    facet: { groupId: { type: "terms", field: "groupId", limit: -1, mincount: 1 } },
+    params: {
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId groupId parentProductName productName internalName sku"
+    }
   }
 }

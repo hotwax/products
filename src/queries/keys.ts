@@ -6,7 +6,8 @@ export const qk = {
   products: {
     all: ["products"] as const,
     search: (params: ProductSearchParams) => ["products", "search", params] as const,
-    tagFacets: (scope: Omit<ProductSearchParams, "tags">) => ["products", "tagFacets", scope] as const
+    tagFacets: (scope: Omit<ProductSearchParams, "tags">) => ["products", "tagFacets", scope] as const,
+    groupIdFacets: (scope: Omit<ProductSearchParams, "groupIds">) => ["products", "groupIdFacets", scope] as const
   },
   product: {
     root: (productId: string) => ["product", productId] as const,
@@ -15,7 +16,10 @@ export const qk = {
     associations: (productId: string) => ["product", productId, "associations"] as const,
     family: (productId: string) => ["product", productId, "family"] as const,
     features: (productId: string) => ["product", productId, "features"] as const,
-    audit: (productId: string) => ["product", productId, "audit"] as const
+    audit: (productId: string) => ["product", productId, "audit"] as const,
+    solr: (productId: string) => ["product", productId, "solr"] as const,
+    categories: (productId: string) => ["product", productId, "categories"] as const,
+    shopifyShopProducts: (productId: string) => ["product", productId, "shopifyShopProducts"] as const
   },
   catalog: {
     all: ["catalog"] as const,

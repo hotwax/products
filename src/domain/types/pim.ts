@@ -1,5 +1,13 @@
 /** Request payloads for the pim component's write APIs (/rest/s1/pim). One place to track the contract. */
 
+export interface PriceEntry {
+  productPriceTypeId: string
+  currencyUomId: string
+  price: number
+  productPricePurposeId?: string
+  productStoreId?: string
+}
+
 /** PATCH semantics: only send changed fields; empty string clears a field server-side. */
 export interface ProductFieldsPatch {
   productName?: string
@@ -32,6 +40,7 @@ export interface ProductFieldsPatch {
   /** attribute-backed toggles (no Product columns; pim maps to ProductAttribute) */
   requiresInspection?: "Y" | "N"
   autoApproveSubstitutes?: "Y" | "N"
+  prices?: PriceEntry[]
 }
 
 export interface IdentificationCreate {
@@ -79,6 +88,43 @@ export interface FeatureCreate {
   description: string
   abbrev?: string
   idCode?: string
+}
+
+export interface ProductPriceCreate {
+  productPriceTypeId: string
+  currencyUomId: string
+  price: number
+  productPricePurposeId?: string
+  productStoreId?: string
+}
+
+export interface ProductCreatePayload {
+  productName?: string
+  internalName?: string
+  brandName?: string
+  description?: string
+  longDescription?: string
+  productTypeId?: string
+  introductionDate?: string
+  releaseDate?: string
+  supportDiscontinuationDate?: string
+  salesDiscontinuationDate?: string
+  salesDiscWhenNotAvail?: "Y" | "N"
+  returnable?: "Y" | "N"
+  taxable?: "Y" | "N"
+  chargeShipping?: "Y" | "N"
+  inShippingBox?: "Y" | "N"
+  defaultShipmentBoxTypeId?: string
+  productWeight?: number | string
+  productHeight?: number | string
+  productWidth?: number | string
+  productDepth?: number | string
+  weightUomId?: string
+  heightUomId?: string
+  widthUomId?: string
+  depthUomId?: string
+  isVirtual?: "Y" | "N"
+  [key: string]: any
 }
 
 export interface DedupChange {

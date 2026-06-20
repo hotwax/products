@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query"
-import { createAssociation, expireAssociation, reactivateAssociation, resequenceAssociations, updateAssociation } from "@/api/pim"
+import { createAssociation, expireAssociation, reactivateAssociation, resequenceAssociations, triggerSolrIndex, updateAssociation } from "@/api/pim"
 import type { AssociationCreate, AssociationKey, AssociationUpdate } from "@/domain/types/pim"
 import type { ProductAssociation } from "@/domain/types/product"
 import { qk } from "@/queries/keys"
@@ -9,7 +9,7 @@ const sameRow = (row: ProductAssociation, key: AssociationKey) =>
 
 /** Association list edits (substitutes, kit components, generic links): optimistic with rollback.
  *  Both endpoints' association caches are touched, so the related product's detail stays fresh too. */
-export function useAssociationMutations(productId: () => string) {
+export function useAssociationMutations(productId: () => string, parentProductId: () => string) {
   const queryClient = useQueryClient()
   const listKey = () => qk.product.associations(productId())
 
@@ -17,6 +17,7 @@ export function useAssociationMutations(productId: () => string) {
     queryClient.invalidateQueries({ queryKey: listKey() })
     if(relatedProductId) {queryClient.invalidateQueries({ queryKey: qk.product.associations(relatedProductId) })}
     queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+    triggerSolrIndex(parentProductId())
   }
 
   const snapshot = async () => {
@@ -29,6 +30,7 @@ export function useAssociationMutations(productId: () => string) {
     mutationFn: (payload: AssociationCreate & { relatedName?: string; relatedImageUrl?: string; relatedSku?: string }) =>
       createAssociation(productId(), payload),
     onMutate: async (payload) => {
+      console.log('payload', payload)
       const previous = await snapshot()
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) => [
         ...rows,

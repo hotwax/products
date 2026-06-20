@@ -43,6 +43,7 @@ defineProps<{ title?: string }>()
   padding: 4px 8px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 4px;
 }
 </style>

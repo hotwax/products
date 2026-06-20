@@ -1,6 +1,6 @@
 <template>
   <ion-item
-    lines="full"
+    lines="none"
     class="assoc-item"
   >
     <ion-thumbnail slot="start">

@@ -2,6 +2,7 @@
   <ion-card>
     <ion-card-content>
       <ion-searchbar
+        class="ion-no-padding ion-padding-bottom"
         :value="modelValue"
         :placeholder="placeholder"
         @ion-input="updateSearch"
@@ -10,10 +11,12 @@
       <div class="search-filter-grid">
         <slot />
         <ion-button
+          color="danger"
+          slot="icon-only"
           fill="clear"
           @click="$emit('clear')"
         >
-          Clear
+          <ion-icon :icon="closeOutline"></ion-icon>
         </ion-button>
       </div>
     </ion-card-content>
@@ -22,11 +25,13 @@
 
 <script setup lang="ts">
 import {
+  IonIcon,
   IonButton,
   IonCard,
   IonCardContent,
   IonSearchbar
 } from "@ionic/vue"
+import { closeOutline } from "ionicons/icons";
 
 defineProps<{
   modelValue: string
@@ -46,9 +51,9 @@ function updateSearch(event: CustomEvent) {
 <style scoped>
 .search-filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, minmax(140px, 1fr)) max-content max-content;
   gap: 12px;
-  align-items: end;
+  align-items: center;
 }
 
 @media (max-width: 640px) {

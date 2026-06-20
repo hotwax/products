@@ -8,7 +8,7 @@
         size="small"
         @click="addAxisOpen = true"
       >
-        {{ translate("Add more features") }}
+        {{ translate("Add") }}
       </ion-button>
     </div>
 
@@ -24,16 +24,14 @@
         <ion-chip
           v-for="appl in axis.applications"
           :key="appl.productFeatureId"
-          :outline="!isApplied(appl.productFeatureId)"
-          :color="isApplied(appl.productFeatureId) ? 'primary' : undefined"
-          :disabled="!canToggle(appl)"
-          @click="emitToggle(axis, appl)"
+          outline
         >
-          <ion-icon
-            v-if="isApplied(appl.productFeatureId)"
-            :icon="checkmarkOutline"
-          />
           <ion-label>{{ appl.description }}</ion-label>
+          <ion-icon
+            v-if="canRemoveFeatures"
+            :icon="closeOutline"
+            @click="$emit('toggle', { axis, application: appl, applied: true })"
+          />
         </ion-chip>
 
         <ion-chip
@@ -100,7 +98,7 @@ import {
   IonAlert, IonButton, IonButtons, IonChip, IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonModal,
   IonTitle, IonToolbar
 } from "@ionic/vue"
-import { addCircleOutline, checkmarkOutline } from "ionicons/icons"
+import { addCircleOutline, checkmarkOutline, closeOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
 import { translate } from "@common"
 import type { CatalogOption, FeatureAxis, ProductFeatureApplication } from "@/domain/types/product"
@@ -125,13 +123,6 @@ const addAxisOpen = ref(false)
 const addValueAxis = ref<{ id: string; label: string } | null>(null)
 
 const isApplied = (productFeatureId: string) => props.appliedFeatureIds.has(productFeatureId)
-const canToggle = (application: ProductFeatureApplication) =>
-  isApplied(application.productFeatureId) ? props.canRemoveFeatures : props.canApplyFeatures
-
-const emitToggle = (axis: FeatureAxis, application: ProductFeatureApplication) => {
-  if(!canToggle(application)) {return}
-  emit("toggle", { axis, application, applied: isApplied(application.productFeatureId) })
-}
 
 const unusedFeatureTypes = computed(() => {
   const used = new Set(props.familyAxes.map((axis) => axis.featureTypeId))

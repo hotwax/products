@@ -6,6 +6,7 @@ import { useAuth } from "@common/composables/useAuth"
 import DataFixDuplicates from "@/views/DataFixDuplicates.vue"
 import DataFixMissing from "@/views/DataFixMissing.vue"
 import Imports from "@/views/Imports.vue"
+import ProductCreate from "@/views/ProductCreate.vue"
 import ProductDetail from "@/views/ProductDetail.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
@@ -60,6 +61,12 @@ const routes: RouteRecordRaw[] = [
     component: DataFixMissing,
     beforeEnter: authGuard,
     meta: { permissionId: PRODUCT_READ_PERMISSION }
+  },
+  {
+    path: "/products/create",
+    name: "ProductCreate",
+    component: ProductCreate,
+    beforeEnter: authGuard
   },
   {
     path: "/products/:productId",

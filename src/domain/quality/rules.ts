@@ -67,8 +67,8 @@ export const QUALITY_RULES: QualityRule[] = [
     description: "Products without a primary category",
     kind: "required-field",
     scope: "all",
-    solrField: "primaryProductCategoryId",
-    resolution: { target: "productField", productField: "primaryProductCategoryId" }
+    solrField: "primaryProductCategoryName",
+    resolution: { target: "productField", productField: "primaryProductCategoryName" }
   },
   {
     id: "required-tags",

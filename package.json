@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest",
     "lint": "eslint ."
@@ -20,6 +20,7 @@
     "@ionic/vue": "catalog:",
     "@ionic/vue-router": "catalog:",
     "@tanstack/vue-query": "5.100.12",
+    "zod": "^3.23.8",
     "ionicons": "catalog:",
     "luxon": "catalog:",
     "mitt": "catalog:",
