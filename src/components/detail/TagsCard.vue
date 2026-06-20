@@ -10,6 +10,7 @@
         >
           <ion-label>{{ tag }}</ion-label>
           <ion-icon
+            v-if="canEdit"
             :icon="closeOutline"
             @click="$emit('removeVariantTag', tag)"
           />
@@ -21,7 +22,10 @@
           {{ translate("No tags") }}
         </p>
       </div>
-      <div class="add-row">
+      <div
+        v-if="canEdit"
+        class="add-row"
+      >
         <ion-input
           v-model="newVariantTag"
           :placeholder="translate('Add tag')"
@@ -49,6 +53,7 @@
         >
           <ion-label>{{ tag }}</ion-label>
           <ion-icon
+            v-if="canEdit"
             :icon="closeOutline"
             @click="$emit('removeTag', tag)"
           />
@@ -60,7 +65,10 @@
           {{ translate("No tags") }}
         </p>
       </div>
-      <div class="add-row">
+      <div
+        v-if="canEdit"
+        class="add-row"
+      >
         <ion-input
           v-model="newTag"
           :placeholder="translate('Add tag')"
@@ -93,8 +101,9 @@ const props = withDefaults(
     variantTags: string[]
     hasParent: boolean
     segment?: "parent" | "variant"
+    canEdit?: boolean
   }>(),
-  { segment: "parent" }
+  { segment: "parent", canEdit: true }
 )
 
 const emit = defineEmits<{
@@ -111,6 +120,7 @@ const newVariantTag = ref("")
 const isVariantSegment = computed(() => props.hasParent && props.segment === "variant")
 
 const commitTag = () => {
+  if(!props.canEdit) {return}
   const tag = newTag.value.trim()
   if(!tag || props.anchorTags.includes(tag)) {return}
   emit("addTag", tag)
@@ -118,6 +128,7 @@ const commitTag = () => {
 }
 
 const commitVariantTag = () => {
+  if(!props.canEdit) {return}
   const tag = newVariantTag.value.trim()
   if(!tag || props.variantTags.includes(tag)) {return}
   emit("addVariantTag", tag)

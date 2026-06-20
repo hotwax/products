@@ -121,16 +121,18 @@
           :variant-tags="selectedVariantTags"
           :has-parent="hasParent"
           :segment="segment"
-          @add-tag="(tag) => tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
-          @remove-tag="(tag) => tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
-          @add-variant-tag="(tag) => variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
-          @remove-variant-tag="(tag) => variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
+          :can-edit="canEditProduct"
+          @add-tag="onAddTag"
+          @remove-tag="onRemoveTag"
+          @add-variant-tag="onAddVariantTag"
+          @remove-variant-tag="onRemoveVariantTag"
         />
 
         <CategoriesCard
           :categories="categories"
-          @add="(cat: ProductCategory) => categoryMutations.add.mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName }).catch((error) => toast.error(error, translate('Could not add category')))"
-          @expire="(mem: ProductCategoryMembership) => categoryMutations.expire.mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate }).catch((error) => toast.error(error, translate('Could not remove category')))"
+          :can-edit="canEditProduct"
+          @add="onAddCategory"
+          @expire="onExpireCategory"
         />
 
         <PricesCard
@@ -140,6 +142,7 @@
           :saving="pricesSaving"
           :stale-under-edit="priceDraft.staleUnderEdit.value"
           :can-copy-from-parent="segment === 'variant' && hasParent"
+          :can-edit="canEditProduct"
           @save="onSavePrices"
           @reset="priceDraft.reset"
           @copy-from-parent="onCopyPricesFromParent"
@@ -148,8 +151,9 @@
         <ShopifyShopProductsCard
           :shopify-shop-products="shopifyShopProducts"
           :saving="shopifyMutations.upsert.isPending.value || shopifyMutations.remove.isPending.value"
-          @upsert="(p) => shopifyMutations.upsert.mutateAsync(p).catch((error) => toast.error(error, translate('Could not save Shopify shop product')))"
-          @remove="(shopId) => shopifyMutations.remove.mutateAsync(shopId).catch((error) => toast.error(error, translate('Could not remove Shopify shop product')))"
+          :can-edit="canEditProduct"
+          @upsert="onUpsertShopifyShopProduct"
+          @remove="onRemoveShopifyShopProduct"
         />
 
         <InventoryPolicyCard
@@ -257,6 +261,10 @@ const props = defineProps<{ productId: string }>()
 const toast = useToast()
 const userStore = useUserStore()
 
+const canEditProduct = computed(() => userStore.hasPermission(PRODUCT_WRITE_PERMISSION))
+const canApplyFeatures = computed(() => userStore.hasPermission(FEATURE_WRITE_PERMISSION))
+const canRemoveFeatures = computed(() => userStore.hasPermission(FEATURE_REMOVE_PERMISSION))
+
 const contentRef = ref<ComponentPublicInstance | null>(null)
 const segmentRef = ref<ComponentPublicInstance | null>(null)
 const displayCardRef = ref<ComponentPublicInstance | null>(null)
@@ -319,6 +327,7 @@ const pricesSaving = ref(false)
 watch(editingProductId, () => priceDraft.reset())
 
 const onSavePrices = async () => {
+  if(!canEditProduct.value) {return}
   if(pricesSaving.value) {return}
   pricesSaving.value = true
   try {
@@ -368,6 +377,7 @@ const onSavePrices = async () => {
 }
 
 const onCopyPricesFromParent = async () => {
+  if(!canEditProduct.value) {return}
   if(!parentProductId.value) {return}
   const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
   const active = parent.prices.filter((p) => p.active)
@@ -381,6 +391,48 @@ const onCopyPricesFromParent = async () => {
 const tagMutations = useTagMutations(() => parentProductId.value, { parentProductId: () => parentProductId.value })
 // tags on the selected variant — uses family cache path
 const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value, parentProductId: () => parentProductId.value })
+
+// ---------- tags ----------
+const onAddTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not add tag")))
+}
+const onRemoveTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not remove tag")))
+}
+const onAddVariantTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not add tag")))
+}
+const onRemoveVariantTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not remove tag")))
+}
+
+// ---------- categories ----------
+const onAddCategory = (cat: ProductCategory) => {
+  if(!canEditProduct.value) {return}
+  categoryMutations.add
+    .mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName })
+    .catch((error) => toast.error(error, translate("Could not add category")))
+}
+const onExpireCategory = (mem: ProductCategoryMembership) => {
+  if(!canEditProduct.value) {return}
+  categoryMutations.expire
+    .mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate })
+    .catch((error) => toast.error(error, translate("Could not remove category")))
+}
+
+// ---------- shopify shop products ----------
+const onUpsertShopifyShopProduct = (payload: { shopId: string; shopifyProductId: string; shopifyInventoryItemId: string }) => {
+  if(!canEditProduct.value) {return}
+  shopifyMutations.upsert.mutateAsync(payload).catch((error) => toast.error(error, translate("Could not save Shopify shop product")))
+}
+const onRemoveShopifyShopProduct = (shopId: string) => {
+  if(!canEditProduct.value) {return}
+  shopifyMutations.remove.mutateAsync(shopId).catch((error) => toast.error(error, translate("Could not remove Shopify shop product")))
+}
 // feature edits apply to whichever family member is being edited
 const featureMutations = useFeatureMutations(() => editingProductId.value, () => parentProductId.value)
 // "new value" chips extend the family's selectable axes on the parent
@@ -403,10 +455,6 @@ const isKit = computed(() => {
   const typeId = core.value?.productTypeId ?? ""
   return typeId.startsWith("MARKETING_PKG") && typeId !== "MARKETING_PKG_PICK"
 })
-
-const canEditProduct = computed(() => userStore.hasPermission(PRODUCT_WRITE_PERMISSION))
-const canApplyFeatures = computed(() => userStore.hasPermission(FEATURE_WRITE_PERMISSION))
-const canRemoveFeatures = computed(() => userStore.hasPermission(FEATURE_REMOVE_PERMISSION))
 
 const saveDates = () => {
   if(canEditProduct.value) {editor.saveDates()}

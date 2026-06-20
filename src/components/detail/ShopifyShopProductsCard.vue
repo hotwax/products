@@ -2,6 +2,7 @@
   <CardSection :title="translate('Shopify Shop Products')">
     <template #action>
       <ion-button
+        v-if="canEdit"
         fill="clear"
         size="small"
         :disabled="addOpen"
@@ -37,7 +38,10 @@
         <span class="ssp-cell">{{ row.shopId }}</span>
         <span class="ssp-cell">{{ row.shopifyProductId || "—" }}</span>
         <span class="ssp-cell">{{ row.shopifyInventoryItemId || "—" }}</span>
-        <div class="ssp-actions">
+        <div
+          v-if="canEdit"
+          class="ssp-actions"
+        >
           <ion-button
             fill="clear"
             size="small"
@@ -158,10 +162,13 @@ import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import type { ShopifyShopProduct } from "@/domain/types/product"
 
-defineProps<{
+const props = withDefaults(defineProps<{
   shopifyShopProducts: ShopifyShopProduct[]
   saving: boolean
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 const emit = defineEmits<{
   (event: "upsert", payload: { shopId: string; shopifyProductId: string; shopifyInventoryItemId: string }): void
@@ -173,6 +180,7 @@ const addOpen = ref(false)
 const addForm = ref({ shopId: "", shopifyProductId: "", shopifyInventoryItemId: "" })
 
 const openAdd = () => {
+  if(!props.canEdit) {return}
   cancelEdit()
   addForm.value = { shopId: "", shopifyProductId: "", shopifyInventoryItemId: "" }
   addOpen.value = true
@@ -181,6 +189,7 @@ const openAdd = () => {
 const cancelAdd = () => { addOpen.value = false }
 
 const saveAdd = () => {
+  if(!props.canEdit) {return}
   if(!addForm.value.shopId.trim()) {return}
   emit("upsert", { ...addForm.value })
   addOpen.value = false
@@ -191,6 +200,7 @@ const editingShopId = ref<string | null>(null)
 const editForm = ref({ shopifyProductId: "", shopifyInventoryItemId: "" })
 
 const startEdit = (row: ShopifyShopProduct) => {
+  if(!props.canEdit) {return}
   cancelAdd()
   editingShopId.value = row.shopId
   editForm.value = { shopifyProductId: row.shopifyProductId, shopifyInventoryItemId: row.shopifyInventoryItemId }
@@ -199,6 +209,7 @@ const startEdit = (row: ShopifyShopProduct) => {
 const cancelEdit = () => { editingShopId.value = null }
 
 const saveEdit = (shopId: string) => {
+  if(!props.canEdit) {return}
   emit("upsert", { shopId, ...editForm.value })
   editingShopId.value = null
 }
