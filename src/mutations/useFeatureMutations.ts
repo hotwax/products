@@ -94,7 +94,6 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
 
   const remove = useMutation({
     mutationFn: ({ productId, productFeatureId, fromDate }: { productId: string, productFeatureId: string; fromDate: string }) => {
-      console.log("Removing feature application", { productId, productFeatureId, fromDate })
       return removeFeatureApplication(productId, productFeatureId, fromDate, DateTime.now().toMillis())
     },
     onMutate: async ({ productId: targetProductId, productFeatureId, fromDate }) => {
