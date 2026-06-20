@@ -195,20 +195,3 @@ export function removeProductKeyword(productId: string, keyword: string): Promis
 export function resolveDuplicateIdentifiers(changes: DedupChange[]): Promise<{ updatedCount: number }> {
   return request({ url: "oms/dedup/resolveIdentifiers", method: "post", data: { changes } })
 }
-
-// ---------- index ----------
-export function reindexProducts(productIds?: string[]): Promise<{ indexedCount: number }> {
-  return request({ url: "oms/reindex", method: "post", data: productIds?.length ? { productIds } : {} })
-}
-
-export interface PimIndexStatus {
-  solrUrl: string
-  core: string
-  reachable: boolean
-  documentCount: number | null
-  productCount: number | null
-}
-
-export function fetchIndexStatus(): Promise<PimIndexStatus> {
-  return request({ url: "oms/indexStatus", method: "get" })
-}
