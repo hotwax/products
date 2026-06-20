@@ -14,6 +14,51 @@
       <div v-if="step === 'display'" class="section">
         <ion-list lines="none">
           <ion-list-header>{{ translate("Display") }}</ion-list-header>
+          <ion-item lines="full">
+            <input
+              ref="imageInput"
+              type="file"
+              accept="image/*"
+              hidden
+              @change="onImageSelected"
+            />
+            <ion-thumbnail
+              v-if="imagePreviewUrl"
+              slot="start"
+            >
+              <ion-img
+                :src="imagePreviewUrl"
+                :alt="translate('Product photo')"
+              />
+            </ion-thumbnail>
+            <ion-label>
+              <h3>{{ imageFile?.name || translate("Product photo") }}</h3>
+              <p>{{ imageFile ? translate("Ready to upload") : translate("Optional image") }}</p>
+            </ion-label>
+            <ion-button
+              slot="end"
+              fill="clear"
+              @click="openImagePicker"
+            >
+              <ion-icon
+                slot="start"
+                :icon="imageOutline"
+              />
+              {{ imageFile ? translate("Change") : translate("Upload") }}
+            </ion-button>
+            <ion-button
+              v-if="imageFile"
+              slot="end"
+              fill="clear"
+              color="danger"
+              @click="clearImage"
+            >
+              <ion-icon
+                slot="icon-only"
+                :icon="trashOutline"
+              />
+            </ion-button>
+          </ion-item>
           <ion-item>
             <ion-input
               class="ion-margin-top"
@@ -633,17 +678,17 @@
 <script setup lang="ts">
 import {
   IonBackButton, IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon,
-  IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonProgressBar,
-  IonTextarea, IonTitle, IonToggle, IonToolbar,
+  IonImg, IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonProgressBar,
+  IonTextarea, IonThumbnail, IonTitle, IonToggle, IonToolbar,
   IonList, IonListHeader,
   onIonViewWillEnter
 } from "@ionic/vue"
-import { computed, reactive, ref } from "vue"
+import { computed, onBeforeUnmount, reactive, ref } from "vue"
 import { z } from "zod"
 import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
 import { emitter, translate } from "@common"
-import { closeCircle, closeOutline } from "ionicons/icons"
+import { closeOutline, imageOutline, trashOutline } from "ionicons/icons"
 import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
@@ -772,6 +817,9 @@ const info = reactive({
   description: "",
   longDescription: ""
 })
+const imageFile = ref<File>()
+const imagePreviewUrl = ref("")
+const imageInput = ref<HTMLInputElement | null>(null)
 
 const dates = reactive({
   introductionDate: "",
@@ -919,6 +967,39 @@ const unitLabel = (uomId: string) => lengthUoms.value.find((uom) => uom.id === u
 // Submit
 const yesNo = (val: boolean): "Y" | "N" => (val ? "Y" : "N")
 
+const openImagePicker = () => imageInput.value?.click()
+
+const clearImage = () => {
+  if(imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+  }
+  imagePreviewUrl.value = ""
+  imageFile.value = undefined
+  if(imageInput.value) {
+    imageInput.value.value = ""
+  }
+}
+
+const onImageSelected = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if(!file) {return}
+  if(!file.type.startsWith("image/")) {
+    clearImage()
+    toast.error(new Error(translate("Please select an image file")))
+
+    return
+  }
+
+  if(imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+  }
+  imageFile.value = file
+  imagePreviewUrl.value = URL.createObjectURL(file)
+}
+
+onBeforeUnmount(clearImage)
+
 const submit = async () => {
   if(creating.value) {return}
   creating.value = true
@@ -971,7 +1052,7 @@ const submit = async () => {
           ...feature
         }
       })
-    })
+    }, imageFile.value)
 
     triggerSolrIndex(productId)
     emitter.emit("presentLoader", "Creating product...")
