@@ -49,7 +49,6 @@
 
     <!-- new value on an existing axis -->
     <ion-alert
-      :key="alertKey"
       :is-open="!!addValueAxis"
       :header="`${translate('Add')} ${addValueAxis?.label ?? ''}`"
       :inputs="[{ name: 'value', type: 'text', placeholder: translate('Value') }]"
@@ -123,7 +122,6 @@ const unusedFeatureTypes = computed(() => {
 
 const openAddValue = (id: string, label: string) => {
   addValueAxis.value = { id, label }
-  alertKey.value++
 }
 
 const pickAxis = (option: CatalogOption) => {
