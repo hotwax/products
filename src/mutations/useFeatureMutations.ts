@@ -93,7 +93,7 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
-    onSettled: invalidate
+    onSettled: () => invalidate(),
   })
 
   const remove = useMutation({
