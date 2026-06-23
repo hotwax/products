@@ -50,9 +50,16 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
     })
   }
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: listKey() })
-    queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+  const invalidate = (targetProductId?: string) => {
+  queryClient.invalidateQueries({ queryKey: qk.product.features(targetProductId ?? productId()) })
+
+  if(parentProductId() !== (targetProductId ?? productId())) {
+    queryClient.invalidateQueries({ queryKey: qk.product.features(parentProductId()) })
+  }
+
+  queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId()) })
+  queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
+  
     triggerSolrIndex(parentProductId())
   }
 
@@ -86,24 +93,31 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
       return { previous }
     },
     onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
-    onSettled: invalidate
+    onSettled: () => invalidate(),
   })
 
   const remove = useMutation({
     mutationFn: ({ productId, productFeatureId, fromDate }: { productId: string, productFeatureId: string; fromDate: string }) =>
       removeFeatureApplication(productId, productFeatureId, fromDate, DateTime.now().toMillis()),
-    onMutate: async ({ productFeatureId, fromDate }) => {
-      const previous = await snapshot()
-      queryClient.setQueryData<ProductFeatureApplication[]>(listKey(), (rows = []) =>
+    onMutate: async ({ productId: targetProductId, productFeatureId, fromDate }) => {
+      const key = qk.product.features(targetProductId)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData<ProductFeatureApplication[]>(key)
+
+      queryClient.setQueryData<ProductFeatureApplication[]>(key, (rows = []) =>
         rows.map((row) =>
           row.productFeatureId === productFeatureId && row.fromDate === fromDate
             ? { ...row, thruDate: new Date().toISOString(), active: false }
             : row))
 
-      return { previous }
+      return { previous, key }
     },
-    onError: (_error, _payload, context) => queryClient.setQueryData(listKey(), context?.previous),
-    onSettled: invalidate
+    onError: (_error, _payload, context) => {
+      if(context?.key) {
+        queryClient.setQueryData(context.key, context.previous)
+      }
+    },
+      onSettled: (_data, _error, { productId: targetProductId }) => invalidate(targetProductId)
   })
 
   /** "add color" with a value that doesn't exist yet: create the catalog feature, then apply it. */
@@ -120,10 +134,11 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
-      triggerSolrIndex(parentProductId())
+      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId()) })
       queryClient.invalidateQueries({ queryKey: qk.catalog.features() })
+      triggerSolrIndex(parentProductId())
     }
   })
 
   return { apply, remove, createAndApply }
-}
+} 

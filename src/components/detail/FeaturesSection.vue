@@ -111,6 +111,7 @@ const emit = defineEmits<{
 const addAxisOpen = ref(false)
 const addValueAxis = ref<{ id: string; label: string } | null>(null)
 
+
 const isApplied = (productFeatureId: string) => props.appliedFeatureIds.has(productFeatureId)
 
 const unusedFeatureTypes = computed(() => {
