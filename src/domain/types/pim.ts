@@ -123,6 +123,7 @@ export interface ProductCreatePayload {
   heightUomId?: string
   widthUomId?: string
   depthUomId?: string
+  smallImageUrl?: string
   isVirtual?: "Y" | "N"
   [key: string]: any
 }

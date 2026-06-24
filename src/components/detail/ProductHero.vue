@@ -1,6 +1,14 @@
 <template>
   <div class="hero">
-    <div class="hero-image">
+    <div
+      class="hero-image"
+      role="button"
+      tabindex="0"
+      :aria-label="translate('Edit image URL')"
+      @click="$emit('editImage')"
+      @keyup.enter="$emit('editImage')"
+      @keyup.space.prevent="$emit('editImage')"
+    >
       <DxpShopifyImg
         :src="core?.imageUrl ?? ''"
         size="grande"
@@ -56,7 +64,10 @@ const props = defineProps<{
   productTypes: CatalogOption[]
 }>()
 
-defineEmits<{ (event: "edit"): void }>()
+defineEmits<{
+  (event: "edit"): void
+  (event: "editImage"): void
+}>()
 
 const typeLabel = computed(() => {
   const typeId = props.core?.productTypeId ?? ""
