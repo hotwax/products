@@ -32,11 +32,11 @@ describe("productScopeFilters", () => {
 
 describe("search text", () => {
   it("tokenizes and targets searchText", () => {
-    expect(productSearchQueryText(" crew  tee ")).toBe("searchText:(crew tee)")
+    expect(productSearchQueryText(" crew  tee ")).toBe("*crew tee*")
   })
 
   it("escapes solr specials", () => {
-    expect(productSearchQueryText("a+b")).toBe("searchText:(a\\+b)")
+    expect(productSearchQueryText("a+b")).toBe("*a\\+b*")
   })
 
   it("matches all docs when empty", () => {
@@ -49,7 +49,11 @@ describe("payloads", () => {
     const payload = workbenchSearchPayload(params, 2)
     expect(payload.offset).toBe(50)
     expect(payload.limit).toBe(25)
-    expect(payload.params).toEqual({ "q.op": "AND" })
+    expect(payload.params).toEqual({
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId groupId parentProductName productName internalName sku"
+    })
     expect(payload.sort).toBe(productSort("Updated"))
   })
 
