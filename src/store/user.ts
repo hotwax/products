@@ -35,6 +35,16 @@ export const useUserStore = defineStore("user", {
     hasPermission: (state) => (permissionId: string): boolean => {
       if(!permissionId) {return true}
 
+      if(permissionId.includes(' OR ')) {
+        const parts = permissionId.split(' OR ')
+        return parts.some(part => useUserStore().hasPermission(part.trim()))
+      }
+
+      if(permissionId.includes(' AND ')) {
+        const parts = permissionId.split(' AND ')
+        return parts.every(part => useUserStore().hasPermission(part.trim()))
+      }
+
       return state.permissions.includes(permissionId)
     }
   },
@@ -62,9 +72,49 @@ export const useUserStore = defineStore("user", {
         return Promise.reject(error)
       }
     },
-    fetchPermissions() {
-      this.permissions = []
-      this.fetchStatus.permissions = "success"
+    async fetchPermissions() {
+      const permissionId = import.meta.env.VITE_APP_PERMISSION_ID
+      const serverPermissions = [] as any
+      const viewSize = 50
+      let viewIndex = 0
+
+      this.fetchStatus.permissions = "pending"
+
+      try {
+        let resp
+        do {
+          resp = await api({
+            url: "admin/user/permissions",
+            method: "get",
+            baseURL: commonUtil.getOmsURL(),
+            params: { viewIndex, viewSize }
+          }) as any
+
+          if (resp.status === 200 && resp.data.docs?.length && !commonUtil.hasError(resp)) {
+            serverPermissions.push(...resp.data.docs.map((permission: any) => permission.permissionId));
+            viewIndex++;
+          } else {
+            resp = null;
+          }
+        } while (resp);
+
+        if(permissionId) {
+          const hasAppPermission = serverPermissions.includes(permissionId)
+          if(!hasAppPermission) {
+            const permissionError = "You do not have permission to access the app."
+            await showToast(translate(permissionError))
+            logger.error("error", permissionError)
+            this.fetchStatus.permissions = "error"
+            return Promise.reject(new Error(permissionError))
+          }
+        }
+
+        this.permissions = serverPermissions
+        this.fetchStatus.permissions = "success"
+      } catch(error: any) {
+        this.fetchStatus.permissions = "error"
+        return Promise.reject(error)
+      }
     },
     async fetchProductStores() {
       try {
