@@ -139,6 +139,7 @@
             :product="product"
             :router-link="familyRouteFor(product)"
             :variant-counts="groupIdFacets"
+            :spark="rowSales[product.productId]"
             selectable
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
@@ -189,7 +190,7 @@ import {
   IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
   IonSkeletonText, IonThumbnail, IonTitle, IonToolbar, loadingController
 } from "@ionic/vue"
-import { addOutline, closeCircleOutline, closeOutline, pricetagOutline } from "ionicons/icons"
+import { addOutline, closeOutline, pricetagOutline } from "ionicons/icons"
 import { computed, ref } from "vue"
 import { translate } from "@common"
 import EmptyState from "@/components/EmptyState.vue"
@@ -207,7 +208,7 @@ import { familyRouteFor } from "@/domain/product/family"
 const {
   queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
   clearFilters, toggleTag,
-  products, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
+  products, rowSales, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,
   selectedProductIds, selectedSet, allVisibleSelected, toggleSelectAll, toggleSelected, clearSelection
 } = useProductWorkbench()
@@ -243,7 +244,9 @@ const onTagSelected = async (tags: string[]) => {
   if(failed) {
     toast.error(null, translate(`Could not add tag to ${failed} product(s)`))
   } else {
-    toast.success(translate(`${tags.length > 1 ? tags.length + " tags" : "Tag"} added to ${ids.length} product(s)`))
+    const tagLabel = tags.length > 1 ? `${tags.length} tags` : "Tag"
+
+    toast.success(translate(`${tagLabel} added to ${ids.length} product(s)`))
   }
   clearSelection()
 

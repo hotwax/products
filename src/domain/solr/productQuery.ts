@@ -63,6 +63,36 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
   }
 }
 
+export function rowSalesAnalyticsPayload(productIds: string[], startIso: string): SolrJsonQuery {
+  const ids = Array.from(new Set(productIds.filter(Boolean)))
+
+  return {
+    query: "*:*",
+    filter: [
+      "docType: ORDER",
+      "orderTypeId: SALES_ORDER",
+      "-orderStatusId: ORDER_CANCELLED",
+      "-orderItemStatusId: ITEM_CANCELLED",
+      `productId: (${ids.map((id) => `"${escapeSolrValue(id)}"`).join(" OR ")})`,
+      `orderDate: [${startIso} TO NOW]`
+    ],
+    limit: 0,
+    params: { "q.op": "AND" },
+    facet: {
+      byDay: {
+        type: "range",
+        field: "orderDate",
+        start: startIso,
+        end: "NOW",
+        gap: "+1DAY",
+        facet: {
+          byProduct: { type: "terms", field: "productId", limit: ids.length }
+        }
+      }
+    }
+  }
+}
+
 /** Tag facet over the current scope minus the tag filter itself (so more tags can be added). */
 export function tagFacetPayload(params: ProductSearchParams): SolrJsonQuery {
   return {

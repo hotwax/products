@@ -6,6 +6,7 @@ export const qk = {
   products: {
     all: ["products"] as const,
     search: (params: ProductSearchParams) => ["products", "search", params] as const,
+    rowSales: (productIds: string[]) => ["products", "rowSales", [...productIds].sort()] as const,
     tagFacets: (scope: Omit<ProductSearchParams, "tags">) => ["products", "tagFacets", scope] as const,
     groupIdFacets: (scope: Omit<ProductSearchParams, "groupIds">) => ["products", "groupIdFacets", scope] as const
   },
