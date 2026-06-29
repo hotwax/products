@@ -49,11 +49,6 @@ describe("payloads", () => {
     const payload = workbenchSearchPayload(params, 2)
     expect(payload.offset).toBe(50)
     expect(payload.limit).toBe(25)
-    expect(payload.params).toEqual({
-      "defType": "edismax",
-      "q.op": "OR",
-      "qf": "productId groupId parentProductName productName internalName sku"
-    })
     expect(payload.params).toEqual({ "defType": "edismax", "q.op": "OR", "qf": "productId groupId parentProductName productName internalName sku upc" })
     expect(payload.sort).toBe(productSort("Updated"))
   })
