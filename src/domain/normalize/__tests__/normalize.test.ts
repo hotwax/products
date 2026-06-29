@@ -56,6 +56,51 @@ describe("product normalizers", () => {
     expect(core.imageUrl).toBe("http://m")
   })
 
+  it("sorts latest active prices first and keeps price primary-key context", () => {
+    const core = normalizeProductCore({
+      productId: "P1",
+      prices: [
+        {
+          productPriceTypeId: "DEFAULT_PRICE",
+          productPricePurposeId: "LISTING",
+          currencyUomId: "USD",
+          productStoreId: "STORE",
+          productStoreGroupId: "GROUP",
+          price: "20",
+          fromDate: "2026-06-01T00:00:00Z"
+        },
+        {
+          productPriceTypeId: "DEFAULT_PRICE",
+          productPricePurposeId: "LISTING",
+          currencyUomId: "USD",
+          productStoreId: "STORE",
+          productStoreGroupId: "GROUP",
+          price: "15",
+          fromDate: "2026-05-01T00:00:00Z"
+        },
+        {
+          productPriceTypeId: "DEFAULT_PRICE",
+          productPricePurposeId: "LISTING",
+          currencyUomId: "USD",
+          productStoreId: "STORE",
+          productStoreGroupId: "GROUP",
+          price: "10",
+          fromDate: "2026-04-01T00:00:00Z",
+          thruDate: "2026-04-15T00:00:00Z"
+        }
+      ]
+    })
+
+    expect(core.prices.map((price) => price.price)).toEqual([20, 15, 10])
+    expect(core.prices[0]).toMatchObject({
+      productStoreId: "STORE",
+      productStoreGroupId: "GROUP",
+      fromDate: "2026-06-01T00:00:00Z",
+      active: true
+    })
+    expect(core.prices[2].active).toBe(false)
+  })
+
   it("falls back through the display-name chain", () => {
     expect(productDisplayName({ productId: "P1", productName: "", internalName: "int" })).toBe("int")
     expect(productDisplayName({ productId: "P1" })).toBe("P1")
