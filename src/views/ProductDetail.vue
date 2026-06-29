@@ -290,6 +290,19 @@ const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.v
 const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
 type PriceType = typeof PRICE_TYPES[number]
 
+const activePricesForType = (type: PriceType) =>
+  prices.value.filter((price: ProductPrice) => price.active && price.productPriceTypeId === type)
+
+const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
+  productPriceTypeId: price.productPriceTypeId,
+  currencyUomId: price.currencyUomId,
+  productPricePurposeId: price.productPricePurposeId || "LISTING",
+  productStoreId: price.productStoreId || currentProductStore.value.productStoreId,
+  productStoreGroupId: price.productStoreGroupId || currentProductStore.value.primaryStoreGroupId,
+  fromDate: price.fromDate,
+  thruDate
+})
+
 const priceSource = computed(() => {
   const active = prices.value.filter((p: ProductPrice) => p.active)
 
@@ -312,38 +325,33 @@ const onSavePrices = async () => {
   if(pricesSaving.value) {return}
   pricesSaving.value = true
   try {
-    const activePrices = prices.value.filter((p: ProductPrice) => p.active)
     const now = new Date().toISOString()
 
     const pricePayload = PRICE_TYPES
-      .map((type) => {
+      .flatMap((type) => {
         const draftVal = (priceDraft.draft[type as PriceType] ?? "").trim()
         const savedVal = (priceSource.value[type as PriceType] ?? "").trim()
-        if(draftVal === savedVal) return null
-        if(draftVal) {
-          return {
-            productPriceTypeId: type,
-            currencyUomId: priceDraft.draft.currencyUomId,
-            price: Number(draftVal),
-            productPricePurposeId: "LISTING",
-            productStoreId: currentProductStore.value.productStoreId,
-            productStoreGroupId: currentProductStore.value.primaryStoreGroupId
-          }
-        }
-        const existing = activePrices.find((p: ProductPrice) => p.productPriceTypeId === type)
-        if(!existing) return null
-        return {
-          productPriceTypeId: type,
-          currencyUomId: existing.currencyUomId,
-          productPricePurposeId: "LISTING",
-          productStoreId: currentProductStore.value.productStoreId,
-          productStoreGroupId: currentProductStore.value.primaryStoreGroupId,
-          thruDate: now
-        }
-      })
-      .filter(Boolean)
+        if(draftVal === savedVal) {return []}
 
-    if(!pricePayload.length) return
+        const expirePayloads = activePricesForType(type).map((price) => expirePricePayload(price, now))
+        if(draftVal) {
+          return [
+            ...expirePayloads,
+            {
+              productPriceTypeId: type,
+              currencyUomId: priceDraft.draft.currencyUomId,
+              price: Number(draftVal),
+              productPricePurposeId: "LISTING",
+              productStoreId: currentProductStore.value.productStoreId,
+              productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+            }
+          ]
+        }
+
+        return expirePayloads
+      })
+
+    if(!pricePayload.length) {return}
 
     await updateProductFields(editingProductId.value, { prices: pricePayload })
 

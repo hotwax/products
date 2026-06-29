@@ -169,6 +169,8 @@ export interface ProductPrice {
   productPriceTypeId: string
   productPricePurposeId: string
   currencyUomId: string
+  productStoreId: string
+  productStoreGroupId: string
   price: number
   fromDate: string
   thruDate: string | null
