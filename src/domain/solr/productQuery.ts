@@ -58,7 +58,7 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
     params: {
       "defType": "edismax",
       "q.op": "OR",
-      "qf": "productId groupId parentProductName productName internalName sku"
+      "qf": "productId groupId parentProductName productName internalName sku upc"
     }
   }
 }
@@ -85,7 +85,7 @@ export function groupIdFacetPayload(params: ProductSearchParams): SolrJsonQuery 
     params: {
       "defType": "edismax",
       "q.op": "OR",
-      "qf": "productId groupId parentProductName productName internalName sku"
+      "qf": "productId groupId parentProductName productName internalName sku upc"
     }
   }
 }
