@@ -1,8 +1,8 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/vue-query"
 import { runProductSolrQuery, solrDocs, solrTotal } from "@/api/solr"
 import { normalizeProductSummary } from "@/domain/normalize/product"
-import { groupIdFacetPayload, tagFacetPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
-import type { GroupIdFacet, ProductSearchPage, ProductSearchParams, TagFacet } from "@/domain/types/product"
+import { groupIdFacetPayload, rowSalesAnalyticsPayload, tagFacetPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
+import type { ProductSearchPage, ProductSearchParams, RowSalesSpark, TagFacet } from "@/domain/types/product"
 import { qk } from "./keys"
 
 /** Workbench search: infinite query keyed on the full filter object — changing any filter is a new
@@ -58,4 +58,44 @@ export function groupIdFacetsOptions(params: ProductSearchParams) {
     },
     staleTime: 5 * 60_000
   })
+}
+
+export function rowSalesAnalyticsOptions(productIds: string[]) {
+  const ids = Array.from(new Set(productIds.filter(Boolean)))
+
+  return queryOptions({
+    queryKey: qk.products.rowSales(ids),
+    queryFn: async (): Promise<Record<string, RowSalesSpark>> => {
+      if(!ids.length) {return {}}
+
+      const response = await runProductSolrQuery(rowSalesAnalyticsPayload(ids, salesWindowStartIso(30)))
+      const dayBuckets: any[] = response.facets?.byDay?.buckets ?? []
+      const series = new Map<string, number[]>(ids.map((id) => [id, Array(dayBuckets.length).fill(0)]))
+
+      dayBuckets.forEach((day, dayIndex) => {
+        const buckets: any[] = day.byProduct?.buckets ?? []
+        buckets.forEach((bucket) => {
+          const productId = String(bucket.val ?? "")
+          const row = series.get(productId)
+          if(row) {row[dayIndex] = Number(bucket.count) || 0}
+        })
+      })
+
+      return Object.fromEntries([...series.entries()].map(([productId, row]) => [
+        productId,
+        { productId, series: row, unitsSold: row.reduce((total, value) => total + value, 0) }
+      ]))
+    },
+    enabled: ids.length > 0,
+    staleTime: 60_000,
+    retry: false
+  })
+}
+
+function salesWindowStartIso(windowDays: number): string {
+  const startDate = new Date()
+  startDate.setHours(0, 0, 0, 0)
+  startDate.setDate(startDate.getDate() - (windowDays - 1))
+
+  return `${startDate.toISOString().slice(0, 10)}T00:00:00Z`
 }
