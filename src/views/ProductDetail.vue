@@ -240,6 +240,7 @@ import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
+import { activePricesForTypeContext, type PriceContext } from "@/domain/product/prices"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
@@ -290,8 +291,12 @@ const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.v
 const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
 type PriceType = typeof PRICE_TYPES[number]
 
-const activePricesForType = (type: PriceType) =>
-  prices.value.filter((price: ProductPrice) => price.active && price.productPriceTypeId === type)
+const currentPriceContext = (): PriceContext => ({
+  currencyUomId: priceDraft.draft.currencyUomId || priceSource.value.currencyUomId || "USD",
+  productPricePurposeId: "LISTING",
+  productStoreId: currentProductStore.value.productStoreId,
+  productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+})
 
 const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
   productPriceTypeId: price.productPriceTypeId,
@@ -326,6 +331,7 @@ const onSavePrices = async () => {
   pricesSaving.value = true
   try {
     const now = new Date().toISOString()
+    const context = currentPriceContext()
 
     const pricePayload = PRICE_TYPES
       .flatMap((type) => {
@@ -333,7 +339,7 @@ const onSavePrices = async () => {
         const savedVal = (priceSource.value[type as PriceType] ?? "").trim()
         if(draftVal === savedVal) {return []}
 
-        const expirePayloads = activePricesForType(type).map((price) => expirePricePayload(price, now))
+        const expirePayloads = activePricesForTypeContext(prices.value, type, context).map((price) => expirePricePayload(price, now))
         if(draftVal) {
           return [
             ...expirePayloads,
