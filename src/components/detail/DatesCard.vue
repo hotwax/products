@@ -2,7 +2,7 @@
   <CardSection :title="translate('Dates')">
     <template #action>
       <ion-button
-        v-if="canCopyFromParent"
+        v-if="canCopyFromParent && canEdit"
         fill="clear"
         size="small"
         @click="$emit('copyFromParent')"
@@ -17,6 +17,7 @@
         type="date"
         :label="translate('Introduction date')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-input
@@ -24,6 +25,7 @@
         type="date"
         :label="translate('Release date')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-input
@@ -31,6 +33,7 @@
         type="date"
         :label="translate('Support discontinuation date')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-input
@@ -38,6 +41,7 @@
         type="date"
         :label="translate('Sales discontinuation')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
     </div>
@@ -46,7 +50,10 @@
       lines="none"
       class="oos-toggle"
     >
-      <ion-toggle v-model="draft.salesDiscWhenNotAvail">
+      <ion-toggle
+        v-model="draft.salesDiscWhenNotAvail"
+        :disabled="!canEdit"
+      >
         <ion-label>
           {{ translate("Discontinue when out of stock") }}
           <p>{{ translate("This item will not come back into stock. Do not accept backorders") }}</p>
@@ -58,6 +65,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="$emit('save')"
         @reset="$emit('reset')"
@@ -72,7 +80,7 @@ import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
 
-defineProps<{
+withDefaults(defineProps<{
   draft: {
     introductionDate: string
     releaseDate: string
@@ -84,7 +92,10 @@ defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
   (event: "save"): void

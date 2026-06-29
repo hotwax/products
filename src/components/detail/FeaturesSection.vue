@@ -3,6 +3,7 @@
     <div class="features-head">
       <span class="features-title">{{ translate("Features") }}</span>
       <ion-button
+        v-if="canApplyFeatures"
         fill="clear"
         size="small"
         @click="addAxisOpen = true"
@@ -26,10 +27,15 @@
           outline
         >
           <ion-label>{{ appl.description }}</ion-label>
-          <ion-icon :icon="closeOutline" @click="$emit('toggle', { axis, application: appl, applied: true })" />
+          <ion-icon
+            v-if="canRemoveFeatures"
+            :icon="closeOutline"
+            @click="$emit('toggle', { axis, application: appl, applied: true })"
+          />
         </ion-chip>
 
         <ion-chip
+          v-if="canApplyFeatures"
           outline
           class="add-chip"
           @click="openAddValue(axis.featureTypeId, axis.featureTypeDescription)"
@@ -97,11 +103,16 @@ import { computed, ref } from "vue"
 import { translate } from "@common"
 import type { CatalogOption, FeatureAxis, ProductFeatureApplication } from "@/domain/types/product"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   familyAxes: FeatureAxis[]
   appliedFeatureIds: Set<string>
   featureTypes: CatalogOption[]
-}>()
+  canApplyFeatures?: boolean
+  canRemoveFeatures?: boolean
+}>(), {
+  canApplyFeatures: true,
+  canRemoveFeatures: true
+})
 
 const emit = defineEmits<{
   (event: "toggle", payload: { axis: FeatureAxis; application: ProductFeatureApplication; applied: boolean }): void
@@ -121,10 +132,12 @@ const unusedFeatureTypes = computed(() => {
 })
 
 const openAddValue = (id: string, label: string) => {
+  if(!props.canApplyFeatures) {return}
   addValueAxis.value = { id, label }
 }
 
 const pickAxis = (option: CatalogOption) => {
+  if(!props.canApplyFeatures) {return}
   addAxisOpen.value = false
   openAddValue(option.id, option.label)
 }
@@ -134,6 +147,7 @@ const addValueButtons = computed(() => [
   {
     text: translate("Add"),
     handler: (data: { value?: string }) => {
+      if(!props.canApplyFeatures) {return}
       const description = data.value?.trim()
       if(description && addValueAxis.value) {
         emit("createValue", { featureTypeId: addValueAxis.value.id, description })

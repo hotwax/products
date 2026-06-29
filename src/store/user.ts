@@ -35,6 +35,14 @@ export const useUserStore = defineStore("user", {
     hasPermission: (state) => (permissionId: string): boolean => {
       if(!permissionId) {return true}
 
+      if(permissionId.includes(" OR ")) {
+        return permissionId.split(" OR ").some((part) => useUserStore().hasPermission(part.trim()))
+      }
+
+      if(permissionId.includes(" AND ")) {
+        return permissionId.split(" AND ").every((part) => useUserStore().hasPermission(part.trim()))
+      }
+
       return state.permissions.includes(permissionId)
     }
   },
@@ -62,9 +70,39 @@ export const useUserStore = defineStore("user", {
         return Promise.reject(error)
       }
     },
-    fetchPermissions() {
-      this.permissions = []
-      this.fetchStatus.permissions = "success"
+    async fetchPermissions() {
+      this.fetchStatus.permissions = "pending"
+      const serverPermissions: string[] = []
+      const viewSize = 200
+      let viewIndex = 0
+
+      try {
+        let hasMore = true
+        while(hasMore) {
+          const resp = await api({
+            url: commonUtil.isMoqui() ? "admin/user/permissions" : "getPermissions",
+            method: "GET",
+            baseURL: commonUtil.getOmsURL(),
+            params: { viewIndex, viewSize }
+          }) as any
+
+          const docs = resp?.data?.docs ?? []
+          if(resp?.status === 200 && docs.length && !commonUtil.hasError(resp)) {
+            serverPermissions.push(...docs.map((permission: any) => permission.permissionId).filter(Boolean))
+            viewIndex += 1
+          } else {
+            hasMore = false
+          }
+        }
+
+        this.permissions = serverPermissions
+        this.fetchStatus.permissions = "success"
+      } catch (error: any) {
+        this.fetchStatus.permissions = "error"
+        logger.error("Failed to fetch permissions", error)
+
+        return Promise.reject(error)
+      }
     },
     async fetchProductStores() {
       try {

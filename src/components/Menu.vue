@@ -13,74 +13,22 @@
 
     <ion-content>
       <ion-list>
-        <ion-menu-toggle :auto-hide="false">
+        <ion-menu-toggle
+          v-for="item in menuItems"
+          :key="item.path"
+          :auto-hide="false"
+        >
           <ion-item
             button
-            router-link="/products"
+            :router-link="item.path"
             router-direction="root"
-            :class="{ selected: selectedPage.includes('/products') }"
+            :class="{ selected: isSelected(item.path) }"
           >
             <ion-icon
               slot="start"
-              :icon="pricetagsOutline"
+              :icon="item.icon"
             />
-            <ion-label>{{ translate("Product workbench") }}</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
-        <ion-menu-toggle :auto-hide="false">
-          <ion-item
-            button
-            router-link="/data-fixes/duplicates"
-            router-direction="root"
-            :class="{ selected: selectedPage === '/data-fixes/duplicates' }"
-          >
-            <ion-icon
-              slot="start"
-              :icon="copyOutline"
-            />
-            <ion-label>{{ translate("Duplicate identifiers") }}</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
-        <ion-menu-toggle :auto-hide="false">
-          <ion-item
-            button
-            router-link="/data-fixes/missing"
-            router-direction="root"
-            :class="{ selected: selectedPage === '/data-fixes/missing' }"
-          >
-            <ion-icon
-              slot="start"
-              :icon="alertCircleOutline"
-            />
-            <ion-label>{{ translate("Missing values") }}</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
-        <ion-menu-toggle :auto-hide="false">
-          <ion-item
-            button
-            router-link="/imports"
-            router-direction="root"
-            :class="{ selected: selectedPage === '/imports' }"
-          >
-            <ion-icon
-              slot="start"
-              :icon="cloudDownloadOutline"
-            />
-            <ion-label>{{ translate("Imports") }}</ion-label>
-          </ion-item>
-        </ion-menu-toggle>
-        <ion-menu-toggle :auto-hide="false">
-          <ion-item
-            button
-            router-link="/settings"
-            router-direction="root"
-            :class="{ selected: selectedPage === '/settings' }"
-          >
-            <ion-icon
-              slot="start"
-              :icon="settingsOutline"
-            />
-            <ion-label>{{ translate("Settings") }}</ion-label>
+            <ion-label>{{ translate(item.label) }}</ion-label>
           </ion-item>
         </ion-menu-toggle>
       </ion-list>
@@ -93,15 +41,27 @@ import { IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonMenu, Io
 import { alertCircleOutline, cloudDownloadOutline, copyOutline, pricetagsOutline, settingsOutline } from "ionicons/icons"
 import { translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
-
-import router from "@/router"
 import { computed } from "vue"
 
-const { isAuthenticated } = useAuth()
+import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION } from "@/auth/permissions"
+import router from "@/router"
+import { useUserStore } from "@/store/user"
 
-const selectedPage = computed(() => {
-  return router.currentRoute.value.path
-})
+const { isAuthenticated } = useAuth()
+const userStore = useUserStore()
+
+const menuItems = computed(() => [
+  { path: "/products", label: "Product workbench", icon: pricetagsOutline, permissionId: PRODUCT_READ_PERMISSION },
+  { path: "/data-fixes/duplicates", label: "Duplicate identifiers", icon: copyOutline, permissionId: DUPLICATE_RESOLUTION_PERMISSION },
+  { path: "/data-fixes/missing", label: "Missing values", icon: alertCircleOutline, permissionId: PRODUCT_READ_PERMISSION },
+  { path: "/imports", label: "Imports", icon: cloudDownloadOutline, permissionId: PRODUCT_READ_PERMISSION },
+  { path: "/settings", label: "Settings", icon: settingsOutline, permissionId: "" }
+].filter((item) => !item.permissionId || userStore.hasPermission(item.permissionId)))
+
+const selectedPage = computed(() => router.currentRoute.value.path)
+
+const isSelected = (path: string) =>
+  path === "/products" ? selectedPage.value.includes("/products") : selectedPage.value === path
 </script>
 
 <style scoped>

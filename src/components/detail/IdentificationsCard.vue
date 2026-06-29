@@ -2,6 +2,7 @@
   <CardSection :title="translate('Product identifications')">
     <template #action>
       <ion-button
+        v-if="canEdit"
         fill="clear"
         size="small"
         @click="modalOpen = true"
@@ -55,11 +56,14 @@ import IdentificationsModal from "./IdentificationsModal.vue"
 import type { CatalogOption, ProductIdentification } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   productId: string
   identifications: ProductIdentification[]
   identificationTypes: CatalogOption[]
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
   (event: "add", payload: IdentificationCreate): void
