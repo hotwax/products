@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { activePricesForTypeContext } from "../prices"
+import { activePriceForTypeContext, activePricesForTypeContext } from "../prices"
 import type { ProductPrice } from "@/domain/types/product"
 
 const price = (overrides: Partial<ProductPrice>): ProductPrice => ({
@@ -33,5 +33,23 @@ describe("price context helpers", () => {
       productStoreId: "STORE",
       productStoreGroupId: "GROUP"
     })).toEqual([prices[0]])
+  })
+
+  it("selects the latest active price from the current context for editor baselines", () => {
+    const currentContext = {
+      currencyUomId: "USD",
+      productPricePurposeId: "LISTING",
+      productStoreId: "STORE",
+      productStoreGroupId: "GROUP"
+    }
+    const currentPrice = price({ fromDate: "2026-06-01T00:00:00Z", price: 20 })
+    const prices = [
+      price({ currencyUomId: "CAD", fromDate: "2026-06-05T00:00:00Z", price: 25 }),
+      price({ productStoreId: "OTHER_STORE", fromDate: "2026-06-04T00:00:00Z", price: 24 }),
+      currentPrice,
+      price({ fromDate: "2026-05-01T00:00:00Z", price: 15 })
+    ]
+
+    expect(activePriceForTypeContext(prices, "DEFAULT_PRICE", currentContext)).toBe(currentPrice)
   })
 })

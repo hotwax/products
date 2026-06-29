@@ -240,7 +240,8 @@ import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import { activePricesForTypeContext, type PriceContext } from "@/domain/product/prices"
+import type { PriceContext } from "@/domain/product/prices"
+import { activePriceForTypeContext, activePricesForTypeContext, priceMatchesContext } from "@/domain/product/prices"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
@@ -310,12 +311,25 @@ const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
 
 const priceSource = computed(() => {
   const active = prices.value.filter((p: ProductPrice) => p.active)
+  const activeInCurrentStore = active.filter((price) => priceMatchesContext(price, {
+    currencyUomId: price.currencyUomId,
+    productPricePurposeId: "LISTING",
+    productStoreId: currentProductStore.value.productStoreId,
+    productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+  }))
+  const currencyUomId = currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId || activeInCurrentStore[0]?.currencyUomId || "USD"
+  const context = {
+    currencyUomId,
+    productPricePurposeId: "LISTING",
+    productStoreId: currentProductStore.value.productStoreId,
+    productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+  }
 
   return {
-    currencyUomId: active[0]?.currencyUomId ?? "USD",
-    DEFAULT_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? "",
-    LIST_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? "",
-    WHOLESALE_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
+    currencyUomId,
+    DEFAULT_PRICE: activePriceForTypeContext(prices.value, "DEFAULT_PRICE", context)?.price?.toString() ?? "",
+    LIST_PRICE: activePriceForTypeContext(prices.value, "LIST_PRICE", context)?.price?.toString() ?? "",
+    WHOLESALE_PRICE: activePriceForTypeContext(prices.value, "WHOLESALE_PRICE", context)?.price?.toString() ?? ""
   }
 })
 
