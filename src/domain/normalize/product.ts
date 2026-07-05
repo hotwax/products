@@ -1,5 +1,5 @@
 import type { ProductCore, ProductPrice, ProductSummary } from "../types/product"
-import { flagValue, isoDate, numberValue, stringArray, textValue } from "./value"
+import { flagValue, isActive, isoDate, numberValue, stringArray, textValue } from "./value"
 
 type Raw = Record<string, unknown>
 
@@ -34,17 +34,22 @@ function normalizePrices(raw: unknown): ProductPrice[] {
   if(!Array.isArray(raw)) {return []}
 
   return raw
-    .map((row: Raw) => ({
-      productPriceTypeId: textValue(row.productPriceTypeId),
-      productPricePurposeId: textValue(row.productPricePurposeId) || "LISTING",
-      currencyUomId: textValue(row.currencyUomId),
-      productStoreId: textValue(row.productStoreId),
-      productStoreGroupId: textValue(row.productStoreGroupId),
-      price: numberValue(row.price) ?? 0,
-      fromDate: textValue(row.fromDate),
-      thruDate: row.thruDate ? textValue(row.thruDate) : null,
-      active: !row.thruDate || new Date(textValue(row.thruDate)) > new Date()
-    }))
+    .map((row: Raw) => {
+      const fromDate = isoDate(row.fromDate) ?? ""
+      const thruDate = isoDate(row.thruDate)
+
+      return {
+        productPriceTypeId: textValue(row.productPriceTypeId),
+        productPricePurposeId: textValue(row.productPricePurposeId) || "LISTING",
+        currencyUomId: textValue(row.currencyUomId),
+        productStoreId: textValue(row.productStoreId),
+        productStoreGroupId: textValue(row.productStoreGroupId),
+        price: numberValue(row.price) ?? 0,
+        fromDate,
+        thruDate,
+        active: isActive(fromDate || null, thruDate)
+      }
+    })
     .sort((a, b) => Number(b.active) - Number(a.active) || priceDateMs(b.fromDate) - priceDateMs(a.fromDate))
 }
 

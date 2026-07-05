@@ -57,6 +57,9 @@ describe("product normalizers", () => {
   })
 
   it("sorts latest active prices first and keeps price primary-key context", () => {
+    const latestFromDate = Date.UTC(2025, 8, 10, 9, 48, 44, 927)
+    const olderFromDate = Date.UTC(2025, 7, 10, 9, 48, 44, 927)
+    const expiredThruDate = Date.UTC(2025, 6, 10, 9, 48, 44, 927)
     const core = normalizeProductCore({
       productId: "P1",
       prices: [
@@ -67,7 +70,7 @@ describe("product normalizers", () => {
           productStoreId: "STORE",
           productStoreGroupId: "GROUP",
           price: "20",
-          fromDate: "2026-06-01T00:00:00Z"
+          fromDate: latestFromDate
         },
         {
           productPriceTypeId: "DEFAULT_PRICE",
@@ -76,7 +79,7 @@ describe("product normalizers", () => {
           productStoreId: "STORE",
           productStoreGroupId: "GROUP",
           price: "15",
-          fromDate: "2026-05-01T00:00:00Z"
+          fromDate: olderFromDate
         },
         {
           productPriceTypeId: "DEFAULT_PRICE",
@@ -86,7 +89,7 @@ describe("product normalizers", () => {
           productStoreGroupId: "GROUP",
           price: "10",
           fromDate: "2026-04-01T00:00:00Z",
-          thruDate: "2026-04-15T00:00:00Z"
+          thruDate: expiredThruDate
         }
       ]
     })
@@ -95,7 +98,7 @@ describe("product normalizers", () => {
     expect(core.prices[0]).toMatchObject({
       productStoreId: "STORE",
       productStoreGroupId: "GROUP",
-      fromDate: "2026-06-01T00:00:00Z",
+      fromDate: "2025-09-10T09:48:44.927Z",
       active: true
     })
     expect(core.prices[2].active).toBe(false)
