@@ -107,8 +107,9 @@ const props = withDefaults(
     maxTags?: number
     variantCounts?: Record<string, number>
     spark?: RowSalesSpark
+    sparkMax?: number
   }>(),
-  { routerLink: undefined, selectable: false, selected: false, maxTags: 8, variantCounts: () => ({}), spark: undefined }
+  { routerLink: undefined, selectable: false, selected: false, maxTags: 8, variantCounts: () => ({}), spark: undefined, sparkMax: 0 }
 )
 
 defineEmits<{ (event: "toggleSelect"): void }>()
@@ -140,7 +141,7 @@ const unitsSoldLabel = computed(() => `${unitsSold.value} ${translate("sold")}`)
 const sparkPoints = computed(() => {
   if(!salesSeries.value.length) {return ""}
 
-  const max = Math.max(...salesSeries.value, 1)
+  const max = Math.max(props.sparkMax, ...salesSeries.value, 1)
   const step = salesSeries.value.length > 1 ? 86 / (salesSeries.value.length - 1) : 0
 
   return salesSeries.value

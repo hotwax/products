@@ -140,6 +140,7 @@
             :router-link="familyRouteFor(product)"
             :variant-counts="groupIdFacets"
             :spark="rowSales[product.productId]"
+            :spark-max="rowSalesMax"
             selectable
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
@@ -208,7 +209,7 @@ import { familyRouteFor } from "@/domain/product/family"
 const {
   queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
   clearFilters, toggleTag,
-  products, rowSales, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
+  products, rowSales, rowSalesMax, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,
   selectedProductIds, selectedSet, allVisibleSelected, toggleSelectAll, toggleSelected, clearSelection
 } = useProductWorkbench()
