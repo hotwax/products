@@ -85,7 +85,7 @@ import {
   IonButton, IonButtons, IonContent, IonFab, IonFabButton, IonHeader, IonIcon, IonInput, IonModal,
   IonNote, IonSpinner, IonTitle, IonToolbar
 } from "@ionic/vue"
-import { computed, ref, watch } from "vue"
+import { computed, onUnmounted, ref, watch } from "vue"
 import { closeOutline, saveOutline } from "ionicons/icons"
 import { translate } from "@common"
 
@@ -112,7 +112,8 @@ const trimmedUrl = computed(() => draftUrl.value.trim())
 const savedUrl = computed(() => props.value.trim())
 const canSave = computed(() =>
   !props.saving &&
-  trimmedUrl.value !== savedUrl.value
+  trimmedUrl.value !== savedUrl.value &&
+  (trimmedUrl.value === "" || isHttpUrl(trimmedUrl.value))
 )
 
 const resetPreview = () => {
@@ -130,7 +131,7 @@ const setPreviewError = (message: string) => {
   previewMessage.value = message
 }
 
-const isHttpUrl = (value: string) => {
+const isHttpUrl = (value: string): boolean => {
   try {
     const parsed = new URL(value)
 
@@ -139,6 +140,12 @@ const isHttpUrl = (value: string) => {
     return false
   }
 }
+
+onUnmounted(() => {
+  if(previewTimer) {
+    window.clearTimeout(previewTimer)
+  }
+})
 
 const loadPreview = () => {
   const url = trimmedUrl.value
@@ -188,6 +195,7 @@ watch(draftUrl, () => {
 
 const save = () => {
   if(!canSave.value) {return}
+  if(trimmedUrl.value && !isHttpUrl(trimmedUrl.value)) {return}
   emit("save", trimmedUrl.value)
 }
 
@@ -216,11 +224,6 @@ const onPreviewError = () => {
   min-height: 360px;
   margin-top: 16px;
   padding-bottom: 72px;
-}
-
-.preview-image {
-  width: 100%;
-  height: 100%;
 }
 
 .preview-image--loading {

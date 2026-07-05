@@ -489,6 +489,9 @@ const onSaveImageUrl = async (imageUrl: string) => {
     triggerSolrIndex(productId, { indexVariants: false })
     setCachedProductImage(productId, imageUrl)
     await queryClient.invalidateQueries({ queryKey: qk.product.core(productId) })
+    // Mark family and workbench queries as stale without triggering an immediate
+    // refetch — the optimistic update from setCachedProductImage keeps the UI
+    // current until the next natural refetch (e.g. on navigation).
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value), refetchType: "none" }),
       queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
