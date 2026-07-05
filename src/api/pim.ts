@@ -14,11 +14,11 @@ type Raw = Record<string, unknown>
  *  a failed index should never block or surface as a save error. */
 export function triggerSolrIndex(productId: string, options: { indexVariants?: boolean } = { indexVariants: true }): void {
   request({
-    url: "oms/search/index/product",
+    url: "admin/solr/indexProduct",
     method: "post",
     data: {
       productId,
-      ...(options.indexVariants ? { indexVariants: true } : {})
+      indexVariants: options.indexVariants ?? true
     }
   }).catch(() => {})
 }

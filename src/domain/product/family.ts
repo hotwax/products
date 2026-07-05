@@ -40,28 +40,17 @@ export function featureSelectionFromValues(featureValues: string[]): Record<stri
   return selection
 }
 
-function uniqueFamilyMembers(members: ProductSummary[]): ProductSummary[] {
-  const latest = new Map<string, ProductSummary>()
-
-  members.forEach((member, index) => {
-    latest.set(member.productId || `__member_${index}`, member)
-  })
-
-  return [...latest.values()]
-}
-
 /** Variant family members (from a parentProductId Solr query) → the sibling list, ordered by
  *  feature combo when present (axis order, sizes naturally sorted) else by name. */
 export function familyVariants(members: ProductSummary[]): FamilyVariant[] {
-  const uniqueMembers = uniqueFamilyMembers(members)
-  const variants = uniqueMembers.map((member) => ({
+  const variants = members.map((member) => ({
     productId: member.productId,
     name: member.productName || member.internalName || member.productId,
     sku: member.sku,
     imageUrl: member.imageUrl,
     selection: featureSelectionFromValues(member.featureValues)
   }))
-  const axes = familyFeatureOptions(uniqueMembers)
+  const axes = familyFeatureOptions(members)
 
   return variants.sort((a, b) => {
     for(const { axis, values } of axes) {
@@ -100,7 +89,7 @@ function sortAxisValues(axis: string, values: string[]): string[] {
  *  Axis order follows first appearance; values are sorted (sizes naturally). */
 export function familyFeatureOptions(members: ProductSummary[]): FeatureAxisOption[] {
   const axes = new Map<string, Set<string>>()
-  for(const member of uniqueFamilyMembers(members)) {
+  for(const member of members) {
     const selection = featureSelectionFromValues(member.featureValues)
     for(const [axis, value] of Object.entries(selection)) {
       if(!axes.has(axis)) {axes.set(axis, new Set())}
