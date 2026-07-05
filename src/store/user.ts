@@ -72,6 +72,7 @@ export const useUserStore = defineStore("user", {
     },
     async fetchPermissions() {
       this.fetchStatus.permissions = "pending"
+      const permissionId = import.meta.env.VITE_APP_PERMISSION_ID
       const serverPermissions: string[] = []
       const viewSize = 200
       let viewIndex = 0
@@ -93,6 +94,15 @@ export const useUserStore = defineStore("user", {
           } else {
             hasMore = false
           }
+        }
+
+        if(permissionId && !serverPermissions.includes(permissionId)) {
+          const permissionError = "You do not have permission to access the app."
+          await showToast(translate(permissionError))
+          logger.error("error", permissionError)
+          this.fetchStatus.permissions = "error"
+
+          return Promise.reject(new Error(permissionError))
         }
 
         this.permissions = serverPermissions

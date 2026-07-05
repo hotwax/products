@@ -1,6 +1,7 @@
 import { createPinia, setActivePinia } from "pinia"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { api } from "@common"
+import { showToast } from "@/utils"
 import { useUserStore } from "./user"
 
 const commonUtilMock = vi.hoisted(() => ({
@@ -39,6 +40,8 @@ describe("user store permissions", () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(api).mockReset()
+    vi.mocked(showToast).mockReset()
+    vi.unstubAllEnvs()
     commonUtilMock.hasError.mockReturnValue(false)
     commonUtilMock.isMoqui.mockReturnValue(true)
   })
@@ -96,5 +99,19 @@ describe("user store permissions", () => {
       params: { viewIndex: 0, viewSize: 200 }
     })
     expect(userStore.permissions).toEqual(["PIM_PRODUCT_ADMIN"])
+  })
+
+  it("rejects app access when configured app permission is missing", async () => {
+    vi.stubEnv("VITE_APP_PERMISSION_ID", "PRODUCTS_APP_VIEW")
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "PIM_PRODUCT_VIEW" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+
+    await expect(userStore.fetchPermissions()).rejects.toThrow("You do not have permission to access the app.")
+    expect(userStore.permissions).toEqual([])
+    expect(userStore.fetchStatus.permissions).toBe("error")
+    expect(showToast).toHaveBeenCalledWith("You do not have permission to access the app.")
   })
 })

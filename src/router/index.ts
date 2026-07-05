@@ -11,7 +11,7 @@ import ProductDetail from "@/views/ProductDetail.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
 import { useUserStore } from "@/store/user"
-import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION } from "@/auth/permissions"
+import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
 
 const authGuard = () => {
   const userStore = useUserStore()
@@ -66,7 +66,8 @@ const routes: RouteRecordRaw[] = [
     path: "/products/create",
     name: "ProductCreate",
     component: ProductCreate,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_WRITE_PERMISSION }
   },
   {
     path: "/products/:productId",
