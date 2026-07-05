@@ -108,12 +108,14 @@ const router = createRouter({
 
 router.beforeEach(async (to, from) => {
   const permissionId = to.meta.permissionId as string | undefined
-  if(!permissionId || !useAuth().isAuthenticated.value) {return}
+  if(!useAuth().isAuthenticated.value) {return}
 
   const userStore = useUserStore()
   if(userStore.fetchStatus.permissions === "none") {
     await userStore.fetchPermissions().catch(() => undefined)
   }
+
+  if(!permissionId) {return}
 
   if(userStore.hasPermission(permissionId)) {return}
 
