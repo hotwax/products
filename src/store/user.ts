@@ -5,6 +5,9 @@ import { useAuth } from "@common/composables/useAuth"
 
 import logger from "@/logger"
 import { showToast } from "@/utils"
+import { COMMON_ADMIN_PERMISSION } from "@/auth/permissions"
+
+let permissionsRequest: Promise<void> | null = null
 
 export const useUserStore = defineStore("user", {
   state: () => ({
@@ -34,6 +37,15 @@ export const useUserStore = defineStore("user", {
     getAvailableTimeZones: (state) => state.timeZones,
     hasPermission: (state) => (permissionId: string): boolean => {
       if(!permissionId) {return true}
+      if(state.permissions.includes(COMMON_ADMIN_PERMISSION)) {return true}
+
+      if(permissionId.includes(" OR ")) {
+        return permissionId.split(" OR ").some((part) => useUserStore().hasPermission(part.trim()))
+      }
+
+      if(permissionId.includes(" AND ")) {
+        return permissionId.split(" AND ").every((part) => useUserStore().hasPermission(part.trim()))
+      }
 
       return state.permissions.includes(permissionId)
     }
@@ -62,9 +74,61 @@ export const useUserStore = defineStore("user", {
         return Promise.reject(error)
       }
     },
-    fetchPermissions() {
+    async fetchPermissions() {
+      this.fetchStatus.permissions = "pending"
       this.permissions = []
-      this.fetchStatus.permissions = "success"
+      const permissionId = import.meta.env.VITE_APP_PERMISSION_ID
+      const serverPermissions: string[] = []
+      const viewSize = 200
+      let viewIndex = 0
+
+      try {
+        let hasMore = true
+        while(hasMore) {
+          const resp = await api({
+            url: commonUtil.isMoqui() ? "admin/user/permissions" : "getPermissions",
+            method: "GET",
+            baseURL: commonUtil.getOmsURL(),
+            params: { viewIndex, viewSize }
+          }) as any
+
+          const docs = resp?.data?.docs ?? []
+          if(resp?.status === 200 && docs.length && !commonUtil.hasError(resp)) {
+            serverPermissions.push(...docs.map((permission: any) => permission.permissionId).filter(Boolean))
+            viewIndex += 1
+          } else {
+            hasMore = false
+          }
+        }
+
+        if(permissionId && !serverPermissions.includes(permissionId) && !serverPermissions.includes(COMMON_ADMIN_PERMISSION)) {
+          const permissionError = "You do not have permission to access the app."
+          await showToast(translate(permissionError))
+          logger.error("error", permissionError)
+          this.fetchStatus.permissions = "error"
+
+          return Promise.reject(new Error(permissionError))
+        }
+
+        this.permissions = serverPermissions
+        this.fetchStatus.permissions = "success"
+      } catch (error: any) {
+        this.fetchStatus.permissions = "error"
+        logger.error("Failed to fetch permissions", error)
+
+        return Promise.reject(error)
+      }
+    },
+    async ensurePermissions(force = false) {
+      if(!force && this.fetchStatus.permissions === "success") {return}
+
+      if(!permissionsRequest) {
+        permissionsRequest = this.fetchPermissions().finally(() => {
+          permissionsRequest = null
+        })
+      }
+
+      return permissionsRequest
     },
     async fetchProductStores() {
       try {
@@ -141,15 +205,18 @@ export const useUserStore = defineStore("user", {
     async postLogin() {
       try {
         await this.fetchUserProfile()
-        await this.fetchPermissions()
+        await this.ensurePermissions(true)
         await this.fetchProductStores()
       } catch (error: any) {
         return Promise.reject(error)
       }
     },
     postLogout() {
+      permissionsRequest = null
       this.$reset()
     }
   },
-  persist: true
+  persist: {
+    omit: ["fetchStatus"]
+  }
 })

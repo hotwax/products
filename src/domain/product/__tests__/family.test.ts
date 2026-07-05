@@ -45,11 +45,22 @@ describe("familyFeatureOptions", () => {
     expect(color?.values).toEqual(["Blue", "Red"])
     expect(size?.values).toEqual(["S", "M"]) // size order, not alphabetical (M<S alphabetically)
   })
+
 })
 
 describe("familyVariants", () => {
   it("orders siblings by feature combo (color, then size)", () => {
     expect(familyVariants(FAMILY).map((v) => v.productId)).toEqual(["V3", "V4", "V1", "V2"])
+  })
+
+  it("keeps duplicate product ids visible when Solr returns duplicate docs", () => {
+    const variants = familyVariants([
+      member({ productId: "V1", internalName: "old", imageUrl: "" }),
+      member({ productId: "V1", internalName: "new", imageUrl: "http://new-image" })
+    ])
+
+    expect(variants).toHaveLength(2)
+    expect(variants.map((variant) => variant.name)).toEqual(["new", "old"])
   })
 })
 

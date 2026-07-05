@@ -2,7 +2,7 @@ import type {
   AssociationCreate, AssociationKey, AssociationUpdate, DedupChange, FeatureApply, FeatureCreate,
   IdentificationCreate, IdentificationKey, ProductCreatePayload, ProductFieldsPatch, ProductPriceCreate
 } from "@/domain/types/pim"
-import { formRequest, request, responseList } from "./http"
+import { request, responseList } from "./http"
 import { DateTime } from "luxon"
 import { useUserStore } from "@/store/user"
 
@@ -10,11 +10,17 @@ import { useUserStore } from "@/store/user"
 
 type Raw = Record<string, unknown>
 
-/** Fire-and-forget Solr re-index for a product family. Errors are swallowed intentionally —
+/** Fire-and-forget Solr re-index. Errors are swallowed intentionally —
  *  a failed index should never block or surface as a save error. */
-export function triggerSolrIndex(parentProductId: string): void {
-  console.log('parentProductId',parentProductId)
-  request({ url: "admin/solr/indexProduct", method: "post", data: { productId: parentProductId, indexVariants: true } }).catch(() => {})
+export function triggerSolrIndex(productId: string, options: { indexVariants?: boolean } = { indexVariants: true }): void {
+  request({
+    url: "admin/solr/indexProduct",
+    method: "post",
+    data: {
+      productId,
+      indexVariants: options.indexVariants ?? true
+    }
+  }).catch(() => {})
 }
 
 // ---------- product ----------
@@ -22,18 +28,7 @@ export function fetchProductRecord(productId: string): Promise<Raw> {
   return request<Raw>({ url: `oms/products/${productId}`, method: "get" })
 }
 
-export function createProduct(payload: ProductCreatePayload, imageFile?: File): Promise<{ productId: string }> {
-  if(imageFile) {
-    console.log('imageFile', imageFile)
-    const form = new FormData()
-    for(const [key, value] of Object.entries(payload)) {
-      if(value !== undefined && value !== null) form.append(key, String(value))
-    }
-    form.append("detailImageUrl", imageFile)
-
-    return formRequest<{ productId: string }>("oms/products", form)
-  }
-
+export function createProduct(payload: ProductCreatePayload): Promise<{ productId: string }> {
   return request<{ productId: string }>({ url: "oms/products", method: "post", data: payload })
 }
 

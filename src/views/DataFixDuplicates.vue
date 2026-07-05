@@ -54,6 +54,7 @@
               <code>{{ group.value }}</code>
             </ion-label>
             <ion-button
+              v-if="canResolveDuplicates"
               slot="end"
               fill="outline"
               size="small"
@@ -71,7 +72,7 @@
       </template>
 
       <ResolveDuplicatesModal
-        :is-open="resolveOpen"
+        :is-open="resolveOpen && canResolveDuplicates"
         :rule="activeRule ?? null"
         :group="activeGroup"
         :saving="resolveMutation.isPending.value"
@@ -96,22 +97,29 @@ import { errorMessage } from "@/api/http"
 import { useDuplicateIdentifiers } from "@/composables/useDataQuality"
 import { useResolveDuplicates } from "@/mutations/useQualityResolution"
 import { useToast } from "@/composables/useToast"
+import { useUserStore } from "@/store/user"
+import { DUPLICATE_RESOLUTION_PERMISSION } from "@/auth/permissions"
 import type { DuplicateDraft, DuplicateGroup } from "@/domain/types/quality"
 
 const { rules, activeRuleId, activeRule, groups, isLoading, isFetching, isError, error, refetch } = useDuplicateIdentifiers()
 const resolveMutation = useResolveDuplicates()
 const toast = useToast()
+const userStore = useUserStore()
 
 const resolveOpen = ref(false)
 const activeGroup = ref<DuplicateGroup | null>(null)
 const errorText = computed(() => errorMessage(error.value, translate("Duplicates are unavailable")))
+const canResolveDuplicates = computed(() => userStore.hasPermission(DUPLICATE_RESOLUTION_PERMISSION))
 
 const openResolve = (group: DuplicateGroup) => {
+  if(!canResolveDuplicates.value) {return}
   activeGroup.value = group
   resolveOpen.value = true
 }
 
 const saveResolution = async (changes: DuplicateDraft[]) => {
+  if(!canResolveDuplicates.value) {return}
+
   const typeId = activeRule.value?.resolution?.goodIdentificationTypeId
   if(!typeId || !changes.length) {return}
   try {
