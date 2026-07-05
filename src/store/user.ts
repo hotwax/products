@@ -76,6 +76,7 @@ export const useUserStore = defineStore("user", {
     },
     async fetchPermissions() {
       this.fetchStatus.permissions = "pending"
+      this.permissions = []
       const permissionId = import.meta.env.VITE_APP_PERMISSION_ID
       const serverPermissions: string[] = []
       const viewSize = 200
@@ -118,8 +119,8 @@ export const useUserStore = defineStore("user", {
         return Promise.reject(error)
       }
     },
-    async ensurePermissions() {
-      if(this.fetchStatus.permissions === "success") {return}
+    async ensurePermissions(force = false) {
+      if(!force && this.fetchStatus.permissions === "success") {return}
 
       if(!permissionsRequest) {
         permissionsRequest = this.fetchPermissions().finally(() => {
@@ -204,7 +205,7 @@ export const useUserStore = defineStore("user", {
     async postLogin() {
       try {
         await this.fetchUserProfile()
-        await this.ensurePermissions()
+        await this.ensurePermissions(true)
         await this.fetchProductStores()
       } catch (error: any) {
         return Promise.reject(error)
@@ -215,5 +216,7 @@ export const useUserStore = defineStore("user", {
       this.$reset()
     }
   },
-  persist: true
+  persist: {
+    omit: ["fetchStatus"]
+  }
 })
