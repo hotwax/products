@@ -196,6 +196,14 @@
           @dismiss="addVariantModalOpen = false"
         />
 
+        <ImageUrlModal
+          :is-open="imageUrlModalOpen"
+          :value="core?.imageUrl ?? ''"
+          :saving="imageUrlSaving"
+          @save="onSaveImageUrl"
+          @dismiss="imageUrlModalOpen = false"
+        />
+
         <ProductPicker
           :is-open="picker !== null"
           :title="picker === 'substitute' ? translate('Add substitute') : translate('Add components')"
@@ -210,8 +218,9 @@
 
 <script setup lang="ts">
 import {
+  alertController,
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
-  IonSegmentButton, IonTitle, IonToolbar, alertController
+  IonSegmentButton, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, ref, toRef, watch, type ComponentPublicInstance } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
@@ -236,6 +245,7 @@ import PricesCard from "@/components/detail/PricesCard.vue"
 import ShopifyShopProductsCard from "@/components/detail/ShopifyShopProductsCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import AddVariantModal from "@/components/detail/AddVariantModal.vue"
+import ImageUrlModal from "@/components/detail/ImageUrlModal.vue"
 import { errorMessage } from "@/api/http"
 import { useProductDetailData } from "@/composables/useProductDetailData"
 import { useProductEditor } from "@/composables/useProductEditor"
@@ -253,7 +263,7 @@ import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
+import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
 import { FEATURE_REMOVE_PERMISSION, FEATURE_WRITE_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
@@ -368,7 +378,7 @@ const onSavePrices = async () => {
 
     await updateProductFields(editingProductId.value, { prices: pricePayload })
 
-    triggerSolrIndex(parentProductId.value)
+    triggerSolrIndex(editingProductId.value, { indexVariants: false })
     await queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) })
     toast.success(translate("Prices saved"))
   } catch(error) {
@@ -453,47 +463,42 @@ const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 
-const onEditImageUrl = async () => {
-  const alert = await alertController.create({
-    header: translate("Image URL"),
-    inputs: [
-      {
-        name: "imageUrl",
-        type: "url",
-        value: core.value?.imageUrl ?? "",
-        placeholder: "https://cdn.example.com/product.jpg"
-      }
-    ],
-    buttons: [
-      {
-        text: translate("Cancel"),
-        role: "cancel"
-      },
-      {
-        text: translate("Save"),
-        role: "confirm"
-      }
-    ]
-  })
+const imageUrlModalOpen = ref(false)
+const imageUrlSaving = ref(false)
 
-  await alert.present()
-  const { data, role } = await alert.onDidDismiss<{ values?: { imageUrl?: string } }>()
-  if(role !== "confirm") {return}
+const onEditImageUrl = () => {
+  imageUrlModalOpen.value = true
+}
 
-  const imageUrl = (data?.values?.imageUrl ?? "").trim()
+const setCachedProductImage = (productId: string, imageUrl: string) => {
+  queryClient.setQueryData<ProductCore | undefined>(qk.product.core(productId), (product: ProductCore | undefined) =>
+    product ? { ...product, imageUrl } : product)
+  queryClient.setQueryData<ProductSummary | null | undefined>(qk.product.solr(productId), (product: ProductSummary | null | undefined) =>
+    product ? { ...product, imageUrl } : product)
+  queryClient.setQueryData<ProductSummary[] | undefined>(qk.product.family(parentProductId.value), (members: ProductSummary[] | undefined) =>
+    members?.map((member) => member.productId === productId ? { ...member, imageUrl } : member))
+}
+
+const onSaveImageUrl = async (imageUrl: string) => {
   if(imageUrl === (core.value?.imageUrl ?? "")) {return}
+  imageUrlSaving.value = true
 
   try {
-    await updateProductFields(editingProductId.value, { smallImageUrl: imageUrl })
-    triggerSolrIndex(parentProductId.value)
+    const productId = editingProductId.value
+    await updateProductFields(productId, { detailImageUrl: imageUrl })
+    triggerSolrIndex(productId, { indexVariants: false })
+    setCachedProductImage(productId, imageUrl)
+    await queryClient.invalidateQueries({ queryKey: qk.product.core(productId) })
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) }),
-      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value) }),
+      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value), refetchType: "none" }),
       queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
     ])
+    imageUrlModalOpen.value = false
     toast.success(translate("Saved"))
   } catch(error) {
     toast.error(error, translate("Could not save image URL"))
+  } finally {
+    imageUrlSaving.value = false
   }
 }
 

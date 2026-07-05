@@ -50,7 +50,7 @@ export const QUALITY_RULES: QualityRule[] = [
     kind: "required-field",
     scope: "all",
     solrField: "mainImageUrl",
-    resolution: { target: "productField", productField: "smallImageUrl" }
+    resolution: { target: "productField", productField: "detailImageUrl" }
   },
   {
     id: "required-brand",
