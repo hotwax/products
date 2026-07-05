@@ -1,7 +1,7 @@
 import { computed } from "vue"
 import { storeToRefs } from "pinia"
 import { useInfiniteQuery, useQuery } from "@tanstack/vue-query"
-import { groupIdFacetsOptions, tagFacetsOptions, workbenchSearchOptions } from "@/queries/products"
+import { groupIdFacetsOptions, rowSalesAnalyticsOptions, tagFacetsOptions, workbenchSearchOptions } from "@/queries/products"
 import { productStoresOptions, productTypesOptions } from "@/queries/catalog"
 import { useWorkbenchStore } from "@/stores/workbench"
 
@@ -21,6 +21,13 @@ export function useProductWorkbench() {
   const groupIdFacetsQuery = useQuery(computed(() => groupIdFacetsOptions(searchParams.value)))
 
   const products = computed(() => searchQuery.data.value?.pages.flatMap((page) => page.products) ?? [])
+  const visibleProductIds = computed(() => products.value.map((product) => product.productId))
+  const rowSalesQuery = useQuery(computed(() => rowSalesAnalyticsOptions(visibleProductIds.value)))
+  const rowSales = computed(() => rowSalesQuery.data.value ?? {})
+  const rowSalesMax = computed(() => Math.max(
+    0,
+    ...Object.values(rowSales.value).flatMap((spark) => spark.series)
+  ))
   const total = computed(() => searchQuery.data.value?.pages[0]?.total ?? 0)
   const selectedSet = computed(() => new Set(selectedProductIds.value))
   const allVisibleSelected = computed(() => products.value.length > 0 && products.value.every((product) => selectedSet.value.has(product.productId)))
@@ -47,7 +54,7 @@ export function useProductWorkbench() {
     toggleGroupId: (groupId: string) => workbench.toggleGroupId(groupId),
 
     // results
-    products, total,
+    products, rowSales, rowSalesMax, total,
     isLoading: searchQuery.isLoading,
     isFetching: searchQuery.isFetching,
     isError: searchQuery.isError,

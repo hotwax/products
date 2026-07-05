@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { productScopeFilters, productSearchQueryText, productSort, tagFacetPayload, workbenchSearchPayload } from "../productQuery"
+import { productScopeFilters, productSearchQueryText, productSort, rowSalesAnalyticsPayload, tagFacetPayload, workbenchSearchPayload } from "../productQuery"
 import type { ProductSearchParams } from "../../types/product"
 
 const params: ProductSearchParams = {
@@ -51,6 +51,31 @@ describe("payloads", () => {
     expect(payload.limit).toBe(25)
     expect(payload.params).toEqual({ "defType": "edismax", "q.op": "OR", "qf": "productId groupId parentProductName productName internalName sku upc" })
     expect(payload.sort).toBe(productSort("Updated"))
+  })
+
+  it("builds one batched row sales analytics facet for visible products", () => {
+    const payload = rowSalesAnalyticsPayload(["SKU-1", "SKU+2", "SKU-1"], "2026-06-01T00:00:00Z")
+
+    expect(payload.limit).toBe(0)
+    expect(payload.params).toEqual({ "q.op": "AND" })
+    expect(payload.filter).toEqual([
+      "docType: ORDER",
+      "orderTypeId: SALES_ORDER",
+      "-orderStatusId: ORDER_CANCELLED",
+      "-orderItemStatusId: ITEM_CANCELLED",
+      "productId: (\"SKU\\-1\" OR \"SKU\\+2\")",
+      "orderDate: [2026-06-01T00:00:00Z TO NOW]"
+    ])
+    expect(payload.facet?.byDay).toEqual({
+      type: "range",
+      field: "orderDate",
+      start: "2026-06-01T00:00:00Z",
+      end: "NOW",
+      gap: "+1DAY",
+      facet: {
+        byProduct: { type: "terms", field: "productId", limit: 2 }
+      }
+    })
   })
 
   it("excludes the tag filter from the tag facet scope", () => {
