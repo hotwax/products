@@ -76,7 +76,7 @@ export function normalizeProductCore(record: Raw): ProductCore {
     heightUomId: textValue(record.heightUomId),
     widthUomId: textValue(record.widthUomId),
     depthUomId: textValue(record.depthUomId),
-    imageUrl: firstText(record.smallImageUrl, record.mediumImageUrl, record.largeImageUrl, record.detailImageUrl, record.originalImageUrl),
+    imageUrl: firstText(record.detailImageUrl, record.smallImageUrl, record.mediumImageUrl, record.largeImageUrl, record.originalImageUrl),
     createdDate: isoDate(record.createdDate),
     lastModifiedDate: isoDate(record.lastModifiedDate ?? record.lastUpdatedStamp),
     lastModifiedByUserLogin: textValue(record.lastModifiedByUserLogin),

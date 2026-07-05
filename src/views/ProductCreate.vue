@@ -944,7 +944,7 @@ const submit = async () => {
       description: info.description.trim() || undefined,
       longDescription: info.longDescription.trim() || undefined,
       productTypeId: info.productTypeId || undefined,
-      smallImageUrl: info.imageUrl.trim() || undefined,
+      detailImageUrl: info.imageUrl.trim() || undefined,
       introductionDate: dates.introductionDate || undefined,
       releaseDate: dates.releaseDate || undefined,
       supportDiscontinuationDate: dates.supportDiscontinuationDate || undefined,

@@ -145,7 +145,7 @@ const createVariant = async () => {
     // 1. Create the new variant product (with image URL if provided)
     const { productId } = await createProduct({
       isVariant: "Y",
-      smallImageUrl: imageUrl.value.trim() || undefined
+      detailImageUrl: imageUrl.value.trim() || undefined
     })
 
     // 2. Link it to the parent as a variant association

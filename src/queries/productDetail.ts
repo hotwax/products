@@ -3,6 +3,7 @@ import { fetchAssociations, fetchFeatureApplications, fetchFeatureCatalog, fetch
 import { fetchEntityAuditLogs } from "@/api/catalog"
 import { runProductSolrQuery, solrDocs } from "@/api/solr"
 import { escapeSolrValue } from "@/domain/solr/productQuery"
+import { latestProductDocs } from "@/domain/solr/docs"
 import { normalizeProductCore, normalizeProductSummary } from "@/domain/normalize/product"
 import type { ProductCategoryMembership, ProductSummary, ShopifyShopProduct } from "@/domain/types/product"
 import { catalogOptionMap , normalizeIdentifications } from "@/domain/normalize/identification"
@@ -58,9 +59,7 @@ export function familyMembersOptions(parentProductId: string) {
         sort: "productName asc"
       })
 
-      console.log('solrDocs(response).map(normalizeProductSummary)', solrDocs(response).map(normalizeProductSummary))
-
-      return solrDocs(response).map(normalizeProductSummary)
+      return latestProductDocs(solrDocs(response)).map(normalizeProductSummary)
     },
     enabled: Boolean(parentProductId),
     staleTime: 30_000
@@ -95,9 +94,10 @@ export function productSolrOptions(productId: string) {
       const response = await runProductSolrQuery({
         query: "*:*",
         filter: ["docType:PRODUCT", `productId:${escapeSolrValue(productId)}`],
-        limit: 1
+        limit: 10,
+        sort: "_version_ desc"
       })
-      const docs = solrDocs(response)
+      const docs = latestProductDocs(solrDocs(response))
 
       return docs.length > 0 ? normalizeProductSummary(docs[0]) : null
     },

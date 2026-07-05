@@ -10,11 +10,17 @@ import { useUserStore } from "@/store/user"
 
 type Raw = Record<string, unknown>
 
-/** Fire-and-forget Solr re-index for a product family. Errors are swallowed intentionally —
+/** Fire-and-forget Solr re-index. Errors are swallowed intentionally —
  *  a failed index should never block or surface as a save error. */
-export function triggerSolrIndex(parentProductId: string): void {
-  console.log('parentProductId',parentProductId)
-  request({ url: "admin/solr/indexProduct", method: "post", data: { productId: parentProductId, indexVariants: true } }).catch(() => {})
+export function triggerSolrIndex(productId: string, options: { indexVariants?: boolean } = { indexVariants: true }): void {
+  request({
+    url: "oms/search/index/product",
+    method: "post",
+    data: {
+      productId,
+      ...(options.indexVariants ? { indexVariants: true } : {})
+    }
+  }).catch(() => {})
 }
 
 // ---------- product ----------
