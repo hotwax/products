@@ -5,6 +5,7 @@
         v-model="draft.productName"
         :label="translate('Name')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-input
@@ -12,12 +13,14 @@
         :label="translate('Internal name')"
         label-placement="stacked"
         :helper-text="duplicateHint"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-input
         v-model="draft.brandName"
         :label="translate('Brand name')"
         label-placement="stacked"
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-select
@@ -25,6 +28,7 @@
         :label="translate('Type')"
         label-placement="stacked"
         interface="popover"
+        :disabled="!canEdit"
         fill="outline"
       >
         <ion-select-option
@@ -42,6 +46,7 @@
         :label="translate('Desc')"
         label-placement="stacked"
         auto-grow
+        :disabled="!canEdit"
         fill="outline"
       />
       <ion-textarea
@@ -49,6 +54,7 @@
         :label="translate('Long desc')"
         label-placement="stacked"
         auto-grow
+        :disabled="!canEdit"
         fill="outline"
       />
     </div>
@@ -60,6 +66,7 @@
           {{ translate("Components") }}
         </span>
         <ion-button
+          v-if="canEdit"
           fill="clear"
           size="small"
           @click="$emit('addComponent')"
@@ -77,6 +84,7 @@
           :key="`${assoc.relatedProductId}-${assoc.fromDate}`"
           :association="assoc"
           show-quantity
+          :can-edit="canEdit"
           @expire="$emit('expireComponent', assoc)"
           @reactivate="$emit('reactivateComponent', assoc)"
         />
@@ -93,6 +101,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="$emit('save')"
         @reset="$emit('reset')"
@@ -110,7 +119,7 @@ import SaveFooter from "@/components/common/SaveFooter.vue"
 import AssociationItem from "./AssociationItem.vue"
 import type { CatalogOption, ProductAssociation } from "@/domain/types/product"
 
-defineProps<{
+withDefaults(defineProps<{
   draft: {
     productName: string
     internalName: string
@@ -123,9 +132,13 @@ defineProps<{
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
+  canEdit?: boolean
   duplicateHint?: string
   components?: ProductAssociation[]
-}>()
+}>(), {
+  canEdit: true,
+  duplicateHint: ""
+})
 
 defineEmits<{
   (event: "save"): void

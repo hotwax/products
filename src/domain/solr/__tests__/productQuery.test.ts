@@ -31,12 +31,12 @@ describe("productScopeFilters", () => {
 })
 
 describe("search text", () => {
-  it("tokenizes and targets searchText", () => {
-    expect(productSearchQueryText(" crew  tee ")).toBe("searchText:(crew tee)")
+  it("tokenizes and wraps in wildcards", () => {
+    expect(productSearchQueryText(" crew  tee ")).toBe("*crew tee*")
   })
 
   it("escapes solr specials", () => {
-    expect(productSearchQueryText("a+b")).toBe("searchText:(a\\+b)")
+    expect(productSearchQueryText("a+b")).toBe("*a\\+b*")
   })
 
   it("matches all docs when empty", () => {
@@ -45,11 +45,11 @@ describe("search text", () => {
 })
 
 describe("payloads", () => {
-  it("pages with offset and applies AND semantics", () => {
+  it("pages with offset and searches across all identifier fields including upc", () => {
     const payload = workbenchSearchPayload(params, 2)
     expect(payload.offset).toBe(50)
     expect(payload.limit).toBe(25)
-    expect(payload.params).toEqual({ "q.op": "AND" })
+    expect(payload.params).toEqual({ "defType": "edismax", "q.op": "OR", "qf": "productId groupId parentProductName productName internalName sku upc" })
     expect(payload.sort).toBe(productSort("Updated"))
   })
 
