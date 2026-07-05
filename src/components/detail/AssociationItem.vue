@@ -25,7 +25,7 @@
       </ion-note>
     </ion-label>
     <ion-button
-      v-if="association.active"
+      v-if="canEdit && association.active"
       slot="end"
       fill="clear"
       color="danger"
@@ -35,7 +35,7 @@
       {{ translate("Expire") }}
     </ion-button>
     <ion-button
-      v-else
+      v-else-if="canEdit"
       slot="end"
       fill="clear"
       size="small"
@@ -53,10 +53,14 @@ import { DxpShopifyImg, translate } from "@common"
 import { expiresInDays } from "@/domain/normalize/association"
 import type { ProductAssociation } from "@/domain/types/product"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   association: ProductAssociation
+  canEdit?: boolean
   showQuantity?: boolean
-}>()
+}>(), {
+  canEdit: true,
+  showQuantity: false
+})
 
 defineEmits<{
   (event: "expire"): void

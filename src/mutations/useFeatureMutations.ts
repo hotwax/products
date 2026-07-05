@@ -59,7 +59,7 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
 
   queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId()) })
   queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
-  
+
     triggerSolrIndex(parentProductId())
   }
 
@@ -141,4 +141,4 @@ export function useFeatureMutations(productId: () => string, parentProductId: ()
   })
 
   return { apply, remove, createAndApply }
-} 
+}

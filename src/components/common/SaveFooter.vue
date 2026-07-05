@@ -14,7 +14,7 @@
   </ion-button>
   <ion-button
     size="small"
-    :disabled="!dirty || saving"
+    :disabled="!canSave || !dirty || saving"
     @click="$emit('save')"
   >
     <ion-spinner
@@ -31,11 +31,14 @@
 import { IonButton, IonNote, IonSpinner } from "@ionic/vue"
 import { translate } from "@common"
 
-defineProps<{
+withDefaults(defineProps<{
   dirty: boolean
   saving: boolean
+  canSave?: boolean
   staleUnderEdit?: boolean
-}>()
+}>(), {
+  canSave: true
+})
 
 defineEmits<{
   (event: "save"): void
