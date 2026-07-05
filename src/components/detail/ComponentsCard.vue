@@ -2,6 +2,7 @@
   <CardSection :title="translate('Components')">
     <template #action>
       <ion-button
+        v-if="canEdit"
         fill="outline"
         size="small"
         @click="$emit('addComponent')"
@@ -18,6 +19,7 @@
         v-for="assoc in components"
         :key="`${assoc.relatedProductId}-${assoc.fromDate}`"
         :association="assoc"
+        :can-edit="canEdit"
         show-quantity
         @expire="$emit('expireComponent', assoc)"
         @reactivate="$emit('reactivateComponent', assoc)"
@@ -39,7 +41,12 @@ import CardSection from "@/components/common/CardSection.vue"
 import AssociationItem from "./AssociationItem.vue"
 import type { ProductAssociation } from "@/domain/types/product"
 
-defineProps<{ components: ProductAssociation[] }>()
+withDefaults(defineProps<{
+  components: ProductAssociation[]
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
   (event: "addComponent"): void

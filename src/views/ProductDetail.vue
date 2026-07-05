@@ -49,6 +49,8 @@
           :family-axes="familyFeatureAxes"
           :applied-feature-ids="appliedFeatureIds"
           :feature-types="featureTypes"
+          :can-apply-features="canApplyFeatures"
+          :can-remove-features="canRemoveFeatures"
           @toggle="onToggleFeature"
           @create-value="onCreateFeatureValue"
         />
@@ -76,9 +78,10 @@
           :saving="editor.saving.value"
           :stale-under-edit="editor.display.staleUnderEdit.value"
           :components="[...associationGroups.components, ...stagedComponentAssociations]"
+          :can-edit="canEditProduct"
           @save="onSaveDisplayWithComponents"
           @reset="editor.display.reset"
-          @add-component="picker = 'display-component'"
+          @add-component="openPicker('display-component')"
           @expire-component="onExpireOrRemoveComponent"
           @reactivate-component="onReactivateAssociation"
         />
@@ -86,7 +89,8 @@
         <ComponentsCard
           v-if="isKit"
           :components="associationGroups.components"
-          @add-component="picker = 'component'"
+          :can-edit="canEditProduct"
+          @add-component="openPicker('component')"
           @expire-component="onExpireAssociation"
           @reactivate-component="onReactivateAssociation"
         />
@@ -95,6 +99,7 @@
           :product-id="editingProductId"
           :identifications="identifications"
           :identification-types="identificationTypes"
+          :can-edit="canEditProduct"
           @add="onAddIdentification"
           @update-value="onUpdateIdentification"
           @expire="onExpireIdentification"
@@ -106,9 +111,10 @@
           :dirty="editor.dates.dirty.value"
           :saving="editor.saving.value"
           :stale-under-edit="editor.dates.staleUnderEdit.value"
-          @save="editor.saveDates"
+          :can-edit="canEditProduct"
+          @save="saveDates"
           @reset="editor.dates.reset"
-          @copy-from-parent="editor.copyFromParent('dates')"
+          @copy-from-parent="copyDatesFromParent"
         />
 
         <TagsCard
@@ -116,16 +122,18 @@
           :variant-tags="selectedVariantTags"
           :has-parent="hasParent"
           :segment="segment"
-          @add-tag="(tag) => tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
-          @remove-tag="(tag) => tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
-          @add-variant-tag="(tag) => variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not add tag')))"
-          @remove-variant-tag="(tag) => variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate('Could not remove tag')))"
+          :can-edit="canEditProduct"
+          @add-tag="onAddTag"
+          @remove-tag="onRemoveTag"
+          @add-variant-tag="onAddVariantTag"
+          @remove-variant-tag="onRemoveVariantTag"
         />
 
         <CategoriesCard
           :categories="categories"
-          @add="(cat: ProductCategory) => categoryMutations.add.mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName }).catch((error) => toast.error(error, translate('Could not add category')))"
-          @expire="(mem: ProductCategoryMembership) => categoryMutations.expire.mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate }).catch((error) => toast.error(error, translate('Could not remove category')))"
+          :can-edit="canEditProduct"
+          @add="onAddCategory"
+          @expire="onExpireCategory"
         />
 
         <PricesCard
@@ -135,6 +143,7 @@
           :saving="pricesSaving"
           :stale-under-edit="priceDraft.staleUnderEdit.value"
           :can-copy-from-parent="segment === 'variant' && hasParent"
+          :can-edit="canEditProduct"
           @save="onSavePrices"
           @reset="priceDraft.reset"
           @copy-from-parent="onCopyPricesFromParent"
@@ -143,8 +152,9 @@
         <ShopifyShopProductsCard
           :shopify-shop-products="shopifyShopProducts"
           :saving="shopifyMutations.upsert.isPending.value || shopifyMutations.remove.isPending.value"
-          @upsert="(p) => shopifyMutations.upsert.mutateAsync(p).catch((error) => toast.error(error, translate('Could not save Shopify shop product')))"
-          @remove="(shopId) => shopifyMutations.remove.mutateAsync(shopId).catch((error) => toast.error(error, translate('Could not remove Shopify shop product')))"
+          :can-edit="canEditProduct"
+          @upsert="onUpsertShopifyShopProduct"
+          @remove="onRemoveShopifyShopProduct"
         />
 
         <InventoryPolicyCard
@@ -153,9 +163,10 @@
           :dirty="editor.policy.dirty.value || stagedSubstitutes.length > 0"
           :saving="editor.saving.value"
           :stale-under-edit="editor.policy.staleUnderEdit.value"
+          :can-edit="canEditProduct"
           @save="onSavePolicyWithSubstitutes"
           @reset="onResetPolicy"
-          @add-substitute="picker = 'substitute'"
+          @add-substitute="openPicker('substitute')"
           @expire-substitute="onExpireOrRemoveSubstitute"
           @reactivate-substitute="onReactivateAssociation"
         />
@@ -169,9 +180,10 @@
           :dirty="editor.shipping.dirty.value"
           :saving="editor.saving.value"
           :stale-under-edit="editor.shipping.staleUnderEdit.value"
-          @save="editor.saveShipping"
+          :can-edit="canEditProduct"
+          @save="saveShipping"
           @reset="editor.shipping.reset"
-          @copy-from-parent="editor.copyFromParent('shipping')"
+          @copy-from-parent="copyShippingFromParent"
         />
 
         <HistoryCard :entries="audit" />
@@ -182,6 +194,14 @@
           :parent-product-id="parentProductId"
           @created="onVariantCreated"
           @dismiss="addVariantModalOpen = false"
+        />
+
+        <ImageUrlModal
+          :is-open="imageUrlModalOpen"
+          :value="core?.imageUrl ?? ''"
+          :saving="imageUrlSaving"
+          @save="onSaveImageUrl"
+          @dismiss="imageUrlModalOpen = false"
         />
 
         <ProductPicker
@@ -198,8 +218,9 @@
 
 <script setup lang="ts">
 import {
+  alertController,
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
-  IonSegmentButton, IonTitle, IonToolbar, alertController
+  IonSegmentButton, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, ref, toRef, watch, type ComponentPublicInstance } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
@@ -224,6 +245,7 @@ import PricesCard from "@/components/detail/PricesCard.vue"
 import ShopifyShopProductsCard from "@/components/detail/ShopifyShopProductsCard.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
 import AddVariantModal from "@/components/detail/AddVariantModal.vue"
+import ImageUrlModal from "@/components/detail/ImageUrlModal.vue"
 import { errorMessage } from "@/api/http"
 import { useProductDetailData } from "@/composables/useProductDetailData"
 import { useProductEditor } from "@/composables/useProductEditor"
@@ -243,12 +265,18 @@ import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
 import type { PriceContext } from "@/domain/product/prices"
 import { activePriceForTypeContext, activePricesForTypeContext, priceMatchesContext } from "@/domain/product/prices"
-import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
+import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
+import { FEATURE_REMOVE_PERMISSION, FEATURE_WRITE_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
 
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
+const userStore = useUserStore()
+
+const canEditProduct = computed(() => userStore.hasPermission(PRODUCT_WRITE_PERMISSION))
+const canApplyFeatures = computed(() => userStore.hasPermission(FEATURE_WRITE_PERMISSION))
+const canRemoveFeatures = computed(() => userStore.hasPermission(FEATURE_REMOVE_PERMISSION))
 
 const contentRef = ref<ComponentPublicInstance | null>(null)
 const segmentRef = ref<ComponentPublicInstance | null>(null)
@@ -343,6 +371,7 @@ const pricesSaving = ref(false)
 watch(editingProductId, () => priceDraft.reset())
 
 const onSavePrices = async () => {
+  if(!canEditProduct.value) {return}
   if(pricesSaving.value) {return}
   pricesSaving.value = true
   try {
@@ -377,7 +406,7 @@ const onSavePrices = async () => {
 
     await updateProductFields(editingProductId.value, { prices: pricePayload })
 
-    triggerSolrIndex(parentProductId.value)
+    triggerSolrIndex(editingProductId.value, { indexVariants: false })
     await queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) })
     toast.success(translate("Prices saved"))
   } catch(error) {
@@ -388,6 +417,7 @@ const onSavePrices = async () => {
 }
 
 const onCopyPricesFromParent = async () => {
+  if(!canEditProduct.value) {return}
   if(!parentProductId.value) {return}
   const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
   const active = parent.prices.filter((p) => p.active)
@@ -401,6 +431,48 @@ const onCopyPricesFromParent = async () => {
 const tagMutations = useTagMutations(() => parentProductId.value, { parentProductId: () => parentProductId.value })
 // tags on the selected variant — uses family cache path
 const variantTagMutations = useTagMutations(() => selectedVariantId.value, { anchorProductId: () => parentProductId.value, parentProductId: () => parentProductId.value })
+
+// ---------- tags ----------
+const onAddTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  tagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not add tag")))
+}
+const onRemoveTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  tagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not remove tag")))
+}
+const onAddVariantTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  variantTagMutations.add.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not add tag")))
+}
+const onRemoveVariantTag = (tag: string) => {
+  if(!canEditProduct.value) {return}
+  variantTagMutations.remove.mutateAsync(tag).catch((error) => toast.error(error, translate("Could not remove tag")))
+}
+
+// ---------- categories ----------
+const onAddCategory = (cat: ProductCategory) => {
+  if(!canEditProduct.value) {return}
+  categoryMutations.add
+    .mutateAsync({ productCategoryId: cat.productCategoryId, categoryName: cat.categoryName })
+    .catch((error) => toast.error(error, translate("Could not add category")))
+}
+const onExpireCategory = (mem: ProductCategoryMembership) => {
+  if(!canEditProduct.value) {return}
+  categoryMutations.expire
+    .mutateAsync({ productCategoryId: mem.productCategoryId, fromDate: mem.fromDate })
+    .catch((error) => toast.error(error, translate("Could not remove category")))
+}
+
+// ---------- shopify shop products ----------
+const onUpsertShopifyShopProduct = (payload: { shopId: string; shopifyProductId: string; shopifyInventoryItemId: string }) => {
+  if(!canEditProduct.value) {return}
+  shopifyMutations.upsert.mutateAsync(payload).catch((error) => toast.error(error, translate("Could not save Shopify shop product")))
+}
+const onRemoveShopifyShopProduct = (shopId: string) => {
+  if(!canEditProduct.value) {return}
+  shopifyMutations.remove.mutateAsync(shopId).catch((error) => toast.error(error, translate("Could not remove Shopify shop product")))
+}
 // feature edits apply to whichever family member is being edited
 const featureMutations = useFeatureMutations(() => editingProductId.value, () => parentProductId.value)
 // "new value" chips extend the family's selectable axes on the parent
@@ -419,47 +491,42 @@ const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 
-const onEditImageUrl = async () => {
-  const alert = await alertController.create({
-    header: translate("Image URL"),
-    inputs: [
-      {
-        name: "imageUrl",
-        type: "url",
-        value: core.value?.imageUrl ?? "",
-        placeholder: "https://cdn.example.com/product.jpg"
-      }
-    ],
-    buttons: [
-      {
-        text: translate("Cancel"),
-        role: "cancel"
-      },
-      {
-        text: translate("Save"),
-        role: "confirm"
-      }
-    ]
-  })
+const imageUrlModalOpen = ref(false)
+const imageUrlSaving = ref(false)
 
-  await alert.present()
-  const { data, role } = await alert.onDidDismiss<{ values?: { imageUrl?: string } }>()
-  if(role !== "confirm") {return}
+const onEditImageUrl = () => {
+  imageUrlModalOpen.value = true
+}
 
-  const imageUrl = (data?.values?.imageUrl ?? "").trim()
+const setCachedProductImage = (productId: string, imageUrl: string) => {
+  queryClient.setQueryData<ProductCore | undefined>(qk.product.core(productId), (product: ProductCore | undefined) =>
+    product ? { ...product, imageUrl } : product)
+  queryClient.setQueryData<ProductSummary | null | undefined>(qk.product.solr(productId), (product: ProductSummary | null | undefined) =>
+    product ? { ...product, imageUrl } : product)
+  queryClient.setQueryData<ProductSummary[] | undefined>(qk.product.family(parentProductId.value), (members: ProductSummary[] | undefined) =>
+    members?.map((member) => member.productId === productId ? { ...member, imageUrl } : member))
+}
+
+const onSaveImageUrl = async (imageUrl: string) => {
   if(imageUrl === (core.value?.imageUrl ?? "")) {return}
+  imageUrlSaving.value = true
 
   try {
-    await updateProductFields(editingProductId.value, { smallImageUrl: imageUrl })
-    triggerSolrIndex(parentProductId.value)
+    const productId = editingProductId.value
+    await updateProductFields(productId, { detailImageUrl: imageUrl })
+    triggerSolrIndex(productId, { indexVariants: false })
+    setCachedProductImage(productId, imageUrl)
+    await queryClient.invalidateQueries({ queryKey: qk.product.core(productId) })
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: qk.product.core(editingProductId.value) }),
-      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value) }),
+      queryClient.invalidateQueries({ queryKey: qk.product.family(parentProductId.value), refetchType: "none" }),
       queryClient.invalidateQueries({ queryKey: qk.products.all, refetchType: "active" })
     ])
+    imageUrlModalOpen.value = false
     toast.success(translate("Saved"))
   } catch(error) {
     toast.error(error, translate("Could not save image URL"))
+  } finally {
+    imageUrlSaving.value = false
   }
 }
 
@@ -468,18 +535,40 @@ const isKit = computed(() => {
   return typeId.startsWith("MARKETING_PKG") && typeId !== "MARKETING_PKG_PICK"
 })
 
+const saveDates = () => {
+  if(canEditProduct.value) {editor.saveDates()}
+}
+const saveShipping = () => {
+  if(canEditProduct.value) {editor.saveShipping()}
+}
+const copyDatesFromParent = () => {
+  if(canEditProduct.value) {editor.copyFromParent("dates")}
+}
+const copyShippingFromParent = () => {
+  if(canEditProduct.value) {editor.copyFromParent("shipping")}
+}
+
 // ---------- identifications ----------
-const onAddIdentification = (payload: IdentificationCreate) =>
+const onAddIdentification = (payload: IdentificationCreate) => {
+  if(!canEditProduct.value) {return}
   identificationMutations.add.mutateAsync(payload).catch((error) => toast.error(error, translate("Could not add identification")))
-const onUpdateIdentification = (payload: { key: IdentificationKey; idValue: string }) =>
+}
+const onUpdateIdentification = (payload: { key: IdentificationKey; idValue: string }) => {
+  if(!canEditProduct.value) {return}
   identificationMutations.update.mutateAsync(payload).catch((error) => toast.error(error, translate("Could not update identification")))
-const onExpireIdentification = (key: IdentificationKey) =>
+}
+const onExpireIdentification = (key: IdentificationKey) => {
+  if(!canEditProduct.value) {return}
   identificationMutations.expire.mutateAsync(key).catch((error) => toast.error(error, translate("Could not expire identification")))
+}
 
 // ---------- features ----------
 const appliedFeatureIds = computed(() => new Set(editingFeatureAxes.value.flatMap((axis: FeatureAxis) => axis.applications.map((appl) => appl.productFeatureId))))
 
 const onToggleFeature = (payload: { axis: FeatureAxis; application: ProductFeatureApplication; applied: boolean }) => {
+  if(payload.applied && !canRemoveFeatures.value) {return}
+  if(!payload.applied && !canApplyFeatures.value) {return}
+
   const editingParent = segment.value === "parent" || !hasParent.value
   const applType = editingParent ? FEATURE_APPL_TYPE.selectable : FEATURE_APPL_TYPE.standard
   if(payload.applied) {
@@ -504,7 +593,9 @@ const onToggleFeature = (payload: { axis: FeatureAxis; application: ProductFeatu
   }
 }
 
-const onCreateFeatureValue = (payload: { featureTypeId: string; description: string }) =>
+const onCreateFeatureValue = (payload: { featureTypeId: string; description: string }) => {
+  if(!canApplyFeatures.value) {return}
+
   familyFeatureMutations.createAndApply
     .mutateAsync({
       productFeatureTypeId: payload.featureTypeId,
@@ -513,6 +604,7 @@ const onCreateFeatureValue = (payload: { featureTypeId: string; description: str
     })
     .then(() => toast.success(`${payload.description} ${translate("added")}`))
     .catch((error) => toast.error(error, translate("Could not add feature")))
+}
 
 // ---------- add variant from feature combination ----------
 const addVariantModalOpen = ref(false)
@@ -616,6 +708,10 @@ const onVariantCreated = async (productId: string) => {
 // ---------- associations (substitutes + kit components) ----------
 const picker = ref<null | "substitute" | "component" | "display-component">(null)
 
+const openPicker = (type: "substitute" | "component" | "display-component") => {
+  if(canEditProduct.value) {picker.value = type}
+}
+
 // Components staged inside DisplayCard (MARKETING_PKG_PICK) — saved only on footer Save
 const stagedComponents = ref<Array<{ product: ProductSummary; quantity: number }>>([])
 
@@ -673,6 +769,12 @@ const excludedPickerIds = computed(() => [
 ])
 
 const onPickProduct = (items: Array<{ product: ProductSummary; quantity: number }>) => {
+  if(!canEditProduct.value) {
+    picker.value = null
+
+    return
+  }
+
   if(picker.value === "display-component") {
     picker.value = null
     for(const item of items) { stagedComponents.value.push(item) }
@@ -702,6 +804,7 @@ const onPickProduct = (items: Array<{ product: ProductSummary; quantity: number 
 
 // Save display fields first, then flush staged components as associations
 const onSaveDisplayWithComponents = async () => {
+  if(!canEditProduct.value) {return}
   await editor.saveDisplay()
   const toCreate = [...stagedComponents.value]
   stagedComponents.value = []
@@ -721,6 +824,7 @@ const onSaveDisplayWithComponents = async () => {
 
 // Save policy fields first, then flush staged substitutes
 const onSavePolicyWithSubstitutes = async () => {
+  if(!canEditProduct.value) {return}
   await editor.savePolicy()
   const toCreate = [...stagedSubstitutes.value]
   stagedSubstitutes.value = []
@@ -748,10 +852,13 @@ const assocKey = (assoc: ProductAssociation) => ({
   fromDate: assoc.fromDate
 })
 
-const onExpireAssociation = (assoc: ProductAssociation) =>
+const onExpireAssociation = (assoc: ProductAssociation) => {
+  if(!canEditProduct.value) {return}
+
   associationMutations.expire
     .mutateAsync({ key: assocKey(assoc) })
     .catch((error) => toast.error(error, translate("Could not expire link")))
+}
 
 // For DisplayCard components: remove staged items locally; expire already-saved ones via API
 const onExpireOrRemoveComponent = (assoc: ProductAssociation) => {
@@ -773,10 +880,13 @@ const onExpireOrRemoveSubstitute = (assoc: ProductAssociation) => {
   onExpireAssociation(assoc)
 }
 
-const onReactivateAssociation = (assoc: ProductAssociation) =>
+const onReactivateAssociation = (assoc: ProductAssociation) => {
+  if(!canEditProduct.value) {return}
+
   associationMutations.reactivate
     .mutateAsync(assocKey(assoc))
     .catch((error) => toast.error(error, translate("Could not reactivate link")))
+}
 
 // ---------- unsaved-changes guard ----------
 onBeforeRouteLeave(async () => {

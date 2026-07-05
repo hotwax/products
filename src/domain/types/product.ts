@@ -45,6 +45,12 @@ export interface ProductSearchPage {
   pageIndex: number
 }
 
+export interface RowSalesSpark {
+  productId: string
+  series: number[]
+  unitsSold: number
+}
+
 export interface TagFacet {
   value: string
   count: number

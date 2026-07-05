@@ -104,6 +104,14 @@ describe("product normalizers", () => {
     expect(core.prices[2].active).toBe(false)
   })
 
+  it("prefers the Solr-indexed detail image over legacy image fields", () => {
+    const core = normalizeProductCore({
+      productId: "P1", detailImageUrl: "http://detail", smallImageUrl: "http://small"
+    })
+
+    expect(core.imageUrl).toBe("http://detail")
+  })
+
   it("falls back through the display-name chain", () => {
     expect(productDisplayName({ productId: "P1", productName: "", internalName: "int" })).toBe("int")
     expect(productDisplayName({ productId: "P1" })).toBe("P1")

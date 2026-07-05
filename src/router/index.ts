@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "@ionic/vue-router"
-import type { RouteRecordRaw } from "vue-router"
-import { Login, cookieHelper } from "@common"
+import type { RouteLocationNormalized, RouteRecordRaw } from "vue-router"
+import { Login, commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
 import DataFixDuplicates from "@/views/DataFixDuplicates.vue"
@@ -11,8 +11,9 @@ import ProductDetail from "@/views/ProductDetail.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
 import { useUserStore } from "@/store/user"
+import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
 
-const authGuard = () => {
+const authGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
   const userStore = useUserStore()
   const oms = cookieHelper().get("oms") as string
   const userId = cookieHelper().get("userId") as string
@@ -28,6 +29,22 @@ const authGuard = () => {
   if(!useAuth().isAuthenticated.value) {
     return { path: "/login" }
   }
+
+  const permissionId = to.meta.permissionId as string | undefined
+  await userStore.ensurePermissions().catch(() => undefined)
+
+  if(!permissionId) {return}
+
+  if(userStore.hasPermission(permissionId)) {return}
+
+  let redirectToPath = from.path
+  if(redirectToPath === "/login" || redirectToPath === "/" || !from.name) {
+    redirectToPath = "/settings"
+  } else {
+    commonUtil.showToast(translate("You do not have permission to access this page"))
+  }
+
+  return { path: redirectToPath }
 }
 
 const routes: RouteRecordRaw[] = [
@@ -44,32 +61,37 @@ const routes: RouteRecordRaw[] = [
     path: "/products",
     name: "ProductWorkbench",
     component: ProductWorkbench,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_READ_PERMISSION }
   },
   {
     path: "/data-fixes/duplicates",
     name: "DataFixDuplicates",
     component: DataFixDuplicates,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: DUPLICATE_RESOLUTION_PERMISSION }
   },
   {
     path: "/data-fixes/missing",
     name: "DataFixMissing",
     component: DataFixMissing,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_READ_PERMISSION }
   },
   {
     path: "/products/create",
     name: "ProductCreate",
     component: ProductCreate,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_WRITE_PERMISSION }
   },
   {
     path: "/products/:productId",
     name: "ProductDetail",
     component: ProductDetail,
     props: true,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_READ_PERMISSION }
   },
   {
     // identifiers/relationships/features/sections all folded into the detail editor
@@ -80,7 +102,8 @@ const routes: RouteRecordRaw[] = [
     path: "/imports",
     name: "Imports",
     component: Imports,
-    beforeEnter: authGuard
+    beforeEnter: authGuard,
+    meta: { permissionId: PRODUCT_READ_PERMISSION }
   },
   {
     path: "/settings",

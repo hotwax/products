@@ -2,7 +2,7 @@
   <CardSection :title="translate('Prices')">
     <template #action>
       <ion-button
-        v-if="canCopyFromParent"
+        v-if="canCopyFromParent && canEdit"
         fill="clear"
         size="small"
         @click="$emit('copyFromParent')"
@@ -18,6 +18,7 @@
         label-placement="stacked"
         interface="popover"
         fill="outline"
+        :disabled="!canEdit"
         :class="{ 'ion-invalid': touched && errors.currencyUomId, 'ion-touched': touched }"
         :error-text="errors.currencyUomId"
         @ion-change="touched && validate()"
@@ -39,6 +40,7 @@
         type="number"
         min="0"
         clear-input
+        :disabled="!canEdit"
         :class="{ 'ion-invalid': touched && errors.DEFAULT_PRICE, 'ion-touched': touched }"
         :error-text="errors.DEFAULT_PRICE"
         @ion-blur="touched && validate()"
@@ -52,6 +54,7 @@
         type="number"
         min="0"
         clear-input
+        :disabled="!canEdit"
         :class="{ 'ion-invalid': touched && errors.LIST_PRICE, 'ion-touched': touched }"
         :error-text="errors.LIST_PRICE"
         @ion-blur="touched && validate()"
@@ -65,6 +68,7 @@
         type="number"
         min="0"
         clear-input
+        :disabled="!canEdit"
         :class="{ 'ion-invalid': touched && errors.WHOLESALE_PRICE, 'ion-touched': touched }"
         :error-text="errors.WHOLESALE_PRICE"
         @ion-blur="touched && validate()"
@@ -75,6 +79,7 @@
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
+        :can-save="canEdit"
         :stale-under-edit="staleUnderEdit"
         @save="onSave"
         @reset="$emit('reset')"
@@ -118,7 +123,7 @@ const pricesSchema = z.object({
 
 type PriceErrors = Partial<Record<PriceField | "currencyUomId", string>>
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   draft: {
     currencyUomId: string
     DEFAULT_PRICE: string
@@ -130,7 +135,10 @@ const props = defineProps<{
   saving: boolean
   staleUnderEdit: boolean
   canCopyFromParent?: boolean
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 const emit = defineEmits<{
   (event: "save"): void
@@ -165,6 +173,7 @@ const validate = (): boolean => {
 }
 
 const onSave = () => {
+  if(!props.canEdit) {return}
   if(!validate()) {return}
   emit("save")
 }
