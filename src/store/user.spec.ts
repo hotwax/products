@@ -121,6 +121,20 @@ describe("user store permissions", () => {
     expect(showToast).toHaveBeenCalledWith("You do not have permission to access the app.")
   })
 
+  it("clears stale permissions when configured app access is rejected", async () => {
+    vi.stubEnv("VITE_APP_PERMISSION_ID", "PRODUCTS_APP_VIEW")
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "PIM_PRODUCT_VIEW" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    userStore.permissions = ["COMMON_ADMIN"]
+
+    await expect(userStore.fetchPermissions()).rejects.toThrow("You do not have permission to access the app.")
+
+    expect(userStore.permissions).toEqual([])
+  })
+
   it("allows configured app access with common admin permission", async () => {
     vi.stubEnv("VITE_APP_PERMISSION_ID", "PRODUCTS_APP_VIEW")
     vi.mocked(api)
@@ -133,5 +147,49 @@ describe("user store permissions", () => {
     expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
     expect(userStore.fetchStatus.permissions).toBe("success")
     expect(showToast).not.toHaveBeenCalled()
+  })
+
+  it("retries stale pending permission status", async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    userStore.fetchStatus.permissions = "pending"
+
+    await userStore.ensurePermissions()
+
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
+    expect(userStore.fetchStatus.permissions).toBe("success")
+  })
+
+  it("force refreshes successful permission status", async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    userStore.permissions = ["PIM_PRODUCT_VIEW"]
+    userStore.fetchStatus.permissions = "success"
+
+    await userStore.ensurePermissions(true)
+
+    expect(api).toHaveBeenCalledTimes(2)
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
+  })
+
+  it("deduplicates concurrent permission loads", async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    await Promise.all([
+      userStore.ensurePermissions(),
+      userStore.ensurePermissions()
+    ])
+
+    expect(api).toHaveBeenCalledTimes(2)
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
   })
 })

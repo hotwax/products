@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "@ionic/vue-router"
-import type { RouteRecordRaw } from "vue-router"
+import type { RouteLocationNormalized, RouteRecordRaw } from "vue-router"
 import { Login, commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
@@ -13,7 +13,7 @@ import Settings from "@/views/Settings.vue"
 import { useUserStore } from "@/store/user"
 import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
 
-const authGuard = () => {
+const authGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
   const userStore = useUserStore()
   const oms = cookieHelper().get("oms") as string
   const userId = cookieHelper().get("userId") as string
@@ -29,6 +29,22 @@ const authGuard = () => {
   if(!useAuth().isAuthenticated.value) {
     return { path: "/login" }
   }
+
+  const permissionId = to.meta.permissionId as string | undefined
+  await userStore.ensurePermissions().catch(() => undefined)
+
+  if(!permissionId) {return}
+
+  if(userStore.hasPermission(permissionId)) {return}
+
+  let redirectToPath = from.path
+  if(redirectToPath === "/login" || redirectToPath === "/" || !from.name) {
+    redirectToPath = "/settings"
+  } else {
+    commonUtil.showToast(translate("You do not have permission to access this page"))
+  }
+
+  return { path: redirectToPath }
 }
 
 const routes: RouteRecordRaw[] = [
@@ -104,27 +120,6 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes
-})
-
-router.beforeEach(async (to, from) => {
-  const permissionId = to.meta.permissionId as string | undefined
-  if(!permissionId || !useAuth().isAuthenticated.value) {return}
-
-  const userStore = useUserStore()
-  if(userStore.fetchStatus.permissions === "none") {
-    await userStore.fetchPermissions().catch(() => undefined)
-  }
-
-  if(userStore.hasPermission(permissionId)) {return}
-
-  let redirectToPath = from.path
-  if(redirectToPath === "/login" || redirectToPath === "/" || !from.name) {
-    redirectToPath = "/settings"
-  } else {
-    commonUtil.showToast(translate("You do not have permission to access this page"))
-  }
-
-  return { path: redirectToPath }
 })
 
 export default router

@@ -7,6 +7,8 @@ import logger from "@/logger"
 import { showToast } from "@/utils"
 import { COMMON_ADMIN_PERMISSION } from "@/auth/permissions"
 
+let permissionsRequest: Promise<void> | null = null
+
 export const useUserStore = defineStore("user", {
   state: () => ({
     current: {} as any,
@@ -74,6 +76,7 @@ export const useUserStore = defineStore("user", {
     },
     async fetchPermissions() {
       this.fetchStatus.permissions = "pending"
+      this.permissions = []
       const permissionId = import.meta.env.VITE_APP_PERMISSION_ID
       const serverPermissions: string[] = []
       const viewSize = 200
@@ -115,6 +118,17 @@ export const useUserStore = defineStore("user", {
 
         return Promise.reject(error)
       }
+    },
+    async ensurePermissions(force = false) {
+      if(!force && this.fetchStatus.permissions === "success") {return}
+
+      if(!permissionsRequest) {
+        permissionsRequest = this.fetchPermissions().finally(() => {
+          permissionsRequest = null
+        })
+      }
+
+      return permissionsRequest
     },
     async fetchProductStores() {
       try {
@@ -191,15 +205,18 @@ export const useUserStore = defineStore("user", {
     async postLogin() {
       try {
         await this.fetchUserProfile()
-        await this.fetchPermissions()
+        await this.ensurePermissions(true)
         await this.fetchProductStores()
       } catch (error: any) {
         return Promise.reject(error)
       }
     },
     postLogout() {
+      permissionsRequest = null
       this.$reset()
     }
   },
-  persist: true
+  persist: {
+    omit: ["fetchStatus"]
+  }
 })
