@@ -46,7 +46,7 @@ describe("user store permissions", () => {
     commonUtilMock.isMoqui.mockReturnValue(true)
   })
 
-  it("supports empty, OR, and AND permission expressions", () => {
+  it("supports empty, OR, AND, and common admin permission expressions", () => {
     const userStore = useUserStore()
     userStore.permissions = ["PIM_PRODUCT_VIEW", "PIM_FEATURE_CREATE"]
 
@@ -56,6 +56,12 @@ describe("user store permissions", () => {
     expect(userStore.hasPermission("PIM_PRODUCT_VIEW OR PIM_PRODUCT_ADMIN")).toBe(true)
     expect(userStore.hasPermission("PIM_PRODUCT_VIEW AND PIM_FEATURE_CREATE")).toBe(true)
     expect(userStore.hasPermission("PIM_PRODUCT_VIEW AND PIM_FEATURE_ADMIN")).toBe(false)
+
+    userStore.permissions = ["COMMON_ADMIN"]
+
+    expect(userStore.hasPermission("PIM_PRODUCT_ADMIN")).toBe(true)
+    expect(userStore.hasPermission("PIM_PRODUCT_VIEW AND PIM_FEATURE_ADMIN")).toBe(true)
+    expect(userStore.hasPermission("PIM_PRODUCT_VIEW OR PIM_PRODUCT_ADMIN")).toBe(true)
   })
 
   it("loads Moqui permissions from admin/user/permissions with pagination", async () => {
@@ -113,5 +119,19 @@ describe("user store permissions", () => {
     expect(userStore.permissions).toEqual([])
     expect(userStore.fetchStatus.permissions).toBe("error")
     expect(showToast).toHaveBeenCalledWith("You do not have permission to access the app.")
+  })
+
+  it("allows configured app access with common admin permission", async () => {
+    vi.stubEnv("VITE_APP_PERMISSION_ID", "PRODUCTS_APP_VIEW")
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    await userStore.fetchPermissions()
+
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
+    expect(userStore.fetchStatus.permissions).toBe("success")
+    expect(showToast).not.toHaveBeenCalled()
   })
 })
