@@ -7,6 +7,8 @@ import { qk } from "@/queries/keys"
 const sameRow = (row: ProductAssociation, key: AssociationKey) =>
   row.productIdTo === key.productIdTo && row.productAssocTypeId === key.productAssocTypeId && row.fromDate === key.fromDate
 
+const nowIso = () => new Date().toISOString()
+
 /** Association list edits (substitutes, kit components, generic links): optimistic with rollback.
  *  Both endpoints' association caches are touched, so the related product's detail stays fresh too. */
 export function useAssociationMutations(productId: () => string, parentProductId: () => string) {
@@ -74,11 +76,14 @@ export function useAssociationMutations(productId: () => string, parentProductId
   })
 
   const expire = useMutation({
-    mutationFn: ({ key, thruDate }: { key: AssociationKey; thruDate?: string }) =>
-      expireAssociation(productId(), key, thruDate),
+    mutationFn: ({ key, thruDate }: { key: AssociationKey; thruDate?: string }) => {
+      const effective = thruDate ?? nowIso()
+
+      return expireAssociation(productId(), key, effective)
+    },
     onMutate: async ({ key, thruDate }) => {
       const previous = await snapshot()
-      const effective = thruDate ?? new Date().toISOString()
+      const effective = thruDate ?? nowIso()
       queryClient.setQueryData<ProductAssociation[]>(listKey(), (rows = []) =>
         rows.map((row) =>
           sameRow(row, key) ? { ...row, thruDate: effective, active: new Date(effective).getTime() > Date.now() } : row))

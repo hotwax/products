@@ -17,6 +17,17 @@
           <ion-item>
             <ion-input
               class="ion-margin-top"
+              v-model="info.imageUrl"
+              :label="translate('Image URL')"
+              label-placement="stacked"
+              fill="outline"
+              type="url"
+              clear-input
+            />
+          </ion-item>
+          <ion-item>
+            <ion-input
+              class="ion-margin-top"
               :class="{ 'ion-invalid': displayTouched && displayErrors.productName, 'ion-touched': displayTouched }"
               v-model="info.productName"
               :label="translate('Name *')"
@@ -643,7 +654,7 @@ import { z } from "zod"
 import router from "../router"
 import { useQuery } from "@tanstack/vue-query"
 import { emitter, translate } from "@common"
-import { closeCircle, closeOutline } from "ionicons/icons"
+import { closeOutline } from "ionicons/icons"
 import CategoryPicker from "@/components/detail/CategoryPicker.vue"
 import DimensionBox from "@/components/detail/DimensionBox.vue"
 import ProductPicker from "@/components/detail/ProductPicker.vue"
@@ -665,6 +676,7 @@ const displaySchema = z.object({
   internalName: z.string().trim().min(1, "Internal Name is required").max(200, "Max 200 characters"),
   brandName: z.string().trim().min(1, "Brand Name is required").max(100, "Max 100 characters"),
   productTypeId: z.string().min(1, "Product type is required"),
+  imageUrl: z.string().trim().max(2000, "Max 2000 characters").optional(),
   description: z.string().trim().max(5000, "Max 5000 characters").optional(),
   longDescription: z.string().trim().max(10000, "Max 10000 characters").optional()
 })
@@ -769,6 +781,7 @@ const info = reactive({
   internalName: "",
   brandName: "",
   productTypeId: "",
+  imageUrl: "",
   description: "",
   longDescription: ""
 })
@@ -931,6 +944,7 @@ const submit = async () => {
       description: info.description.trim() || undefined,
       longDescription: info.longDescription.trim() || undefined,
       productTypeId: info.productTypeId || undefined,
+      smallImageUrl: info.imageUrl.trim() || undefined,
       introductionDate: dates.introductionDate || undefined,
       releaseDate: dates.releaseDate || undefined,
       supportDiscontinuationDate: dates.supportDiscontinuationDate || undefined,

@@ -1,4 +1,4 @@
-import { api, axios, commonUtil } from "@common"
+import { api } from "@common"
 
 
 /** Thin transport over @common api(). All app endpoints (pim/, oms/, admin/) live under the same
@@ -31,22 +31,6 @@ export function errorMessage(error: unknown, fallback = "Something went wrong"):
     err?.message ||
     fallback
   )
-}
-
-/** Multipart form-data POST. The global axios interceptor always sets Content-Type: application/json,
- *  which breaks file uploads. This bypasses it by using a fresh axios call with the token injected manually. */
-export async function formRequest<T = any>(url: string, data: FormData): Promise<T> {
-  const token = commonUtil.getToken()
-  const baseURL = commonUtil.getMaargURL()
-  const response = await axios({
-    url,
-    method: "post",
-    data,
-    baseURL,
-    headers: token ? { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } : {}
-  })
-
-  return response.data as T
 }
 
 /** Moqui entity-list REST responses are either bare arrays or {listName: [...]}-style wrappers. */
