@@ -31,9 +31,7 @@ const authGuard = async (to: RouteLocationNormalized, from: RouteLocationNormali
   }
 
   const permissionId = to.meta.permissionId as string | undefined
-  if(userStore.fetchStatus.permissions === "none") {
-    await userStore.fetchPermissions().catch(() => undefined)
-  }
+  await userStore.ensurePermissions().catch(() => undefined)
 
   if(!permissionId) {return}
 

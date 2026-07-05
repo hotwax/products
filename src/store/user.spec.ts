@@ -134,4 +134,33 @@ describe("user store permissions", () => {
     expect(userStore.fetchStatus.permissions).toBe("success")
     expect(showToast).not.toHaveBeenCalled()
   })
+
+  it("retries stale pending permission status", async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    userStore.fetchStatus.permissions = "pending"
+
+    await userStore.ensurePermissions()
+
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
+    expect(userStore.fetchStatus.permissions).toBe("success")
+  })
+
+  it("deduplicates concurrent permission loads", async () => {
+    vi.mocked(api)
+      .mockResolvedValueOnce(permissionResponse([{ permissionId: "COMMON_ADMIN" }]))
+      .mockResolvedValueOnce(permissionResponse([]))
+
+    const userStore = useUserStore()
+    await Promise.all([
+      userStore.ensurePermissions(),
+      userStore.ensurePermissions()
+    ])
+
+    expect(api).toHaveBeenCalledTimes(2)
+    expect(userStore.permissions).toEqual(["COMMON_ADMIN"])
+  })
 })

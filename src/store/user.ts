@@ -7,6 +7,8 @@ import logger from "@/logger"
 import { showToast } from "@/utils"
 import { COMMON_ADMIN_PERMISSION } from "@/auth/permissions"
 
+let permissionsRequest: Promise<void> | null = null
+
 export const useUserStore = defineStore("user", {
   state: () => ({
     current: {} as any,
@@ -116,6 +118,17 @@ export const useUserStore = defineStore("user", {
         return Promise.reject(error)
       }
     },
+    async ensurePermissions() {
+      if(this.fetchStatus.permissions === "success") {return}
+
+      if(!permissionsRequest) {
+        permissionsRequest = this.fetchPermissions().finally(() => {
+          permissionsRequest = null
+        })
+      }
+
+      return permissionsRequest
+    },
     async fetchProductStores() {
       try {
         const productStoresResp = await api({
@@ -191,13 +204,14 @@ export const useUserStore = defineStore("user", {
     async postLogin() {
       try {
         await this.fetchUserProfile()
-        await this.fetchPermissions()
+        await this.ensurePermissions()
         await this.fetchProductStores()
       } catch (error: any) {
         return Promise.reject(error)
       }
     },
     postLogout() {
+      permissionsRequest = null
       this.$reset()
     }
   },
