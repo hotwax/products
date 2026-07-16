@@ -6,16 +6,10 @@
           <ion-menu-button />
         </ion-buttons>
         <ion-title>{{ translate("Duplicate identifiers") }}</ion-title>
-        <ion-progress-bar
-          v-if="isFetching"
-          type="indeterminate"
-        />
-      </ion-toolbar>
-    </ion-header>
-
-    <ion-content>
-      <ion-card>
-        <ion-card-content>
+        <ion-buttons
+          slot="end"
+          class="identifier-segment"
+        >
           <ion-segment v-model="activeRuleId">
             <ion-segment-button
               v-for="rule in rules"
@@ -25,12 +19,15 @@
               <ion-label>{{ rule.label }}</ion-label>
             </ion-segment-button>
           </ion-segment>
-          <p class="hint">
-            {{ activeRule?.description }}. {{ translate("Resolve a group by giving each product a unique value, then save.") }}
-          </p>
-        </ion-card-content>
-      </ion-card>
+        </ion-buttons>
+        <ion-progress-bar
+          v-if="isFetching"
+          type="indeterminate"
+        />
+      </ion-toolbar>
+    </ion-header>
 
+    <ion-content>
       <ErrorState
         v-if="isError"
         :title="translate('Could not load duplicates')"
@@ -51,7 +48,7 @@
             lines="full"
           >
             <ion-label>
-              <code>{{ group.value }}</code>
+              {{ group.value }}
             </ion-label>
             <ion-button
               v-if="canResolveDuplicates"
@@ -85,7 +82,7 @@
 
 <script setup lang="ts">
 import {
-  IonButton, IonButtons, IonCard, IonCardContent, IonContent, IonHeader, IonItem, IonLabel, IonList, IonListHeader,
+  IonButton, IonButtons, IonContent, IonHeader, IonItem, IonLabel, IonList, IonListHeader,
   IonMenuButton, IonPage, IonProgressBar, IonSegment, IonSegmentButton, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, ref } from "vue"
@@ -133,9 +130,11 @@ const saveResolution = async (changes: DuplicateDraft[]) => {
 </script>
 
 <style scoped>
-.hint {
-  margin: 12px 4px 0;
-  font-size: 13px;
-  color: var(--ion-color-medium);
+.identifier-segment {
+  width: min(320px, 42vw);
+}
+
+.identifier-segment ion-segment {
+  width: 100%;
 }
 </style>
