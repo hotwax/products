@@ -5,7 +5,7 @@
     >
       <ion-chip outline v-for="cat in activeCategories" :key="cat.productCategoryId">
         {{ cat.categoryName || cat.productCategoryId }}
-        <ion-icon :icon="closeOutline" @click="$emit('expire', cat)" />
+        <ion-icon v-if="canEdit" :icon="closeOutline" @click="$emit('expire', cat)" />
       </ion-chip>
     </div>
     <p
@@ -15,7 +15,10 @@
       {{ translate("No categories linked") }}
     </p>
 
-    <div class="cat-footer">
+    <div
+      v-if="canEdit"
+      class="cat-footer"
+    >
       <ion-button
         fill="clear"
         size="small"
@@ -47,9 +50,12 @@ import CardSection from "@/components/common/CardSection.vue"
 import CategoryPicker from "./CategoryPicker.vue"
 import type { ProductCategory, ProductCategoryMembership } from "@/domain/types/product"
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   categories: ProductCategoryMembership[]
-}>()
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 const emit = defineEmits<{
   (event: "add", category: ProductCategory): void
@@ -64,6 +70,7 @@ const activeCategoryIds = computed(() => activeCategories.value.map((c) => c.pro
 
 const onSelect = (category: ProductCategory) => {
   pickerOpen.value = false
+  if(!props.canEdit) {return}
   emit("add", category)
 }
 </script>

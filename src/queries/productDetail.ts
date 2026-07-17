@@ -58,8 +58,6 @@ export function familyMembersOptions(parentProductId: string) {
         sort: "productName asc"
       })
 
-      console.log('solrDocs(response).map(normalizeProductSummary)', solrDocs(response).map(normalizeProductSummary))
-
       return solrDocs(response).map(normalizeProductSummary)
     },
     enabled: Boolean(parentProductId),

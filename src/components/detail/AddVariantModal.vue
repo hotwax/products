@@ -48,18 +48,14 @@
         </div>
       </div>
 
-      <ion-list lines="none">
-        <ion-item>
-          <ion-input
-            v-model="imageUrl"
-            :label="translate('Image URL')"
-            label-placement="stacked"
-            fill="outline"
-            type="url"
-            clear-input
-          />
-        </ion-item>
-      </ion-list>
+      <ion-input
+        v-model="imageUrl"
+        :label="translate('Image URL')"
+        label-placement="stacked"
+        fill="outline"
+        type="url"
+        clear-input
+      />
     </ion-content>
 
     <ion-footer>
@@ -85,8 +81,8 @@
 
 <script setup lang="ts">
 import {
-  IonButton, IonButtons, IonChip, IonContent, IonFooter, IonHeader, IonIcon, IonInput, IonItem, IonLabel,
-  IonList, IonModal, IonSpinner, IonTitle, IonToolbar
+  IonButton, IonButtons, IonChip, IonContent, IonFooter, IonHeader, IonIcon, IonInput, IonLabel,
+  IonModal, IonSpinner, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, reactive, ref, watch } from "vue"
 import { checkmarkOutline } from "ionicons/icons"
@@ -145,7 +141,7 @@ const createVariant = async () => {
     // 1. Create the new variant product (with image URL if provided)
     const { productId } = await createProduct({
       isVariant: "Y",
-      smallImageUrl: imageUrl.value.trim() || undefined
+      detailImageUrl: imageUrl.value.trim() || undefined
     })
 
     // 2. Link it to the parent as a variant association

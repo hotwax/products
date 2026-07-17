@@ -36,6 +36,7 @@ export interface ProductFieldsPatch {
   heightUomId?: string
   widthUomId?: string
   depthUomId?: string
+  detailImageUrl?: string
   smallImageUrl?: string
   /** attribute-backed toggles (no Product columns; pim maps to ProductAttribute) */
   requiresInspection?: "Y" | "N"
@@ -123,6 +124,7 @@ export interface ProductCreatePayload {
   heightUomId?: string
   widthUomId?: string
   depthUomId?: string
+  detailImageUrl?: string
   smallImageUrl?: string
   isVirtual?: "Y" | "N"
   [key: string]: any
