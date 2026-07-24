@@ -1,6 +1,6 @@
 import { DateTime, Settings } from "luxon"
 import { defineStore } from "pinia"
-import { api, commonUtil, translate } from "@common"
+import { api, commonUtil, cookieHelper, translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 
 import logger from "@/logger"
@@ -64,6 +64,8 @@ export const useUserStore = defineStore("user", {
         useAuth().updateUserId(this.current.userId)
 
         if(this.current.timeZone) {Settings.defaultZone = this.current.timeZone}
+
+        this.oms = cookieHelper().get("oms") || '';
         this.fetchStatus.profile = "success"
       } catch (error: any) {
         await showToast(translate("Failed to fetch user profile information"))
@@ -86,9 +88,8 @@ export const useUserStore = defineStore("user", {
         let hasMore = true
         while(hasMore) {
           const resp = await api({
-            url: commonUtil.isMoqui() ? "admin/user/permissions" : "getPermissions",
+            url: "admin/user/permissions",
             method: "GET",
-            baseURL: commonUtil.getOmsURL(),
             params: { viewIndex, viewSize }
           }) as any
 
