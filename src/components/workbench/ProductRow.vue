@@ -1,8 +1,9 @@
 <template>
   <ion-item
-    :router-link="resolvedRouterLink"
-    :detail="!!resolvedRouterLink"
+    :key="selectable ? 'select' : 'navigate'"
+    v-bind="itemProps"
     lines="full"
+    @click="onRowClick"
   >
     <ion-checkbox
       v-if="selectable"
@@ -22,9 +23,9 @@
     <ion-label>
       <h2>{{ displayName }}</h2>
       <p>
-        {{ product.sku || product.productId }}
-        <template v-if="secondaryLine">
-          · {{ secondaryLine }}
+        {{ secondaryIdentifier }}
+        <template v-if="secondaryContext">
+          · {{ secondaryContext }}
         </template>
       </p>
       <div
@@ -89,14 +90,14 @@
 </template>
 
 <script setup lang="ts">
+import { DxpShopifyImg, translate } from "@common"
 import { IonBadge, IonCheckbox, IonChip, IonIcon, IonItem, IonLabel, IonNote, IonThumbnail } from "@ionic/vue"
 import { gitBranchOutline } from "ionicons/icons"
 import { computed } from "vue"
-import router from "../../router"
-import { DxpShopifyImg, translate } from "@common"
-import { productDisplayName } from "@/domain/normalize/product"
 import { displayableTags, getPresellState, presellColor, presellLabel } from "@/domain/product/flags"
+import { DEFAULT_PRODUCT_IDENTIFIER_PREFERENCE, getPrimaryProductIdentifier, getSecondaryProductIdentifier } from "@/domain/product/identifier"
 import type { ProductSummary, RowSalesSpark } from "@/domain/types/product"
+import router from "../../router"
 
 const props = withDefaults(
   defineProps<{
@@ -112,7 +113,11 @@ const props = withDefaults(
   { routerLink: undefined, selectable: false, selected: false, maxTags: 8, variantCounts: () => ({}), spark: undefined, sparkMax: 0 }
 )
 
-defineEmits<{ (event: "toggleSelect"): void }>()
+const emit = defineEmits<{ (event: "toggleSelect"): void }>()
+
+const onRowClick = () => {
+  if(props.selectable) {emit("toggleSelect")}
+}
 
 const resolvedRouterLink = computed(() => {
   if(!props.routerLink) {return undefined}
@@ -120,11 +125,17 @@ const resolvedRouterLink = computed(() => {
 
   return router.resolve(props.routerLink).href
 })
-const displayName = computed(() => productDisplayName(props.product))
+const itemProps = computed(() => props.selectable
+  ? { button: true, detail: false }
+  : { routerLink: resolvedRouterLink.value, detail: Boolean(resolvedRouterLink.value) })
+const displayName = computed(() => getPrimaryProductIdentifier(DEFAULT_PRODUCT_IDENTIFIER_PREFERENCE, props.product))
 const presellState = computed(() => getPresellState(props.product))
 const visibleTags = computed(() => displayableTags(props.product.tags).slice(0, props.maxTags))
-const secondaryLine = computed(() => {
-  if(props.product.isVariant && props.product.parentProductName) {return props.product.parentProductName}
+const secondaryIdentifier = computed(() => getSecondaryProductIdentifier(DEFAULT_PRODUCT_IDENTIFIER_PREFERENCE, props.product))
+const secondaryContext = computed(() => {
+  if(props.product.isVariant && props.product.parentProductName && props.product.parentProductName !== displayName.value) {
+    return props.product.parentProductName
+  }
 
   return props.product.brandName || props.product.productTypeId
 })

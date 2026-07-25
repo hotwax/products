@@ -27,68 +27,27 @@
         v-model:product-type-id="productTypeId"
         v-model:product-store-id="productStoreId"
         v-model:product-kind="productKind"
-        :tags="tags"
+        v-model:tags="tags"
+        :tag-facets="tagFacets"
         :product-types="productTypes"
         :product-stores="productStores"
-        @open-tags="isTagModalOpen = true"
         @clear="clearFilters"
       />
 
-      <div
-        v-if="tags.length"
-        class="active-tags"
-      >
-        <ion-chip
-          v-for="tag in tags"
-          :key="tag"
-          outline
-          @click="toggleTag(tag)"
-        >
-          <ion-label>{{ tag }}</ion-label>
-          <ion-icon :icon="closeOutline" />
-        </ion-chip>
-      </div>
-
       <ion-list v-if="!isError">
-        <ion-list-header>
-          <ion-label>{{ resultsLabel }}</ion-label>
-        </ion-list-header>
-
-        <ion-item lines="full">
-          <ion-checkbox
-            slot="start"
-            :checked="allVisibleSelected"
-            :indeterminate="selectedProductIds.length > 0 && !allVisibleSelected"
-            aria-label="Select all"
-            @ion-change="toggleSelectAll"
-          />
-          <ion-label>
-            {{ selectedProductIds.length ? `${selectedProductIds.length} ${translate("selected")}` : translate("Select all") }}
-          </ion-label>
-          <ion-button
-            v-if="selectedProductIds.length"
-            slot="end"
-            fill="clear"
-            size="small"
-            @click="onAddTagToSelected"
-          >
-            <ion-icon
-              slot="start"
-              :icon="pricetagOutline"
+        <ion-list-header class="product-results-header">
+          <span class="product-results-header-start">
+            <ion-checkbox
+              v-if="selectMode"
+              :checked="allVisibleSelected"
+              :indeterminate="selectedProductIds.length > 0 && !allVisibleSelected"
+              aria-label="Select all"
+              @ion-change="toggleSelectAll"
             />
-            {{ translate("Add tag") }}
-          </ion-button>
-          <ion-button
-            v-if="selectedProductIds.length"
-            slot="end"
-            fill="clear"
-            size="small"
-            @click="clearSelection"
-          >
-            {{ translate("Clear") }}
-          </ion-button>
+          </span>
+          <ion-label>{{ resultsLabel }}</ion-label>
           <ion-select
-            slot="end"
+            class="product-sort"
             :value="sort"
             interface="popover"
             :label="translate('Sort')"
@@ -104,7 +63,14 @@
               {{ translate("Recently created") }}
             </ion-select-option>
           </ion-select>
-        </ion-item>
+          <ion-button
+            fill="clear"
+            size="small"
+            @click="toggleSelectMode"
+          >
+            {{ selectMode ? translate("Done") : translate("Select") }}
+          </ion-button>
+        </ion-list-header>
 
         <template v-if="isLoading">
           <ion-item
@@ -137,11 +103,11 @@
             v-for="product in products"
             :key="product.productId"
             :product="product"
-            :router-link="familyRouteFor(product)"
+            :router-link="selectMode ? undefined : familyRouteFor(product)"
             :variant-counts="groupIdFacets"
             :spark="rowSales[product.productId]"
             :spark-max="rowSalesMax"
-            selectable
+            :selectable="selectMode"
             :selected="selectedSet.has(product.productId)"
             @toggle-select="toggleSelected(product.productId)"
           />
@@ -167,14 +133,6 @@
         <ion-infinite-scroll-content loading-spinner="crescent" />
       </ion-infinite-scroll>
 
-      <TagFilterModal
-        :is-open="isTagModalOpen"
-        :facets="tagFacets"
-        :selected="tags"
-        @toggle="toggleTag"
-        @dismiss="isTagModalOpen = false"
-      />
-
       <AddTagModal
         :is-open="isAddTagModalOpen"
         :facets="tagFacets"
@@ -182,23 +140,42 @@
         @dismiss="isAddTagModalOpen = false"
       />
     </ion-content>
+
+    <ion-footer v-if="selectMode">
+      <ion-toolbar>
+        <ion-title size="small">
+          {{ selectedProductIds.length }} {{ translate("selected") }}
+        </ion-title>
+        <ion-buttons slot="end">
+          <ion-button
+            :disabled="!selectedProductIds.length"
+            @click="onAddTagToSelected"
+          >
+            <ion-icon
+              slot="start"
+              :icon="pricetagOutline"
+            />
+            {{ translate("Add tag") }}
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-footer>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import {
-  IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent,
+  IonButton, IonButtons, IonCheckbox, IonContent, IonFooter, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent,
   IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
   IonSkeletonText, IonThumbnail, IonTitle, IonToolbar, loadingController
 } from "@ionic/vue"
-import { addOutline, closeOutline, pricetagOutline } from "ionicons/icons"
-import { computed, ref } from "vue"
+import { addOutline, pricetagOutline } from "ionicons/icons"
+import { computed, ref, watch } from "vue"
 import { translate } from "@common"
 import EmptyState from "@/components/EmptyState.vue"
 import ErrorState from "@/components/ErrorState.vue"
 import ProductRow from "@/components/workbench/ProductRow.vue"
 import AddTagModal from "@/components/workbench/AddTagModal.vue"
-import TagFilterModal from "@/components/workbench/TagFilterModal.vue"
 import WorkbenchFilters from "@/components/workbench/WorkbenchFilters.vue"
 import { errorMessage } from "@/api/http"
 import { addProductKeyword, triggerSolrIndex } from "@/api/pim"
@@ -208,14 +185,14 @@ import { familyRouteFor } from "@/domain/product/family"
 
 const {
   queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
-  clearFilters, toggleTag,
+  clearFilters,
   products, rowSales, rowSalesMax, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,
   selectedProductIds, selectedSet, allVisibleSelected, toggleSelectAll, toggleSelected, clearSelection
 } = useProductWorkbench()
 
-const isTagModalOpen = ref(false)
 const isAddTagModalOpen = ref(false)
+const selectMode = ref(false)
 const toast = useToast()
 
 const resultsLabel = computed(() =>
@@ -223,6 +200,26 @@ const resultsLabel = computed(() =>
 const errorText = computed(() => errorMessage(error.value, translate("Search is unavailable")))
 
 const onInfinite = (event: CustomEvent) => loadMore(() => (event.target as any)?.complete())
+
+const exitSelectMode = () => {
+  selectMode.value = false
+  clearSelection()
+}
+
+const toggleSelectMode = () => {
+  if(selectMode.value) {
+    exitSelectMode()
+
+    return
+  }
+
+  selectMode.value = true
+}
+
+watch(products, () => {
+  const visibleProductIds = new Set(products.value.map((product) => product.productId))
+  selectedProductIds.value = selectedProductIds.value.filter((productId) => visibleProductIds.has(productId))
+})
 
 const onAddTagToSelected = () => {
   isAddTagModalOpen.value = true
@@ -249,7 +246,7 @@ const onTagSelected = async (tags: string[]) => {
 
     toast.success(translate(`${tagLabel} added to ${ids.length} product(s)`))
   }
-  clearSelection()
+  exitSelectMode()
 
   const loading = await loadingController.create({ message: translate("Updating products...") })
   await loading.present()
@@ -260,10 +257,18 @@ const onTagSelected = async (tags: string[]) => {
 </script>
 
 <style scoped>
-.active-tags {
+.product-results-header {
+  align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 0 16px;
+  gap: 8px;
+}
+
+.product-results-header-start {
+  display: flex;
+  min-width: 24px;
+}
+
+.product-sort {
+  max-width: 12rem;
 }
 </style>

@@ -1,6 +1,9 @@
 <template>
   <CardSection :title="translate('Display')">
-    <div class="grid-4">
+    <div
+      v-if="showIdentityFields"
+      class="grid-4"
+    >
       <ion-input
         v-model="draft.productName"
         :label="translate('Name')"
@@ -40,7 +43,10 @@
         </ion-select-option>
       </ion-select>
     </div>
-    <div class="grid-desc">
+    <div
+      class="grid-desc"
+      :class="{ 'grid-desc--first': !showIdentityFields }"
+    >
       <ion-textarea
         v-model="draft.description"
         :label="translate('Desc')"
@@ -111,13 +117,13 @@
 </template>
 
 <script setup lang="ts">
+import { translate } from "@common"
 import { IonButton, IonIcon, IonInput, IonSelect, IonSelectOption, IonTextarea } from "@ionic/vue"
 import { cubeOutline } from "ionicons/icons"
-import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
-import AssociationItem from "./AssociationItem.vue"
 import type { CatalogOption, ProductAssociation } from "@/domain/types/product"
+import AssociationItem from "./AssociationItem.vue"
 
 withDefaults(defineProps<{
   draft: {
@@ -133,11 +139,14 @@ withDefaults(defineProps<{
   saving: boolean
   staleUnderEdit: boolean
   canEdit?: boolean
+  showIdentityFields?: boolean
   duplicateHint?: string
   components?: ProductAssociation[]
 }>(), {
   canEdit: true,
-  duplicateHint: ""
+  showIdentityFields: true,
+  duplicateHint: "",
+  components: () => []
 })
 
 defineEmits<{
@@ -161,6 +170,10 @@ defineEmits<{
   grid-template-columns: 1fr 2fr;
   gap: 16px;
   margin-top: 16px;
+}
+
+.grid-desc--first {
+  margin-top: 0;
 }
 
 @media (max-width: 720px) {

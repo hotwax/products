@@ -14,7 +14,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content ref="contentRef">
+    <ion-content>
       <ErrorState
         v-if="coreError"
         :title="translate('Product detail failed')"
@@ -24,10 +24,16 @@
 
       <template v-else>
         <ProductHero
-          :core="core"
-          :family-anchor="heroFamilyAnchor"
+          :core="anchorCore"
+          :draft="parentEditor.display.draft"
+          :family-anchor="hasParent"
           :product-types="productTypes"
-          @edit="scrollToDisplay"
+          :dirty="parentEditor.display.dirty.value"
+          :saving="parentEditor.saving.value"
+          :stale-under-edit="parentEditor.display.staleUnderEdit.value"
+          :can-edit="canEditProduct"
+          @save="saveParentDisplay"
+          @reset="parentEditor.display.reset"
           @edit-image="onEditImageUrl"
         />
 
@@ -40,23 +46,23 @@
           @select="selectByFeature"
           @add-variant="addVariantModalOpen = true"
         />
+        <FeaturesSection
+          :family-axes="familyFeatureAxes"
+          :applied-feature-ids="appliedFeatureIds"
+          :feature-types="featureTypes"
+          :feature-catalog="featureCatalog"
+          :can-apply-features="canApplyFeatures"
+          :can-remove-features="canRemoveFeatures"
+          @toggle="onToggleFeature"
+          @add-values="onAddFeatureValues"
+        />
         <VariantStrip
           :variants="variants"
           :selected-variant-id="selectedVariantId"
           @select="selectVariant"
         />
-        <FeaturesSection
-          :family-axes="familyFeatureAxes"
-          :applied-feature-ids="appliedFeatureIds"
-          :feature-types="featureTypes"
-          :can-apply-features="canApplyFeatures"
-          :can-remove-features="canRemoveFeatures"
-          @toggle="onToggleFeature"
-          @create-value="onCreateFeatureValue"
-        />
 
         <ion-segment
-          ref="segmentRef"
           v-if="hasParent"
           :value="segment"
           class="edit-segment"
@@ -71,7 +77,6 @@
         </ion-segment>
 
         <DisplayCard
-          ref="displayCardRef"
           :draft="editor.display.draft"
           :product-types="productTypes"
           :dirty="editor.display.dirty.value || stagedComponents.length > 0"
@@ -79,6 +84,7 @@
           :stale-under-edit="editor.display.staleUnderEdit.value"
           :components="[...associationGroups.components, ...stagedComponentAssociations]"
           :can-edit="canEditProduct"
+          :show-identity-fields="segment === 'variant'"
           @save="onSaveDisplayWithComponents"
           @reset="editor.display.reset"
           @add-component="openPicker('display-component')"
@@ -192,13 +198,14 @@
           :is-open="addVariantModalOpen"
           :feature-axes="uncoveredFeatureAxes"
           :parent-product-id="parentProductId"
+          :allowed-selections="uncoveredVariantSelections"
           @created="onVariantCreated"
           @dismiss="addVariantModalOpen = false"
         />
 
         <ImageUrlModal
           :is-open="imageUrlModalOpen"
-          :value="core?.imageUrl ?? ''"
+          :value="anchorCore?.imageUrl ?? ''"
           :saving="imageUrlSaving"
           @save="onSaveImageUrl"
           @dismiss="imageUrlModalOpen = false"
@@ -222,7 +229,7 @@ import {
   IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
   IonSegmentButton, IonTitle, IonToolbar
 } from "@ionic/vue"
-import { computed, ref, toRef, watch, type ComponentPublicInstance } from "vue"
+import { computed, ref, toRef, watch } from "vue"
 import { onBeforeRouteLeave } from "vue-router"
 import { useQuery, useQueryClient } from "@tanstack/vue-query"
 import { qk } from "@/queries/keys"
@@ -258,12 +265,12 @@ import { useShopifyShopProductMutations } from "@/mutations/useShopifyShopProduc
 import { triggerSolrIndex, updateProductFields } from "@/api/pim"
 import { useToast } from "@/composables/useToast"
 import { currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
-import { productCoreOptions } from "@/queries/productDetail"
+import { featureCatalogOptions, productCoreOptions } from "@/queries/productDetail"
 import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
+import type { CatalogOption, FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
 import { FEATURE_REMOVE_PERMISSION, FEATURE_WRITE_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
@@ -276,29 +283,14 @@ const canEditProduct = computed(() => userStore.hasPermission(PRODUCT_WRITE_PERM
 const canApplyFeatures = computed(() => userStore.hasPermission(FEATURE_WRITE_PERMISSION))
 const canRemoveFeatures = computed(() => userStore.hasPermission(FEATURE_REMOVE_PERMISSION))
 
-const contentRef = ref<ComponentPublicInstance | null>(null)
-const segmentRef = ref<ComponentPublicInstance | null>(null)
-const displayCardRef = ref<ComponentPublicInstance | null>(null)
-
 const currentProductStore = computed(() => useUserStore().getCurrentProductStore)
-
-const scrollToDisplay = async () => {
-  // scroll to the segment when it's visible (product has variants), otherwise the DisplayCard
-  const target = segmentRef.value ?? displayCardRef.value
-  const el = (target as any)?.$el as HTMLElement | undefined
-  const content = (contentRef.value as any)?.$el as HTMLIonContentElement | undefined
-  if(!el || !content) {return}
-  const scrollEl = await content.getScrollElement()
-  const offset = el.getBoundingClientRect().top - content.getBoundingClientRect().top + scrollEl.scrollTop
-  content.scrollToPoint(0, offset, 400)
-}
 
 const detail = useProductDetailData(toRef(props, "productId"))
 const {
   editingProductId, parentProductId, segment, setSegment, hasParent,
   variants, selectedVariantId, selectVariant,
-  featureOptions, hasFeatureSelection, selectedVariantSelection, selectByFeature,
-  core, coreLoading, coreError, coreErrorValue, refetchCore,
+  featureOptions, selectedVariantSelection, selectByFeature,
+  anchorCore, core, coreLoading, coreError, coreErrorValue, refetchCore,
   identifications, associationGroups,
   familyFeatureAxes, editingFeatureAxes, featureFamilyId,
   audit, productTypes, boxTypes,
@@ -309,7 +301,11 @@ const {
 } = detail
 
 const editor = useProductEditor(editingProductId, core, parentProductId)
-const heroFamilyAnchor = computed(() => hasParent.value && core.value?.productId === parentProductId.value)
+const parentEditor = useProductEditor(parentProductId, anchorCore, parentProductId)
+
+const saveParentDisplay = () => {
+  if(canEditProduct.value) {parentEditor.saveDisplay()}
+}
 
 const identificationMutations = useIdentificationMutations(() => editingProductId.value, () => parentProductId.value)
 const associationMutations = useAssociationMutations(() => editingProductId.value, () => parentProductId.value)
@@ -452,11 +448,13 @@ const familyFeatureMutations = useFeatureMutations(() => featureFamilyId.value, 
 
 const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
+const featureCatalogQuery = useQuery(featureCatalogOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
 const currenciesQuery = useQuery(currencyUomOptions())
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
+const featureCatalog = computed(() => featureCatalogQuery.data.value ?? [])
 const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
 const currencies = computed(() => currenciesQuery.data.value ?? [])
@@ -480,11 +478,11 @@ const setCachedProductImage = (productId: string, imageUrl: string) => {
 }
 
 const onSaveImageUrl = async (imageUrl: string) => {
-  if(imageUrl === (core.value?.imageUrl ?? "")) {return}
+  if(imageUrl === (anchorCore.value?.imageUrl ?? "")) {return}
   imageUrlSaving.value = true
 
   try {
-    const productId = editingProductId.value
+    const productId = parentProductId.value
     await updateProductFields(productId, { detailImageUrl: imageUrl })
     triggerSolrIndex(productId, { indexVariants: false })
     setCachedProductImage(productId, imageUrl)
@@ -568,17 +566,36 @@ const onToggleFeature = (payload: { axis: FeatureAxis; application: ProductFeatu
   }
 }
 
-const onCreateFeatureValue = (payload: { featureTypeId: string; description: string }) => {
+const onAddFeatureValues = async (payload: {
+  featureTypeId: string
+  featureTypeDescription: string
+  features: CatalogOption[]
+  newDescription: string
+}) => {
   if(!canApplyFeatures.value) {return}
 
-  familyFeatureMutations.createAndApply
-    .mutateAsync({
+  const tasks = payload.features.map((feature) => familyFeatureMutations.apply.mutateAsync({
+    productFeatureId: feature.id,
+    productFeatureApplTypeId: FEATURE_APPL_TYPE.selectable,
+    description: feature.label,
+    featureTypeId: payload.featureTypeId,
+    featureTypeDescription: payload.featureTypeDescription
+  }))
+
+  if(payload.newDescription) {
+    tasks.push(familyFeatureMutations.createAndApply.mutateAsync({
       productFeatureTypeId: payload.featureTypeId,
-      description: payload.description,
+      description: payload.newDescription,
       productFeatureApplTypeId: FEATURE_APPL_TYPE.selectable
-    })
-    .then(() => toast.success(`${payload.description} ${translate("added")}`))
-    .catch((error) => toast.error(error, translate("Could not add feature")))
+    }))
+  }
+
+  try {
+    await Promise.all(tasks)
+    toast.success(translate("Features added"))
+  } catch(error) {
+    toast.error(error, translate("Could not add features"))
+  }
 }
 
 // ---------- add variant from feature combination ----------
@@ -590,12 +607,10 @@ const queryClient = useQueryClient()
  * selectable feature axes, then exclude every combination already represented by an existing
  * variant (matched via FamilyVariant.selection which maps featureTypeDescription → value).
  *
- * From the uncovered set, derive which individual feature values are still "useful" (i.e.
- * they participate in at least one uncovered combination) and return a filtered FeatureAxis[]
- * containing only those values.  If every combination is already covered the result is [].
+ * The result includes both the exact missing combinations and filtered axes for displaying them.
  */
-const uncoveredFeatureAxes = computed(() => {
-  if(!familyFeatureAxes.value.length) {return []}
+const uncoveredVariantModel = computed(() => {
+  if(!familyFeatureAxes.value.length) {return { axes: [], selections: [] }}
 
   // featureOptions (Solr-derived) axis keys exactly match variant.selection keys — both come
   // from parsing featureValues tokens.  familyFeatureAxes (OMS-derived) featureTypeDescription
@@ -646,7 +661,7 @@ const uncoveredFeatureAxes = computed(() => {
     )
 
   const uncovered = allCombos.filter((combo) => !isCovered(combo))
-  if(!uncovered.length) {return []}
+  if(!uncovered.length) {return { axes: [], selections: [] }}
 
   // Collect which values per Solr key appear in at least one uncovered combination
   const validByKey = new Map<string, Set<string>>()
@@ -657,8 +672,7 @@ const uncoveredFeatureAxes = computed(() => {
     }
   }
 
-  // Map back to FeatureAxis[], keeping only applications that participate in uncovered combos
-  return axisWithKeys
+  const axes = axisWithKeys
     .map(({ featureAxis, solrKey }) => ({
       ...featureAxis,
       applications: featureAxis.applications.filter(
@@ -666,11 +680,23 @@ const uncoveredFeatureAxes = computed(() => {
       )
     }))
     .filter((axis) => axis.applications.length > 0)
+
+  const selections = uncovered.map((combo) =>
+    Object.fromEntries(axisWithKeys.map(({ featureAxis, solrKey }) => {
+      const application = featureAxis.applications.find((appl) => appl.description === combo[solrKey])
+
+      return [featureAxis.featureTypeId, application?.productFeatureId ?? ""]
+    })))
+
+  return { axes, selections }
 })
+
+const uncoveredFeatureAxes = computed(() => uncoveredVariantModel.value.axes)
+const uncoveredVariantSelections = computed(() => uncoveredVariantModel.value.selections)
 
 // Show "Add variant" only on the Edit parent tab (virtual product level) when uncovered combos exist
 const canAddVariant = computed(
-  () => segment.value === "parent" && hasParent.value && uncoveredFeatureAxes.value.length > 0
+  () => segment.value === "parent" && hasParent.value && uncoveredVariantSelections.value.length > 0
 )
 
 const onVariantCreated = async (productId: string) => {
@@ -865,7 +891,7 @@ const onReactivateAssociation = (assoc: ProductAssociation) => {
 
 // ---------- unsaved-changes guard ----------
 onBeforeRouteLeave(async () => {
-  if(!editor.anyDirty.value) {return true}
+  if(!editor.anyDirty.value && !parentEditor.anyDirty.value) {return true}
   const alert = await alertController.create({
     header: translate("Discard changes?"),
     message: translate("You have unsaved edits on this product."),

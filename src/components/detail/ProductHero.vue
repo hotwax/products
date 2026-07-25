@@ -17,63 +17,99 @@
 
     <div class="hero-main">
       <div class="hero-main-head">
-        <p
-          v-if="familyAnchor"
-          class="hero-overline"
-        >
-          {{ translate("Parent product") }} · {{ core?.productId }}
-        </p>
+        <div>
+          <p class="hero-overline">
+            {{ familyAnchor ? translate("Parent product") : translate("Product") }} · {{ core?.productId }}
+          </p>
+          <h2 class="hero-title">
+            {{ translate("Product information") }}
+          </h2>
+        </div>
       </div>
 
-      <ion-list lines="none">
-        <ion-item>
-          <ion-label>
-            <h2><strong>{{ translate("Name") }}: </strong>{{ core?.productName || "—" }}</h2>
-            <h2><strong>{{ translate("Internal Name") }}: </strong>{{ core?.internalName || "—" }}</h2>
-            <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
-            <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
-          </ion-label>
-          <ion-button
-            slot="end"
-            fill="clear"
-            class="edit-btn"
-            @click="$emit('edit')"
+      <div class="hero-form">
+        <ion-input
+          v-model="draft.productName"
+          :label="translate('Name')"
+          label-placement="stacked"
+          :disabled="!canEdit"
+          fill="outline"
+        />
+        <ion-input
+          v-model="draft.internalName"
+          :label="translate('Internal name')"
+          label-placement="stacked"
+          :disabled="!canEdit"
+          fill="outline"
+        />
+        <ion-input
+          v-model="draft.brandName"
+          :label="translate('Brand name')"
+          label-placement="stacked"
+          :disabled="!canEdit"
+          fill="outline"
+        />
+        <ion-select
+          v-model="draft.productTypeId"
+          :label="translate('Type')"
+          label-placement="stacked"
+          interface="popover"
+          :disabled="!canEdit"
+          fill="outline"
+        >
+          <ion-select-option
+            v-for="option in productTypes"
+            :key="option.id"
+            :value="option.id"
           >
-            <ion-icon
-              slot="icon-only"
-              :icon="pencilOutline"
-            />
-          </ion-button>
-        </ion-item>
-      </ion-list>
-    </div>
+            {{ option.label }}
+          </ion-select-option>
+        </ion-select>
+      </div>
 
+      <div class="hero-footer">
+        <SaveFooter
+          :dirty="dirty"
+          :saving="saving"
+          :can-save="canEdit"
+          :stale-under-edit="staleUnderEdit"
+          @save="$emit('save')"
+          @reset="$emit('reset')"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue"
-import { computed } from "vue"
-import { pencilOutline } from "ionicons/icons"
 import { DxpShopifyImg, translate } from "@common"
+import { IonInput, IonSelect, IonSelectOption } from "@ionic/vue"
+import SaveFooter from "@/components/common/SaveFooter.vue"
 import type { CatalogOption, ProductCore } from "@/domain/types/product"
 
-const props = defineProps<{
+withDefaults(defineProps<{
   core: ProductCore | null
+  draft: {
+    productName: string
+    internalName: string
+    brandName: string
+    productTypeId: string
+  }
   familyAnchor: boolean
   productTypes: CatalogOption[]
-}>()
+  dirty: boolean
+  saving: boolean
+  staleUnderEdit: boolean
+  canEdit?: boolean
+}>(), {
+  canEdit: true
+})
 
 defineEmits<{
-  (event: "edit"): void
   (event: "editImage"): void
+  (event: "save"): void
+  (event: "reset"): void
 }>()
-
-const typeLabel = computed(() => {
-  const typeId = props.core?.productTypeId ?? ""
-
-  return props.productTypes.find((option) => option.id === typeId)?.label || typeId || "—"
-})
 </script>
 
 <style scoped>
@@ -97,10 +133,11 @@ const typeLabel = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 28px;
+  margin-bottom: 16px;
 }
 
 .hero-overline {
+  margin: 0 0 4px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -108,12 +145,37 @@ const typeLabel = computed(() => {
   color: var(--ion-color-medium);
 }
 
-.edit-btn {
-  align-self: flex-start;
+.hero-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.hero-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.hero-footer {
+  min-height: 48px;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ion-color-step-150, #d9d9de);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
 }
 
 @media (max-width: 960px) {
   .hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-form {
     grid-template-columns: 1fr;
   }
 }

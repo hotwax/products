@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { normalizeProductCore, normalizeProductSummary, productDisplayName } from "../product"
+import type { ProductFeatureApplication } from "../../types/product"
 import { expiresInDays, groupAssociations, normalizeAssociation } from "../association"
-import { buildFeatureAxes, featureCatalogMap, normalizeFeatureApplication } from "../feature"
+import { availableFeatureOptions, buildFeatureAxes, featureCatalogMap, normalizeFeatureApplication } from "../feature"
+import { normalizeProductCore, normalizeProductSummary, productDisplayName } from "../product"
 import { flagValue, isActive, isoDate, numberValue } from "../value"
 
 describe("value helpers", () => {
@@ -127,5 +128,18 @@ describe("features", () => {
       new Map()
     )
     expect(buildFeatureAxes([appl])).toEqual([])
+  })
+
+  it("offers only unapplied catalog features for the selected type", () => {
+    const catalog = [
+      { productFeatureId: "RED", productFeatureTypeId: "COLOR", description: "Red" },
+      { productFeatureId: "BLUE", productFeatureTypeId: "COLOR", description: "Blue" },
+      { productFeatureId: "M", productFeatureTypeId: "SIZE", description: "M" }
+    ]
+    const applied = [{ productFeatureId: "RED", active: true }] as ProductFeatureApplication[]
+
+    expect(availableFeatureOptions(catalog, "COLOR", applied)).toEqual([
+      { id: "BLUE", label: "Blue" }
+    ])
   })
 })

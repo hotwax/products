@@ -15,38 +15,39 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-      <p
-        v-if="!featureAxes.length"
-        class="empty-text"
-      >
-        {{ translate("No selectable features defined on this product yet.") }}
+      <p class="selection-help">
+        {{ translate("Select a missing feature combination to create.") }}
       </p>
 
-      <div
-        v-for="axis in featureAxes"
-        :key="axis.featureTypeId"
-        class="axis"
+      <p
+        v-if="!allowedSelections.length"
+        class="empty-text"
       >
-        <p class="axis-label">
-          {{ axis.featureTypeDescription }}
-        </p>
-        <div class="axis-chips">
-          <ion-chip
-            v-for="appl in axis.applications"
-            :key="appl.productFeatureId"
-            outline
-            class="value-chip"
-            :class="{ 'value-chip--selected': selection[axis.featureTypeId] === appl.productFeatureId }"
-            @click="toggleSelection(axis.featureTypeId, appl.productFeatureId)"
+        {{ translate("All feature combinations have already been created.") }}
+      </p>
+
+      <ion-radio-group
+        v-else
+        v-model="selectedSelectionIndex"
+      >
+        <ion-list class="combination-list">
+          <ion-item
+            v-for="(selection, index) in allowedSelections"
+            :key="combinationKey(selection)"
           >
-            <ion-icon
-              v-if="selection[axis.featureTypeId] === appl.productFeatureId"
-              :icon="checkmarkOutline"
-            />
-            <ion-label>{{ appl.description }}</ion-label>
-          </ion-chip>
-        </div>
-      </div>
+            <ion-radio
+              label-placement="end"
+              justify="start"
+              :value="String(index)"
+            >
+              <ion-label>
+                {{ combinationLabel(selection) }}
+                <p>{{ combinationDetails(selection) }}</p>
+              </ion-label>
+            </ion-radio>
+          </ion-item>
+        </ion-list>
+      </ion-radio-group>
 
       <ion-input
         v-model="imageUrl"
@@ -80,14 +81,26 @@
 </template>
 
 <script setup lang="ts">
-import {
-  IonButton, IonButtons, IonChip, IonContent, IonFooter, IonHeader, IonIcon, IonInput, IonLabel,
-  IonModal, IonSpinner, IonTitle, IonToolbar
-} from "@ionic/vue"
-import { computed, reactive, ref, watch } from "vue"
-import { checkmarkOutline } from "ionicons/icons"
 import { translate } from "@common"
-import { createProduct, createAssociation, applyFeature, triggerSolrIndex } from "@/api/pim"
+import {
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonFooter,
+  IonHeader,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonModal,
+  IonRadio,
+  IonRadioGroup,
+  IonSpinner,
+  IonTitle,
+  IonToolbar
+} from "@ionic/vue"
+import { computed, ref, watch } from "vue"
+import { applyFeature, createAssociation, createProduct, triggerSolrIndex } from "@/api/pim"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import type { FeatureAxis } from "@/domain/types/product"
@@ -96,6 +109,7 @@ const props = defineProps<{
   isOpen: boolean
   featureAxes: FeatureAxis[]
   parentProductId: string
+  allowedSelections: Record<string, string>[]
 }>()
 
 const emit = defineEmits<{
@@ -103,36 +117,51 @@ const emit = defineEmits<{
   (event: "dismiss"): void
 }>()
 
-/** featureTypeId → productFeatureId */
-const selection = reactive<Record<string, string>>({})
+const selectedSelectionIndex = ref("")
 const creating = ref(false)
 const imageUrl = ref("")
 
-/** All axes must have exactly one value selected before the variant can be created */
-const hasSelection = computed(
-  () => props.featureAxes.length > 0 &&
-    props.featureAxes.every((axis) => Boolean(selection[axis.featureTypeId]))
-)
+const selectedFeatures = computed(() => {
+  if(!selectedSelectionIndex.value) {return undefined}
+  const index = Number(selectedSelectionIndex.value)
 
-// Reset selection and image URL when modal opens
+  return Number.isInteger(index) ? props.allowedSelections[index] : undefined
+})
+
+const hasSelection = computed(() => Boolean(selectedFeatures.value))
+
+const applicationFor = (featureTypeId: string, productFeatureId: string) =>
+  props.featureAxes
+    .find((axis) => axis.featureTypeId === featureTypeId)
+    ?.applications.find((application) => application.productFeatureId === productFeatureId)
+
+const combinationLabel = (selection: Record<string, string>) =>
+  props.featureAxes
+    .map((axis) => applicationFor(axis.featureTypeId, selection[axis.featureTypeId])?.description)
+    .filter(Boolean)
+    .join(" / ")
+
+const combinationDetails = (selection: Record<string, string>) =>
+  props.featureAxes
+    .map((axis) => {
+      const value = applicationFor(axis.featureTypeId, selection[axis.featureTypeId])?.description
+
+      return value ? `${axis.featureTypeDescription}: ${value}` : ""
+    })
+    .filter(Boolean)
+    .join(" · ")
+
+const combinationKey = (selection: Record<string, string>) =>
+  props.featureAxes.map((axis) => selection[axis.featureTypeId]).join(":")
+
 watch(
   () => props.isOpen,
   (open) => {
     if(!open) {return}
-    for(const key of Object.keys(selection)) {
-      delete selection[key]
-    }
+    selectedSelectionIndex.value = ""
     imageUrl.value = ""
   }
 )
-
-const toggleSelection = (featureTypeId: string, productFeatureId: string) => {
-  if(selection[featureTypeId] === productFeatureId) {
-    delete selection[featureTypeId]
-  } else {
-    selection[featureTypeId] = productFeatureId
-  }
-}
 
 const createVariant = async () => {
   if(!hasSelection.value || creating.value) {return}
@@ -153,15 +182,11 @@ const createVariant = async () => {
     triggerSolrIndex(props.parentProductId)
 
     // 3. Apply each selected feature to the new variant
-    const selectedFeatureIds = Object.values(selection).filter(Boolean)
-    await Promise.all(
-      selectedFeatureIds.map((productFeatureId) =>
-        applyFeature(productId, {
-          productFeatureId,
-          productFeatureApplTypeId: FEATURE_APPL_TYPE.standard
-        })
-      )
-    )
+    const selectedFeatureIds = Object.values(selectedFeatures.value ?? {}).filter(Boolean)
+    await Promise.all(selectedFeatureIds.map((productFeatureId) => applyFeature(productId, {
+      productFeatureId,
+      productFeatureApplTypeId: FEATURE_APPL_TYPE.standard
+    })))
 
     emit("created", productId)
   } finally {
@@ -176,34 +201,14 @@ const createVariant = async () => {
   font-size: 14px;
 }
 
-.axis {
-  margin-bottom: 16px;
-}
-
-.axis-label {
-  margin: 0 0 6px;
-  font-size: 13px;
+.selection-help {
+  margin-top: 0;
   color: var(--ion-color-medium);
 }
 
-.axis-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.value-chip {
-  cursor: pointer;
-}
-
-.value-chip--selected {
-  --color: var(--ion-color-primary);
-  border-color: var(--ion-color-primary);
-  font-weight: 600;
-}
-
-.value-chip--selected ion-icon {
-  color: var(--ion-color-primary);
+.combination-list {
+  margin-bottom: 16px;
+  padding: 0;
 }
 
 </style>

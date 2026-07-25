@@ -1,8 +1,5 @@
 <template>
   <div class="feature-selector">
-    <p class="selector-title">
-      {{ translate("Features") }}
-    </p>
     <div
       v-for="option in options"
       :key="option.axis"
@@ -32,6 +29,7 @@
       </div>
     </div>
     <div
+      v-if="showAddVariant"
       class="add-variant-row"
     >
       <ion-button
@@ -46,9 +44,9 @@
 </template>
 
 <script setup lang="ts">
+import { translate } from "@common"
 import { IonButton, IonChip, IonIcon, IonLabel } from "@ionic/vue"
 import { checkmarkOutline } from "ionicons/icons"
-import { translate } from "@common"
 import type { FeatureAxisOption } from "@/domain/product/family"
 
 withDefaults(
@@ -69,11 +67,6 @@ defineEmits<{
 <style scoped>
 .feature-selector {
   padding: 8px 16px 0;
-}
-
-.selector-title {
-  margin: 0 0 4px;
-  font-weight: 600;
 }
 
 .axis-label {
