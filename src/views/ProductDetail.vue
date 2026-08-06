@@ -266,15 +266,15 @@ import { productDisplayName } from "@/domain/normalize/product"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
-import { FEATURE_REMOVE_PERMISSION, FEATURE_WRITE_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
+import Actions from "@/authorization/actions"
 
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
 const userStore = useUserStore()
 
-const canEditProduct = computed(() => userStore.hasPermission(PRODUCT_WRITE_PERMISSION))
-const canApplyFeatures = computed(() => userStore.hasPermission(FEATURE_WRITE_PERMISSION))
-const canRemoveFeatures = computed(() => userStore.hasPermission(FEATURE_REMOVE_PERMISSION))
+const canEditProduct = computed(() => userStore.hasPermission(Actions.APP_PRODUCT_UPDATE))
+const canApplyFeatures = computed(() => userStore.hasPermission(Actions.APP_FEATURE_UPDATE))
+const canRemoveFeatures = computed(() => userStore.hasPermission(Actions.APP_FEATURE_REMOVE))
 
 const contentRef = ref<ComponentPublicInstance | null>(null)
 const segmentRef = ref<ComponentPublicInstance | null>(null)

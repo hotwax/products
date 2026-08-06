@@ -95,8 +95,8 @@ import { useDuplicateIdentifiers } from "@/composables/useDataQuality"
 import { useResolveDuplicates } from "@/mutations/useQualityResolution"
 import { useToast } from "@/composables/useToast"
 import { useUserStore } from "@/store/user"
-import { DUPLICATE_RESOLUTION_PERMISSION } from "@/auth/permissions"
 import type { DuplicateDraft, DuplicateGroup } from "@/domain/types/quality"
+import Actions from "@/authorization/actions"
 
 const { rules, activeRuleId, activeRule, groups, isLoading, isFetching, isError, error, refetch } = useDuplicateIdentifiers()
 const resolveMutation = useResolveDuplicates()
@@ -106,7 +106,7 @@ const userStore = useUserStore()
 const resolveOpen = ref(false)
 const activeGroup = ref<DuplicateGroup | null>(null)
 const errorText = computed(() => errorMessage(error.value, translate("Duplicates are unavailable")))
-const canResolveDuplicates = computed(() => userStore.hasPermission(DUPLICATE_RESOLUTION_PERMISSION))
+const canResolveDuplicates = computed(() => userStore.hasPermission(Actions.APP_DUPLICATE_RESOLUTION))
 
 const openResolve = (group: DuplicateGroup) => {
   if(!canResolveDuplicates.value) {return}

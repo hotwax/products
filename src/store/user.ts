@@ -5,7 +5,7 @@ import { useAuth } from "@common/composables/useAuth"
 
 import logger from "@/logger"
 import { showToast } from "@/utils"
-import { COMMON_ADMIN_PERMISSION } from "@/auth/permissions"
+import Actions from "@/authorization/actions"
 
 let permissionsRequest: Promise<void> | null = null
 
@@ -41,7 +41,7 @@ export const useUserStore = defineStore("user", {
     getAvailableTimeZones: (state) => state.timeZones,
     hasPermission: (state) => (permissionId: string): boolean => {
       if(!permissionId) {return true}
-      if(state.permissions.includes(COMMON_ADMIN_PERMISSION)) {return true}
+      if(state.permissions.includes(Actions.APP_COMMON_ADMIN)) {return true}
 
       if(permissionId.includes(" OR ")) {
         return permissionId.split(" OR ").some((part) => useUserStore().hasPermission(part.trim()))
@@ -106,7 +106,7 @@ export const useUserStore = defineStore("user", {
           }
         }
 
-        if(permissionId && !serverPermissions.includes(permissionId) && !serverPermissions.includes(COMMON_ADMIN_PERMISSION)) {
+        if(permissionId && !serverPermissions.includes(permissionId) && !serverPermissions.includes(Actions.APP_COMMON_ADMIN)) {
           const permissionError = "You do not have permission to access the app."
           await showToast(translate(permissionError))
           logger.error("error", permissionError)

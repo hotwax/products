@@ -11,7 +11,7 @@ import ProductDetail from "@/views/ProductDetail.vue"
 import ProductWorkbench from "@/views/ProductWorkbench.vue"
 import Settings from "@/views/Settings.vue"
 import { useUserStore } from "@/store/user"
-import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION, PRODUCT_WRITE_PERMISSION } from "@/auth/permissions"
+import Actions from "@/authorization/actions"
 
 const authGuard = async (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
   const userStore = useUserStore()
@@ -62,28 +62,28 @@ const routes: RouteRecordRaw[] = [
     name: "ProductWorkbench",
     component: ProductWorkbench,
     beforeEnter: authGuard,
-    meta: { permissionId: PRODUCT_READ_PERMISSION }
+    meta: { permissionId: Actions.APP_PRODUCTS_VIEW }
   },
   {
     path: "/data-fixes/duplicates",
     name: "DataFixDuplicates",
     component: DataFixDuplicates,
     beforeEnter: authGuard,
-    meta: { permissionId: DUPLICATE_RESOLUTION_PERMISSION }
+    meta: { permissionId: Actions.APP_DUPLICATE_RESOLUTION }
   },
   {
     path: "/data-fixes/missing",
     name: "DataFixMissing",
     component: DataFixMissing,
     beforeEnter: authGuard,
-    meta: { permissionId: PRODUCT_READ_PERMISSION }
+    meta: { permissionId: Actions.APP_PRODUCTS_VIEW }
   },
   {
     path: "/products/create",
     name: "ProductCreate",
     component: ProductCreate,
     beforeEnter: authGuard,
-    meta: { permissionId: PRODUCT_WRITE_PERMISSION }
+    meta: { permissionId: Actions.APP_PRODUCT_UPDATE }
   },
   {
     path: "/products/:productId",
@@ -91,7 +91,7 @@ const routes: RouteRecordRaw[] = [
     component: ProductDetail,
     props: true,
     beforeEnter: authGuard,
-    meta: { permissionId: PRODUCT_READ_PERMISSION }
+    meta: { permissionId: Actions.APP_PRODUCTS_VIEW }
   },
   {
     // identifiers/relationships/features/sections all folded into the detail editor
@@ -103,7 +103,7 @@ const routes: RouteRecordRaw[] = [
     name: "Imports",
     component: Imports,
     beforeEnter: authGuard,
-    meta: { permissionId: PRODUCT_READ_PERMISSION }
+    meta: { permissionId: Actions.APP_PRODUCTS_VIEW }
   },
   {
     path: "/settings",

@@ -43,19 +43,19 @@ import { translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 import { computed } from "vue"
 
-import { DUPLICATE_RESOLUTION_PERMISSION, PRODUCT_READ_PERMISSION } from "@/auth/permissions"
 import router from "@/router"
 import { useUserStore } from "@/store/user"
+import Actions from "@/authorization/actions"
 
 const { isAuthenticated } = useAuth()
 const userStore = useUserStore()
 
 const menuItems = computed(() => [
-  { path: "/products", label: "Product workbench", icon: pricetagsOutline, permissionId: PRODUCT_READ_PERMISSION },
-  { path: "/data-fixes/duplicates", label: "Duplicate identifiers", icon: copyOutline, permissionId: DUPLICATE_RESOLUTION_PERMISSION },
-  { path: "/data-fixes/missing", label: "Missing values", icon: alertCircleOutline, permissionId: PRODUCT_READ_PERMISSION },
-  { path: "/imports", label: "Imports", icon: cloudDownloadOutline, permissionId: PRODUCT_READ_PERMISSION },
-  { path: "/settings", label: "Settings", icon: settingsOutline, permissionId: "" }
+  { path: "/products", label: "Product workbench", icon: pricetagsOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
+  { path: "/data-fixes/duplicates", label: "Duplicate identifiers", icon: copyOutline, permissionId: Actions.APP_DUPLICATE_RESOLUTION },
+  { path: "/data-fixes/missing", label: "Missing values", icon: alertCircleOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
+  { path: "/imports", label: "Imports", icon: cloudDownloadOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
+  { path: "/settings", label: "Settings", icon: settingsOutline, permissionId: Actions.APP_SETTINGS_VIEW }
 ].filter((item) => !item.permissionId || userStore.hasPermission(item.permissionId)))
 
 const selectedPage = computed(() => router.currentRoute.value.path)
