@@ -24,8 +24,8 @@ export function normalizeProductSummary(doc: Raw): ProductSummary {
     primaryProductCategoryName: textValue(doc.primaryProductCategoryName),
     productStoreIds: stringArray(doc.productStoreIds),
     imageUrl: textValue(doc.mainImageUrl),
-    createdDate: isoDate(doc.createdDate) ?? "",
-    lastModifiedDate: isoDate(doc.lastModifiedDate) ?? "",
+    createdDate: isoDate(doc.introductionDate) ?? "",
+    lastModifiedDate: isoDate(doc.updatedDatetime) ?? "",
     variantCount: numberValue(doc.variantCount) ?? 0
   }
 }

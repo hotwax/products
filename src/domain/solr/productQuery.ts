@@ -22,8 +22,8 @@ export function escapeSolrValue(value: string): string {
 
 export function productSort(sort: ProductSortOption): string {
   switch (sort) {
-    case "Updated": return "lastModifiedDate desc"
-    case "Created": return "createdDate desc"
+    case "Updated": return "updatedDatetime desc"
+    case "Created": return "introductionDate desc"
     default: return "productName asc"
   }
 }
