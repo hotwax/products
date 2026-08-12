@@ -39,6 +39,7 @@
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vitest": "catalog:",
     "vue-tsc": "catalog:"
   }
