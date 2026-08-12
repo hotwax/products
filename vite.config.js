@@ -4,8 +4,10 @@ import legacy from "@vitejs/plugin-legacy"
 import vue from "@vitejs/plugin-vue"
 import path from "path"
 import { defineConfig, loadEnv } from "vite"
+import { VitePWA } from "vite-plugin-pwa"
 import { versionInfoUtil } from "../../common/utils/versionInfoUtil"
 import pkg from "./package.json"
+import manifest from "./manifest.json"
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
@@ -18,7 +20,15 @@ export default defineConfig(({ mode }) => {
   },
   plugins: [
     vue(),
-    legacy()
+    legacy(),
+    VitePWA({
+      registerType: "autoUpdate",
+      selfDestroying: true,
+      manifest: manifest,
+      devOptions: {
+        enabled: true
+      }
+    })
   ],
   define: {
     "import.meta.env.VITE_VERSION_INFO": JSON.stringify(JSON.stringify(versionInfoUtil.getVersionInfo(pkg.version)))
