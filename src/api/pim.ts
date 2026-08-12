@@ -12,15 +12,20 @@ type Raw = Record<string, unknown>
 
 /** Fire-and-forget Solr re-index. Errors are swallowed intentionally —
  *  a failed index should never block or surface as a save error. */
-export function triggerSolrIndex(productId: string, options: { indexVariants?: boolean } = { indexVariants: true }): void {
+export function triggerSolrIndex(
+  productId: string,
+  options: { indexVariants?: boolean } = { indexVariants: true }
+): void {
   request({
-    url: "admin/solr/indexProduct",
+    url: "oms/search/index/product",
     method: "post",
     data: {
       productId,
       indexVariants: options.indexVariants ?? true
     }
-  }).catch(() => {})
+  }).catch((error) => {
+    console.error("Failed to index product in Solr:", error)
+  })
 }
 
 // ---------- product ----------
@@ -182,8 +187,19 @@ export function addProductKeyword(productId: string, keyword: string): Promise<u
   } })
 }
 
-export function removeProductKeyword(productId: string, keyword: string): Promise<unknown> {
-  return request({ url: `oms/products/${productId}/keywords/remove`, method: "post", data: { keyword } })
+export function removeProductKeyword(
+  productId: string,
+  keyword: string
+): Promise<unknown> {
+  return request({
+    url: `oms/products/${productId}/keywords`,
+    method: "post",
+    data: {
+      keyword,
+      keywordTypeId: "KWT_TAG",
+      statusId: "KW_DISAPPROVED"
+    }
+  })
 }
 
 // ---------- data quality ----------
