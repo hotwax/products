@@ -11,8 +11,8 @@
       <div class="user-profile">
         <ion-card>
           <ion-item lines="full">
-            <ion-avatar slot="start">
-              <ion-label>{{ userInitials }}</ion-label>
+            <ion-avatar slot="start" v-if="userProfile?.partyImageUrl">
+              <Image :src="userProfile.partyImageUrl"/>
             </ion-avatar>
             <ion-card-header class="ion-no-padding ion-padding-vertical">
               <ion-card-subtitle>{{ userProfile.username || userProfile.emailAddress || userProfile.userId }}</ion-card-subtitle>
@@ -258,11 +258,6 @@ const appVersion = computed(() => {
   return appInfo.tag || appInfo.version || "0.1.0"
 })
 const builtDateTime = computed(() => appInfo.builtTime ? DateTime.fromMillis(appInfo.builtTime).setZone(currentTimeZone.value).toLocaleString(DateTime.DATETIME_MED) : "")
-const userInitials = computed(() => {
-  const name = userProfile.value?.userFullName || userProfile.value?.partyId || userProfile.value?.userId || ""
-
-  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]?.toUpperCase()).join("") || "U"
-})
 
 const isLoading = ref(true)
 const timeZoneModal = ref()
