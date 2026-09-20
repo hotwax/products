@@ -1,13 +1,5 @@
 import { request, responseList } from "./http"
-
-export const PRODUCT_CALENDAR_DATE_FIELDS = [
-  "introductionDate",
-  "releaseDate",
-  "supportDiscontinuationDate",
-  "salesDiscontinuationDate"
-] as const
-
-export const PRODUCT_CALENDAR_MAPPING_TYPE = "SHOPIFY_PRODUCT_CALENDAR_DATE"
+import { PRODUCT_CALENDAR_MAPPING_TYPE } from "@/utils/productCalendarMappings"
 
 export async function fetchProductCalendar(productStoreId: string) {
   if(!productStoreId) {return []}
@@ -35,16 +27,4 @@ export async function fetchProductCalendarMappings() {
     method: "get",
     params: { mappedTypeId: PRODUCT_CALENDAR_MAPPING_TYPE, pageSize: 500 }
   }))
-}
-
-export async function saveProductCalendarMapping(mapping: Record<string, unknown>) {
-  if(!PRODUCT_CALENDAR_DATE_FIELDS.includes(mapping.mappedKey as typeof PRODUCT_CALENDAR_DATE_FIELDS[number])) {
-    throw new Error("Unsupported product calendar field")
-  }
-
-  return request({
-    url: "sob/shopify/typeMappings",
-    method: "post",
-    data: { ...mapping, mappedTypeId: PRODUCT_CALENDAR_MAPPING_TYPE }
-  })
 }

@@ -6,7 +6,7 @@ vi.mock("../http", () => ({
   responseList: vi.fn((value: unknown) => value)
 }))
 
-import { fetchProductCalendar, saveProductCalendarMapping } from "../productCalendar"
+import { fetchProductCalendar, fetchProductCalendarMappings } from "../productCalendar"
 
 describe("product calendar API", () => {
   beforeEach(() => {
@@ -26,13 +26,15 @@ describe("product calendar API", () => {
     expect(responseList).toHaveBeenCalledWith([])
   })
 
-  it("does not save a Shopify mapping outside the four lifecycle date fields", async () => {
-    await expect(saveProductCalendarMapping({
-      shopId: "SHOP_1",
-      mappedKey: "productCategoryId",
-      mappedValue: "launch:date"
-    })).rejects.toThrow("Unsupported product calendar field")
+  it("reads only calendar metafield mappings", async () => {
+    vi.mocked(request).mockResolvedValueOnce([])
 
-    expect(request).not.toHaveBeenCalled()
+    await fetchProductCalendarMappings()
+
+    expect(request).toHaveBeenCalledWith({
+      url: "sob/shopify/typeMappings",
+      method: "get",
+      params: { mappedTypeId: "SHOPIFY_PRODUCT_CALENDAR_DATE", pageSize: 500 }
+    })
   })
 })
