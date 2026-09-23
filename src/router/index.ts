@@ -99,6 +99,13 @@ const routes: RouteRecordRaw[] = [
     redirect: (to) => `/products/${to.params.productId}`
   },
   {
+    path: "/product-calendar",
+    name: "ProductCalendar",
+    component: () => import("@/views/ProductCalendar.vue"),
+    beforeEnter: authGuard,
+    meta: { permissionId: Actions.APP_PRODUCTS_VIEW }
+  },
+  {
     path: "/imports",
     name: "Imports",
     component: Imports,

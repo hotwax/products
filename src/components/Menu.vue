@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 import { IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonMenu, IonMenuToggle, IonTitle, IonToolbar } from "@ionic/vue"
-import { alertCircleOutline, cloudDownloadOutline, copyOutline, pricetagsOutline, settingsOutline } from "ionicons/icons"
+import { alertCircleOutline, calendarOutline, cloudDownloadOutline, copyOutline, pricetagsOutline, settingsOutline } from "ionicons/icons"
 import { translate } from "@common"
 import { useAuth } from "@common/composables/useAuth"
 import { computed } from "vue"
@@ -52,6 +52,7 @@ const userStore = useUserStore()
 
 const menuItems = computed(() => [
   { path: "/products", label: "Product workbench", icon: pricetagsOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
+  { path: "/product-calendar", label: "Product calendar", icon: calendarOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
   { path: "/data-fixes/duplicates", label: "Duplicate identifiers", icon: copyOutline, permissionId: Actions.APP_DUPLICATE_RESOLUTION },
   { path: "/data-fixes/missing", label: "Missing values", icon: alertCircleOutline, permissionId: Actions.APP_PRODUCTS_VIEW },
   { path: "/imports", label: "Imports", icon: cloudDownloadOutline, permissionId: Actions.APP_PRODUCTS_VIEW },

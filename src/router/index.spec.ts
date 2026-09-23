@@ -27,7 +27,10 @@ vi.mock("@common", () => ({
 }))
 
 vi.mock("@common/composables/useAuth", () => ({
-  useAuth: () => authState
+  useAuth: () => ({
+    ...authState,
+    checkAppVersionRedirect: () => false
+  })
 }))
 
 vi.mock("@/utils", () => ({
@@ -75,9 +78,18 @@ describe("router permissions", () => {
     expect(api).toHaveBeenCalledWith({
       url: "admin/user/permissions",
       method: "GET",
-      baseURL: "https://oms.example/rest/s1/",
       params: { viewIndex: 0, viewSize: 200 }
     })
     expect(useUserStore().permissions).toEqual(["COMMON_ADMIN"])
+  })
+
+  it("resolves the ProductStore-scoped calendar management route", () => {
+    const route = router.resolve({
+      path: "/product-calendar",
+      query: { productStoreId: "RAILS" }
+    })
+
+    expect(route.name).toBe("ProductCalendar")
+    expect(route.query).toEqual({ productStoreId: "RAILS" })
   })
 })

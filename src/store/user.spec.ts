@@ -76,35 +76,15 @@ describe("user store permissions", () => {
     expect(api).toHaveBeenNthCalledWith(1, {
       url: "admin/user/permissions",
       method: "GET",
-      baseURL: "https://oms.example/rest/s1/",
       params: { viewIndex: 0, viewSize: 200 }
     })
     expect(api).toHaveBeenNthCalledWith(2, {
       url: "admin/user/permissions",
       method: "GET",
-      baseURL: "https://oms.example/rest/s1/",
       params: { viewIndex: 1, viewSize: 200 }
     })
     expect(userStore.permissions).toEqual(["PIM_PRODUCT_VIEW", "PIM_FEATURE_CREATE", "SEARCH_UPDATE"])
     expect(userStore.fetchStatus.permissions).toBe("success")
-  })
-
-  it("loads legacy permissions from getPermissions", async () => {
-    commonUtilMock.isMoqui.mockReturnValue(false)
-    vi.mocked(api)
-      .mockResolvedValueOnce(permissionResponse([{ permissionId: "PIM_PRODUCT_ADMIN" }]))
-      .mockResolvedValueOnce(permissionResponse([]))
-
-    const userStore = useUserStore()
-    await userStore.fetchPermissions()
-
-    expect(api).toHaveBeenCalledWith({
-      url: "getPermissions",
-      method: "GET",
-      baseURL: "https://oms.example/rest/s1/",
-      params: { viewIndex: 0, viewSize: 200 }
-    })
-    expect(userStore.permissions).toEqual(["PIM_PRODUCT_ADMIN"])
   })
 
   it("rejects app access when configured app permission is missing", async () => {
