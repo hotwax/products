@@ -117,13 +117,20 @@ const filteredRows = computed(() => {
 
 function parseDate(value: unknown) {
   if(!value) {return null}
-
-  const iso = DateTime.fromISO(String(value))
-  return iso.isValid ? iso : DateTime.fromSQL(String(value))
+  if (typeof value === "number" || (!isNaN(Number(value)) && !String(value).includes("-") && !String(value).includes(":"))) {
+    const millis = DateTime.fromMillis(Number(value));
+    if (millis.isValid) return millis;
+  }
+  const iso = DateTime.fromISO(String(value));
+  if (iso.isValid) return iso;
+  const sql = DateTime.fromSQL(String(value));
+  if (sql.isValid) return sql;
+  return null;
 }
 
 function formatDate(value: unknown) {
-  return parseDate(value)?.toLocaleString(DateTime.DATETIME_MED) || "-"
+  const dt = parseDate(value);
+  return dt && dt.isValid ? dt.toLocaleString(DateTime.DATETIME_MED) : "-";
 }
 
 async function refresh() {
