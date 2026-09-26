@@ -23,9 +23,13 @@
       <main v-else>
         <div class="page-heading">
           <div>
-            <p class="overline">{{ calendarProductStoreId }}</p>
+            <p class="overline">
+              {{ calendarProductStoreId }}
+            </p>
             <h1>{{ translate("Product calendar") }}</h1>
-            <p class="muted">{{ translate("ProductStore-scoped lifecycle dates used by ATP rules.") }}</p>
+            <p class="muted">
+              {{ translate("ProductStore-scoped lifecycle dates used by ATP rules.") }}
+            </p>
           </div>
         </div>
 
@@ -46,13 +50,13 @@
         <ion-card>
           <ion-card-header>
             <ion-card-title>{{ translate("Calendar dates") }}</ion-card-title>
-            <ion-card-subtitle>{{ rows.length }} {{ translate("products") }}</ion-card-subtitle>
+            <ion-card-subtitle>{{ totalCount }} {{ translate("products") }}</ion-card-subtitle>
           </ion-card-header>
           <ion-item lines="none">
-            <ion-searchbar v-model="search" :placeholder="translate('Search by product name or ID')" />
+            <ion-searchbar v-model="search" :placeholder="translate('Search by product ID, product name, or internal name')" />
           </ion-item>
-          <ion-list v-if="filteredRows.length">
-            <ion-item v-for="row in filteredRows" :key="`${row.productStoreId}:${row.productId}`">
+          <ion-list v-if="rows.length">
+            <ion-item v-for="row in rows" :key="`${row.productStoreId}:${row.productId}`">
               <ion-label>
                 <h2>{{ row.productName || row.internalName || row.productId }}</h2>
                 <p>{{ row.productId }}</p>
@@ -65,7 +69,12 @@
               </div>
             </ion-item>
           </ion-list>
-          <ion-card-content v-else class="muted">{{ loading ? translate("Loading…") : translate("No calendar rows match the current search.") }}</ion-card-content>
+          <ion-card-content v-else class="muted">
+            {{ loading ? translate("Loading…") : translate("No calendar rows match the current search.") }}
+          </ion-card-content>
+          <ion-infinite-scroll :disabled="!hasNextPage" @ion-infinite="loadMore">
+            <ion-infinite-scroll-content loading-spinner="crescent" />
+          </ion-infinite-scroll>
         </ion-card>
       </main>
     </ion-content>
@@ -73,33 +82,29 @@
 </template>
 
 <script setup lang="ts">
+import { translate } from "@common"
 import {
   IonButton, IonButtons, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle,
-  IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonMenuButton, IonPage, IonSearchbar,
-  IonTitle, IonToolbar
+  IonContent, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent, IonItem, IonLabel, IonList,
+  IonMenuButton, IonPage, IonSearchbar, IonTitle, IonToolbar
 } from "@ionic/vue"
+import { useInfiniteQuery } from "@tanstack/vue-query"
 import { openOutline, refreshOutline } from "ionicons/icons"
 import { DateTime } from "luxon"
 import { computed, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { translate } from "@common"
+import { fetchProductCalendarMappings, fetchProductStoreShops } from "@/api/productCalendar"
 import EmptyState from "@/components/EmptyState.vue"
-import {
-  fetchProductCalendar,
-  fetchProductCalendarMappings,
-  fetchProductStoreShops
-} from "@/api/productCalendar"
+import { productCalendarOptions } from "@/queries/productCalendar"
 import { useUserStore } from "@/store/user"
 import { showToast } from "@/utils"
 import { getActiveCalendarMappings, getCalendarMappingManagementHref } from "@/utils/productCalendarMappings"
 
 const route = useRoute()
 const userStore = useUserStore()
-const rows = ref<Record<string, any>[]>([])
 const shops = ref<Record<string, any>[]>([])
 const mappings = ref<Record<string, any>[]>([])
 const search = ref("")
-const loading = ref(false)
 
 const calendarProductStoreId = computed(() => {
   const requestedProductStoreId = route.query.productStoreId
@@ -109,60 +114,75 @@ const calendarProductStoreId = computed(() => {
 })
 const activeCalendarMappings = computed(() => getActiveCalendarMappings(shops.value, mappings.value))
 const mappingManagementHref = computed(() => getCalendarMappingManagementHref(shops.value))
-const filteredRows = computed(() => {
-  const query = search.value.trim().toLowerCase()
-
-  return rows.value.filter((row) => !query || `${row.productId || ""} ${row.productName || ""} ${row.internalName || ""}`.toLowerCase().includes(query))
-})
+const calendarQuery = useInfiniteQuery(computed(() => productCalendarOptions(calendarProductStoreId.value, search.value)))
+const rows = computed(() => calendarQuery.data.value?.pages.flatMap((page) => page.calendarRows) ?? [])
+const totalCount = computed(() => calendarQuery.data.value?.pages[0]?.totalCount ?? 0)
+const loading = computed(() => calendarQuery.isLoading.value || calendarQuery.isFetching.value)
+const hasNextPage = calendarQuery.hasNextPage
 
 function parseDate(value: unknown) {
   if(!value) {return null}
-  if (typeof value === "number" || (!isNaN(Number(value)) && !String(value).includes("-") && !String(value).includes(":"))) {
+  if(typeof value === "number" || (!isNaN(Number(value)) && !String(value).includes("-") && !String(value).includes(":"))) {
     const millis = DateTime.fromMillis(Number(value));
-    if (millis.isValid) return millis;
+    if(millis.isValid) {return millis;}
   }
   const iso = DateTime.fromISO(String(value));
-  if (iso.isValid) return iso;
+  if(iso.isValid) {return iso;}
   const sql = DateTime.fromSQL(String(value));
-  if (sql.isValid) return sql;
+  if(sql.isValid) {return sql;}
+
   return null;
 }
 
 function formatDate(value: unknown) {
   const dt = parseDate(value);
+
   return dt && dt.isValid ? dt.toLocaleString(DateTime.DATETIME_MED) : "-";
+}
+
+async function loadReferences(productStoreId: string) {
+  const [productStoreShops, calendarMappings] = await Promise.all([
+    fetchProductStoreShops(productStoreId),
+    fetchProductCalendarMappings()
+  ])
+  shops.value = productStoreShops
+  mappings.value = calendarMappings
 }
 
 async function refresh() {
   const productStoreId = calendarProductStoreId.value
   if(!productStoreId) {
-    rows.value = []
     shops.value = []
     mappings.value = []
+
     return
   }
 
-  loading.value = true
   try {
-    const [calendarRows, productStoreShops, calendarMappings] = await Promise.all([
-      fetchProductCalendar(productStoreId),
-      fetchProductStoreShops(productStoreId),
-      fetchProductCalendarMappings()
-    ])
-    rows.value = calendarRows
-    shops.value = productStoreShops
-    mappings.value = calendarMappings
+    await Promise.all([calendarQuery.refetch(), loadReferences(productStoreId)])
   } catch {
-    rows.value = []
     shops.value = []
     mappings.value = []
     await showToast(translate("Unable to load product calendar."))
-  } finally {
-    loading.value = false
   }
 }
 
-watch(calendarProductStoreId, refresh, { immediate: true })
+watch(calendarProductStoreId, (productStoreId) => {
+  if(productStoreId) {loadReferences(productStoreId)} else {
+    shops.value = []
+    mappings.value = []
+  }
+}, { immediate: true })
+
+async function loadMore(event: CustomEvent) {
+  try {
+    if(calendarQuery.hasNextPage.value && !calendarQuery.isFetchingNextPage.value) {
+      await calendarQuery.fetchNextPage()
+    }
+  } finally {
+    (event.target as any)?.complete()
+  }
+}
 </script>
 
 <style scoped>

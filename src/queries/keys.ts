@@ -22,6 +22,10 @@ export const qk = {
     categories: (productId: string) => ["product", productId, "categories"] as const,
     shopifyShopProducts: (productId: string) => ["product", productId, "shopifyShopProducts"] as const
   },
+  productCalendar: {
+    all: ["productCalendar"] as const,
+    search: (productStoreId: string, keyword: string) => ["productCalendar", productStoreId, keyword] as const
+  },
   catalog: {
     all: ["catalog"] as const,
     list: (resource: string) => ["catalog", resource] as const,

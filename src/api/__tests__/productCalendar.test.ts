@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { request, responseList } from "../http"
+import { request } from "../http"
 
 vi.mock("../http", () => ({
   request: vi.fn(),
@@ -13,18 +13,51 @@ describe("product calendar API", () => {
     vi.clearAllMocks()
   })
 
-  it("fetches calendar dates within the selected ProductStore", async () => {
-    vi.mocked(request).mockResolvedValueOnce([])
+  it("fetches a requested calendar page and parses the total count", async () => {
+    const page = {
+      calendarRows: [{ productId: "M101831" }],
+      totalCount: 101,
+      pageIndex: 2,
+      pageSize: 50
+    }
+    vi.mocked(request).mockResolvedValueOnce(page)
 
-    await fetchProductCalendar("RAILS")
+    await expect(fetchProductCalendar("RAILS", 2, 50, "M101831")).resolves.toEqual(page)
 
     expect(request).toHaveBeenCalledWith({
       url: "oms/productStoreProductCalendar",
       method: "get",
-      params: { productStoreId: "RAILS", pageSize: 500, orderByField: "productId" }
+      params: {
+        productStoreId: "RAILS",
+        pageIndex: 2,
+        pageSize: 50,
+        keyword: "M101831"
+      }
     })
-    expect(responseList).toHaveBeenCalledWith([])
   })
+
+  it.each(["M101831", "Abominable Hoodie", "V_abominable-hoodie"])(
+    "passes %s as the server-side calendar search keyword",
+    async (keyword) => {
+      vi.mocked(request).mockResolvedValueOnce({
+        calendarRows: [],
+        totalCount: 0,
+        pageIndex: 0,
+        pageSize: 50
+      })
+
+      await fetchProductCalendar("RAILS", 0, 50, keyword)
+
+      expect(vi.mocked(request).mock.calls[0][0]).toMatchObject({
+        params: expect.objectContaining({
+          productStoreId: "RAILS",
+          pageIndex: 0,
+          pageSize: 50,
+          keyword
+        })
+      })
+    }
+  )
 
   it("reads only calendar metafield mappings", async () => {
     vi.mocked(request).mockResolvedValueOnce([])
