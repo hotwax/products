@@ -8,6 +8,7 @@ import { VitePWA } from "vite-plugin-pwa"
 import { versionInfoUtil } from "../../common/utils/versionInfoUtil"
 import pkg from "./package.json"
 import manifest from "./manifest.json"
+import { sharedDevEnvPlugin } from '../../common/vite/sharedDevEnv'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
@@ -18,7 +19,7 @@ export default defineConfig(({ mode }) => {
   build: {
     outDir: appBuild ? `dist/${appBuild}` : "dist"
   },
-  plugins: [
+  plugins: [sharedDevEnvPlugin(),
     vue(),
     legacy(),
     VitePWA({
