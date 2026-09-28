@@ -87,23 +87,6 @@
           >
             {{ translate("Clear") }}
           </ion-button>
-          <ion-select
-            slot="end"
-            :value="sort"
-            interface="popover"
-            :label="translate('Sort')"
-            @ion-change="sort = $event.detail.value"
-          >
-            <ion-select-option value="Alphabet">
-              {{ translate("Alphabetical") }}
-            </ion-select-option>
-            <ion-select-option value="Updated">
-              {{ translate("Recently updated") }}
-            </ion-select-option>
-            <ion-select-option value="Created">
-              {{ translate("Recently created") }}
-            </ion-select-option>
-          </ion-select>
         </ion-item>
 
         <template v-if="isLoading">
@@ -188,7 +171,7 @@
 <script setup lang="ts">
 import {
   IonButton, IonButtons, IonCheckbox, IonChip, IonContent, IonHeader, IonIcon, IonInfiniteScroll, IonInfiniteScrollContent,
-  IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar, IonSelect, IonSelectOption,
+  IonItem, IonLabel, IonList, IonListHeader, IonMenuButton, IonPage, IonProgressBar,
   IonSkeletonText, IonThumbnail, IonTitle, IonToolbar, loadingController
 } from "@ionic/vue"
 import { addOutline, closeOutline, pricetagOutline } from "ionicons/icons"
@@ -207,7 +190,7 @@ import { useToast } from "@/composables/useToast"
 import { familyRouteFor } from "@/domain/product/family"
 
 const {
-  queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags, sort,
+  queryString, productTypeId, productKind, groupIdFacets, productStoreId, tags,
   clearFilters, toggleTag,
   products, rowSales, rowSalesMax, total, isLoading, isFetching, isError, error, hasNextPage, loadMore, refetch,
   tagFacets, productTypes, productStores,
