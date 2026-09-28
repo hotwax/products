@@ -33,6 +33,10 @@ export const qk = {
     duplicates: (ruleId: string) => ["quality", "duplicates", ruleId] as const,
     missing: (ruleId: string) => ["quality", "missing", ruleId] as const
   },
+  productCalendar: {
+    store: (productStoreId: string) => ["productCalendar", productStoreId] as const,
+    list: (productStoreId: string, keyword: string) => ["productCalendar", productStoreId, keyword] as const
+  },
   imports: ["imports"] as const,
   indexStatus: ["indexStatus"] as const
 } as const
