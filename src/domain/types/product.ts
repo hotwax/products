@@ -37,6 +37,11 @@ export interface ProductSummary {
   createdDate: string
   lastModifiedDate: string
   variantCount: number
+  /** Identifier fields read by the product identifier preference (PRDT_IDEN_PREF). */
+  goodIdentifications: string[]
+  groupId: string
+  groupName: string
+  title: string
 }
 
 export interface ProductSearchPage {
