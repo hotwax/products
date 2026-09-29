@@ -39,10 +39,15 @@ export function parseProductIdentificationPref(settingValue: unknown): ProductId
   }
 }
 
+// The index holds goodIdentifications such as "SKU/null" for values that were never set, and the
+// shared resolver hands that text back as the value, so it counts as missing too.
+const EMPTY_IDENTIFIER_TEXT = new Set(["", "null", "undefined"])
+
 /** One identifier of a product document (a field or a goodIdentifications entry); "" when missing. */
 export function productIdentifierValue(identifierId: string, product?: object | null): string {
   if(!identifierId || !product || !Object.keys(product).length) {return ""}
   const value = commonUtil.getProductIdentificationValue(identifierId, product)
+  const text = value === undefined || value === null ? "" : String(value).trim()
 
-  return value === undefined || value === null ? "" : String(value)
+  return EMPTY_IDENTIFIER_TEXT.has(text.toLowerCase()) ? "" : text
 }
