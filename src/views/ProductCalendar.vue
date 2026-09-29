@@ -57,7 +57,7 @@
           </ion-item>
           <ion-list v-if="rows.length">
             <ion-item v-for="row in rows" :key="`${row.productStoreId}:${row.productId}`">
-              <ion-label>
+              <ion-label class="product-label">
                 <h2>{{ row.productName || row.internalName || row.productId }}</h2>
                 <p>{{ row.productId }}</p>
               </ion-label>
@@ -203,9 +203,16 @@ main {
 }
 
 .date-grid {
+  flex: 1 1 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--spacer-xs);
+  min-width: 0;
+}
+
+.product-label {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .date-grid span {
