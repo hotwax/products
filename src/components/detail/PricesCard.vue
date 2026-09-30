@@ -2,7 +2,7 @@
   <CardSection :title="translate('Prices')">
     <template #action>
       <ion-button
-        v-if="canCopyFromParent && canEdit"
+        v-if="canCopyFromParent && canEdit && rows.length"
         fill="clear"
         size="small"
         @click="$emit('copyFromParent')"
@@ -11,45 +11,37 @@
       </ion-button>
     </template>
 
-    <div class="prices-grid">
-      <ion-select
-        v-model="draft.currencyUomId"
-        :label="translate('Currency')"
-        label-placement="stacked"
-        interface="popover"
-        fill="outline"
-        :disabled="!canEdit"
-        :class="{ 'ion-invalid': touched && errors.currencyUomId, 'ion-touched': touched }"
-        :error-text="errors.currencyUomId"
-        @ion-change="touched && validate()"
-      >
-        <ion-select-option
-          v-for="option in currencies"
-          :key="option.id"
-          :value="option.id"
-        >
-          {{ option.label }}
-        </ion-select-option>
-      </ion-select>
+    <p
+      v-if="!rows.length"
+      class="ion-text-center"
+    >
+      {{ translate("No prices in this store group.") }}
+    </p>
 
+    <div
+      v-else
+      class="prices-grid"
+    >
       <ion-input
-        v-for="priceType in priceTypes"
-        :key="priceType"
-        v-model="draft[priceType]"
-        :label="translate(priceTypeLabel(priceType))"
+        v-for="row in rows"
+        :key="row.key"
+        v-model="draft[row.key]"
+        :label="`${translate(priceTypeLabel(row.productPriceTypeId))} (${row.currencyUomId})`"
         label-placement="stacked"
         fill="outline"
         type="number"
         min="0"
-        clear-input
         :disabled="!canEdit"
-        :class="{ 'ion-invalid': touched && errors[priceType], 'ion-touched': touched }"
-        :error-text="errors[priceType]"
+        :class="{ 'ion-invalid': touched && errors[row.key], 'ion-touched': touched }"
+        :error-text="errors[row.key]"
         @ion-blur="touched && validate()"
       />
     </div>
 
-    <template #footer>
+    <template
+      v-if="rows.length"
+      #footer
+    >
       <SaveFooter
         :dirty="dirty"
         :saving="saving"
@@ -64,24 +56,17 @@
 
 <script setup lang="ts">
 import { translate } from "@common"
-import { IonButton, IonInput, IonSelect, IonSelectOption } from "@ionic/vue"
+import { IonButton, IonInput } from "@ionic/vue"
 import { ref } from "vue"
-import { z } from "zod"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
-import { priceTypeLabel } from "@/domain/product/prices"
-import type { CatalogOption } from "@/domain/types/product"
-
-const positivePrice = z.string().trim().refine(
-  (v) => v === "" || (!isNaN(Number(v)) && Number(v) > 0),
-  { message: "Must be a positive number" }
-)
+import { type PriceRow, priceTypeLabel } from "@/domain/product/prices"
 
 const props = withDefaults(defineProps<{
-  /** The currency plus one entry per price type in priceTypes, keyed by price type id. */
+  /** The prices that exist for the store group. Nothing can be added: a price stays until it is replaced. */
+  rows: PriceRow[]
+  /** One value per row, keyed by row key. */
   draft: Record<string, string>
-  priceTypes: string[]
-  currencies: CatalogOption[]
   dirty: boolean
   saving: boolean
   staleUnderEdit: boolean
@@ -100,15 +85,21 @@ const emit = defineEmits<{
 const touched = ref(false)
 const errors = ref<Record<string, string>>({})
 
+// A shown price is always replaced by another price, never cleared, so each needs a positive number.
+const priceError = (value: string | undefined) => {
+  const text = (value ?? "").trim()
+  if(!text) {return translate("Enter a price")}
+
+  return !isNaN(Number(text)) && Number(text) > 0 ? "" : translate("Must be a positive number")
+}
+
 const validate = (): boolean => {
   touched.value = true
   const errs: Record<string, string> = {}
-  for(const priceType of props.priceTypes) {
-    const result = positivePrice.safeParse(props.draft[priceType] ?? "")
-    if(!result.success) {errs[priceType] = result.error.issues[0].message}
+  for(const row of props.rows) {
+    const error = priceError(props.draft[row.key])
+    if(error) {errs[row.key] = error}
   }
-  const anyEntered = props.priceTypes.some((priceType) => (props.draft[priceType] ?? "").trim() !== "")
-  if(anyEntered && !props.draft.currencyUomId) {errs.currencyUomId = "Currency is required when a price is set"}
   errors.value = errs
 
   return Object.keys(errs).length === 0

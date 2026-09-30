@@ -137,9 +137,8 @@
         />
 
         <PricesCard
+          :rows="priceRows"
           :draft="priceDraft.draft"
-          :price-types="priceTypes"
-          :currencies="currencies"
           :dirty="priceDraft.dirty.value"
           :saving="pricesSaving"
           :stale-under-edit="priceDraft.staleUnderEdit.value"
@@ -258,14 +257,13 @@ import { useCategoryMutations } from "@/mutations/useCategoryMutations"
 import { useShopifyShopProductMutations } from "@/mutations/useShopifyShopProductMutations"
 import { triggerSolrIndex, updateProductFields } from "@/api/pim"
 import { useToast } from "@/composables/useToast"
-import { currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
+import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { productCoreOptions } from "@/queries/productDetail"
 import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
-import type { PriceContext } from "@/domain/product/prices"
-import { DEFAULT_PRICE_PURPOSE, activePriceForTypeContext, activePricesForTypeContext, priceMatchesContext, priceTypesFor, purposeForNewPrice } from "@/domain/product/prices"
+import { DEFAULT_PRICE_PURPOSE, activePricesForRow, priceRowsForStoreGroup, purposeForNewPrice } from "@/domain/product/prices"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
@@ -320,14 +318,10 @@ const categoryMutations = useCategoryMutations(() => editingProductId.value, () 
 const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.value, () => parentProductId.value)
 
 // ---------- prices ----------
-// A price belongs to a store group, not a single store, so a store's price is the one for its primary
-// store group in its currency. Every price type the product has gets a field.
-const priceTypes = computed(() => priceTypesFor(prices.value))
-
-const currentPriceContext = (): PriceContext => ({
-  currencyUomId: priceDraft.draft.currencyUomId || priceSource.value.currencyUomId || "USD",
-  productStoreGroupId: currentProductStore.value.primaryStoreGroupId
-})
+// A price belongs to a store group, not a single store. Only the prices that already exist for the
+// selected store's group are shown, one per price type and currency; none can be added here.
+const storeCurrencyUomId = computed(() => currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId)
+const priceRows = computed(() => priceRowsForStoreGroup(prices.value, currentProductStore.value.primaryStoreGroupId, storeCurrencyUomId.value))
 
 const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
   productPriceTypeId: price.productPriceTypeId,
@@ -340,18 +334,9 @@ const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
 })
 
 const priceSource = computed(() => {
-  const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
-  const activeInStoreGroup = prices.value.filter((price) => price.active && priceMatchesContext(price, {
-    currencyUomId: price.currencyUomId,
-    productStoreGroupId
-  }))
-  const currencyUomId = currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId || activeInStoreGroup[0]?.currencyUomId || "USD"
-  const context = { currencyUomId, productStoreGroupId }
+  const entries = priceRows.value.map((row) => [row.key, row.price.price.toString()])
 
-  return {
-    currencyUomId,
-    ...Object.fromEntries(priceTypes.value.map((type) => [type, activePriceForTypeContext(prices.value, type, context)?.price?.toString() ?? ""]))
-  } as Record<string, string>
+  return Object.fromEntries(entries) as Record<string, string>
 })
 
 const priceDraft = useCardDraft(priceSource)
@@ -367,32 +352,27 @@ const onSavePrices = async () => {
   pricesSaving.value = true
   try {
     const now = new Date().toISOString()
-    const context = currentPriceContext()
+    const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
 
-    const pricePayload = priceTypes.value
-      .flatMap((type) => {
-        const draftVal = (priceDraft.draft[type] ?? "").trim()
-        const savedVal = (priceSource.value[type] ?? "").trim()
-        if(draftVal === savedVal) {return []}
+    // Only shown prices are edited: each changed one is retired and replaced, keeping its purpose.
+    const pricePayload = priceRows.value.flatMap((row) => {
+      const draftVal = (priceDraft.draft[row.key] ?? "").trim()
+      if(!draftVal || draftVal === (priceSource.value[row.key] ?? "").trim()) {return []}
 
-        const replacedPrices = activePricesForTypeContext(prices.value, type, context)
-        const expirePayloads = replacedPrices.map((price) => expirePricePayload(price, now))
-        if(draftVal) {
-          return [
-            ...expirePayloads,
-            {
-              productPriceTypeId: type,
-              currencyUomId: priceDraft.draft.currencyUomId,
-              price: Number(draftVal),
-              productPricePurposeId: purposeForNewPrice(replacedPrices),
-              productStoreId: currentProductStore.value.productStoreId,
-              productStoreGroupId: currentProductStore.value.primaryStoreGroupId
-            }
-          ]
+      const replacedPrices = activePricesForRow(prices.value, row.productPriceTypeId, row.currencyUomId, productStoreGroupId)
+
+      return [
+        ...replacedPrices.map((price) => expirePricePayload(price, now)),
+        {
+          productPriceTypeId: row.productPriceTypeId,
+          currencyUomId: row.currencyUomId,
+          price: Number(draftVal),
+          productPricePurposeId: purposeForNewPrice(replacedPrices),
+          productStoreId: currentProductStore.value.productStoreId,
+          productStoreGroupId
         }
-
-        return expirePayloads
-      })
+      ]
+    })
 
     if(!pricePayload.length) {return}
 
@@ -412,12 +392,10 @@ const onCopyPricesFromParent = async () => {
   if(!canEditProduct.value) {return}
   if(!parentProductId.value) {return}
   const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
-  const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
-  const active = parent.prices.filter((p) => p.active)
-  const currencyUomId = active.find((p) => p.productStoreGroupId === productStoreGroupId)?.currencyUomId ?? active[0]?.currencyUomId ?? priceDraft.draft.currencyUomId
-  priceDraft.draft.currencyUomId = currencyUomId
-  for(const type of priceTypes.value) {
-    priceDraft.draft[type] = activePriceForTypeContext(parent.prices, type, { currencyUomId, productStoreGroupId })?.price?.toString() ?? ""
+  const parentRows = priceRowsForStoreGroup(parent.prices, currentProductStore.value.primaryStoreGroupId)
+  for(const row of priceRows.value) {
+    const parentRow = parentRows.find((candidate) => candidate.key === row.key)
+    if(parentRow) {priceDraft.draft[row.key] = parentRow.price.price.toString()}
   }
 }
 
@@ -476,12 +454,10 @@ const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
-const currenciesQuery = useQuery(currencyUomOptions())
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
 const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
-const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 
