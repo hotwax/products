@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { activePriceForTypeContext, activePricesForTypeContext } from "../prices"
 import type { ProductPrice } from "@/domain/types/product"
+import { activePriceForTypeContext, activePricesForTypeContext } from "../prices"
 
 const price = (overrides: Partial<ProductPrice>): ProductPrice => ({
   productPriceTypeId: "DEFAULT_PRICE",
