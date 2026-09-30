@@ -33,44 +33,18 @@
       </ion-select>
 
       <ion-input
-        v-model="draft.DEFAULT_PRICE"
-        :label="translate('Default price')"
+        v-for="priceType in priceTypes"
+        :key="priceType"
+        v-model="draft[priceType]"
+        :label="translate(priceTypeLabel(priceType))"
         label-placement="stacked"
         fill="outline"
         type="number"
         min="0"
         clear-input
         :disabled="!canEdit"
-        :class="{ 'ion-invalid': touched && errors.DEFAULT_PRICE, 'ion-touched': touched }"
-        :error-text="errors.DEFAULT_PRICE"
-        @ion-blur="touched && validate()"
-      />
-
-      <ion-input
-        v-model="draft.LIST_PRICE"
-        :label="translate('List price')"
-        label-placement="stacked"
-        fill="outline"
-        type="number"
-        min="0"
-        clear-input
-        :disabled="!canEdit"
-        :class="{ 'ion-invalid': touched && errors.LIST_PRICE, 'ion-touched': touched }"
-        :error-text="errors.LIST_PRICE"
-        @ion-blur="touched && validate()"
-      />
-
-      <ion-input
-        v-model="draft.WHOLESALE_PRICE"
-        :label="translate('Wholesale price')"
-        label-placement="stacked"
-        fill="outline"
-        type="number"
-        min="0"
-        clear-input
-        :disabled="!canEdit"
-        :class="{ 'ion-invalid': touched && errors.WHOLESALE_PRICE, 'ion-touched': touched }"
-        :error-text="errors.WHOLESALE_PRICE"
+        :class="{ 'ion-invalid': touched && errors[priceType], 'ion-touched': touched }"
+        :error-text="errors[priceType]"
         @ion-blur="touched && validate()"
       />
     </div>
@@ -89,47 +63,24 @@
 </template>
 
 <script setup lang="ts">
+import { translate } from "@common"
 import { IonButton, IonInput, IonSelect, IonSelectOption } from "@ionic/vue"
 import { ref } from "vue"
 import { z } from "zod"
-import { translate } from "@common"
 import CardSection from "@/components/common/CardSection.vue"
 import SaveFooter from "@/components/common/SaveFooter.vue"
+import { priceTypeLabel } from "@/domain/product/prices"
 import type { CatalogOption } from "@/domain/types/product"
-
-const PRICE_FIELDS = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
-type PriceField = typeof PRICE_FIELDS[number]
 
 const positivePrice = z.string().trim().refine(
   (v) => v === "" || (!isNaN(Number(v)) && Number(v) > 0),
   { message: "Must be a positive number" }
 )
 
-const pricesSchema = z.object({
-  currencyUomId: z.string(),
-  DEFAULT_PRICE: positivePrice,
-  LIST_PRICE: positivePrice,
-  WHOLESALE_PRICE: positivePrice
-}).superRefine((data, ctx) => {
-  const anyEntered = PRICE_FIELDS.some((f) => (data[f] ?? "").trim() !== "")
-  if(anyEntered && !data.currencyUomId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Currency is required when a price is set",
-      path: ["currencyUomId"]
-    })
-  }
-})
-
-type PriceErrors = Partial<Record<PriceField | "currencyUomId", string>>
-
 const props = withDefaults(defineProps<{
-  draft: {
-    currencyUomId: string
-    DEFAULT_PRICE: string
-    LIST_PRICE: string
-    WHOLESALE_PRICE: string
-  }
+  /** The currency plus one entry per price type in priceTypes, keyed by price type id. */
+  draft: Record<string, string>
+  priceTypes: string[]
   currencies: CatalogOption[]
   dirty: boolean
   saving: boolean
@@ -147,29 +98,20 @@ const emit = defineEmits<{
 }>()
 
 const touched = ref(false)
-const errors = ref<PriceErrors>({})
+const errors = ref<Record<string, string>>({})
 
 const validate = (): boolean => {
   touched.value = true
-  const result = pricesSchema.safeParse({
-    currencyUomId: props.draft.currencyUomId,
-    DEFAULT_PRICE: props.draft.DEFAULT_PRICE,
-    LIST_PRICE: props.draft.LIST_PRICE,
-    WHOLESALE_PRICE: props.draft.WHOLESALE_PRICE
-  })
-  if(result.success) {
-    errors.value = {}
-
-    return true
+  const errs: Record<string, string> = {}
+  for(const priceType of props.priceTypes) {
+    const result = positivePrice.safeParse(props.draft[priceType] ?? "")
+    if(!result.success) {errs[priceType] = result.error.issues[0].message}
   }
-  const errs: PriceErrors = {}
-  for(const issue of result.error.issues) {
-    const field = issue.path[0] as keyof PriceErrors
-    if(field && !errs[field]) {errs[field] = issue.message}
-  }
+  const anyEntered = props.priceTypes.some((priceType) => (props.draft[priceType] ?? "").trim() !== "")
+  if(anyEntered && !props.draft.currencyUomId) {errs.currencyUomId = "Currency is required when a price is set"}
   errors.value = errs
 
-  return false
+  return Object.keys(errs).length === 0
 }
 
 const onSave = () => {

@@ -138,6 +138,7 @@
 
         <PricesCard
           :draft="priceDraft.draft"
+          :price-types="priceTypes"
           :currencies="currencies"
           :dirty="priceDraft.dirty.value"
           :saving="pricesSaving"
@@ -264,7 +265,7 @@ import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
 import type { PriceContext } from "@/domain/product/prices"
-import { activePriceForTypeContext, activePricesForTypeContext, priceMatchesContext } from "@/domain/product/prices"
+import { DEFAULT_PRICE_PURPOSE, activePriceForTypeContext, activePricesForTypeContext, priceMatchesContext, priceTypesFor, purposeForNewPrice } from "@/domain/product/prices"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
@@ -319,20 +320,19 @@ const categoryMutations = useCategoryMutations(() => editingProductId.value, () 
 const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.value, () => parentProductId.value)
 
 // ---------- prices ----------
-const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
-type PriceType = typeof PRICE_TYPES[number]
+// A price belongs to a store group, not a single store, so a store's price is the one for its primary
+// store group in its currency. Every price type the product has gets a field.
+const priceTypes = computed(() => priceTypesFor(prices.value))
 
 const currentPriceContext = (): PriceContext => ({
   currencyUomId: priceDraft.draft.currencyUomId || priceSource.value.currencyUomId || "USD",
-  productPricePurposeId: "LISTING",
-  productStoreId: currentProductStore.value.productStoreId,
   productStoreGroupId: currentProductStore.value.primaryStoreGroupId
 })
 
 const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
   productPriceTypeId: price.productPriceTypeId,
   currencyUomId: price.currencyUomId,
-  productPricePurposeId: price.productPricePurposeId || "LISTING",
+  productPricePurposeId: price.productPricePurposeId || DEFAULT_PRICE_PURPOSE,
   productStoreId: price.productStoreId || currentProductStore.value.productStoreId,
   productStoreGroupId: price.productStoreGroupId || currentProductStore.value.primaryStoreGroupId,
   fromDate: price.fromDate,
@@ -340,27 +340,18 @@ const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
 })
 
 const priceSource = computed(() => {
-  const active = prices.value.filter((p: ProductPrice) => p.active)
-  const activeInCurrentStore = active.filter((price) => priceMatchesContext(price, {
+  const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
+  const activeInStoreGroup = prices.value.filter((price) => price.active && priceMatchesContext(price, {
     currencyUomId: price.currencyUomId,
-    productPricePurposeId: "LISTING",
-    productStoreId: currentProductStore.value.productStoreId,
-    productStoreGroupId: currentProductStore.value.primaryStoreGroupId
+    productStoreGroupId
   }))
-  const currencyUomId = currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId || activeInCurrentStore[0]?.currencyUomId || "USD"
-  const context = {
-    currencyUomId,
-    productPricePurposeId: "LISTING",
-    productStoreId: currentProductStore.value.productStoreId,
-    productStoreGroupId: currentProductStore.value.primaryStoreGroupId
-  }
+  const currencyUomId = currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId || activeInStoreGroup[0]?.currencyUomId || "USD"
+  const context = { currencyUomId, productStoreGroupId }
 
   return {
     currencyUomId,
-    DEFAULT_PRICE: activePriceForTypeContext(prices.value, "DEFAULT_PRICE", context)?.price?.toString() ?? "",
-    LIST_PRICE: activePriceForTypeContext(prices.value, "LIST_PRICE", context)?.price?.toString() ?? "",
-    WHOLESALE_PRICE: activePriceForTypeContext(prices.value, "WHOLESALE_PRICE", context)?.price?.toString() ?? ""
-  }
+    ...Object.fromEntries(priceTypes.value.map((type) => [type, activePriceForTypeContext(prices.value, type, context)?.price?.toString() ?? ""]))
+  } as Record<string, string>
 })
 
 const priceDraft = useCardDraft(priceSource)
@@ -378,13 +369,14 @@ const onSavePrices = async () => {
     const now = new Date().toISOString()
     const context = currentPriceContext()
 
-    const pricePayload = PRICE_TYPES
+    const pricePayload = priceTypes.value
       .flatMap((type) => {
-        const draftVal = (priceDraft.draft[type as PriceType] ?? "").trim()
-        const savedVal = (priceSource.value[type as PriceType] ?? "").trim()
+        const draftVal = (priceDraft.draft[type] ?? "").trim()
+        const savedVal = (priceSource.value[type] ?? "").trim()
         if(draftVal === savedVal) {return []}
 
-        const expirePayloads = activePricesForTypeContext(prices.value, type, context).map((price) => expirePricePayload(price, now))
+        const replacedPrices = activePricesForTypeContext(prices.value, type, context)
+        const expirePayloads = replacedPrices.map((price) => expirePricePayload(price, now))
         if(draftVal) {
           return [
             ...expirePayloads,
@@ -392,7 +384,7 @@ const onSavePrices = async () => {
               productPriceTypeId: type,
               currencyUomId: priceDraft.draft.currencyUomId,
               price: Number(draftVal),
-              productPricePurposeId: "LISTING",
+              productPricePurposeId: purposeForNewPrice(replacedPrices),
               productStoreId: currentProductStore.value.productStoreId,
               productStoreGroupId: currentProductStore.value.primaryStoreGroupId
             }
@@ -420,11 +412,13 @@ const onCopyPricesFromParent = async () => {
   if(!canEditProduct.value) {return}
   if(!parentProductId.value) {return}
   const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
+  const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
   const active = parent.prices.filter((p) => p.active)
-  priceDraft.draft.currencyUomId = active[0]?.currencyUomId ?? priceDraft.draft.currencyUomId
-  priceDraft.draft.DEFAULT_PRICE = active.find((p) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? ""
-  priceDraft.draft.LIST_PRICE = active.find((p) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? ""
-  priceDraft.draft.WHOLESALE_PRICE = active.find((p) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
+  const currencyUomId = active.find((p) => p.productStoreGroupId === productStoreGroupId)?.currencyUomId ?? active[0]?.currencyUomId ?? priceDraft.draft.currencyUomId
+  priceDraft.draft.currencyUomId = currencyUomId
+  for(const type of priceTypes.value) {
+    priceDraft.draft[type] = activePriceForTypeContext(parent.prices, type, { currencyUomId, productStoreGroupId })?.price?.toString() ?? ""
+  }
 }
 
 // tags on the anchor (virtual) product
