@@ -137,8 +137,8 @@
         />
 
         <PricesCard
+          :rows="priceRows"
           :draft="priceDraft.draft"
-          :currencies="currencies"
           :dirty="priceDraft.dirty.value"
           :saving="pricesSaving"
           :stale-under-edit="priceDraft.staleUnderEdit.value"
@@ -257,12 +257,13 @@ import { useCategoryMutations } from "@/mutations/useCategoryMutations"
 import { useShopifyShopProductMutations } from "@/mutations/useShopifyShopProductMutations"
 import { triggerSolrIndex, updateProductFields } from "@/api/pim"
 import { useToast } from "@/composables/useToast"
-import { currencyUomOptions, featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
+import { featureTypesOptions, identificationTypesOptions, lengthUomOptions, weightUomOptions } from "@/queries/catalog"
 import { productCoreOptions } from "@/queries/productDetail"
 import { useCardDraft } from "@/composables/useCardDraft"
 import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
+import { DEFAULT_PRICE_PURPOSE, activePricesForRow, priceRowsForStoreGroup, purposeForNewPrice } from "@/domain/product/prices"
 import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
@@ -317,18 +318,25 @@ const categoryMutations = useCategoryMutations(() => editingProductId.value, () 
 const shopifyMutations = useShopifyShopProductMutations(() => editingProductId.value, () => parentProductId.value)
 
 // ---------- prices ----------
-const PRICE_TYPES = ["DEFAULT_PRICE", "LIST_PRICE", "WHOLESALE_PRICE"] as const
-type PriceType = typeof PRICE_TYPES[number]
+// A price belongs to a store group, not a single store. Only the prices that already exist for the
+// selected store's group are shown, one per price type and currency; none can be added here.
+const storeCurrencyUomId = computed(() => currentProductStore.value.defaultCurrencyUomId || currentProductStore.value.currencyUomId)
+const priceRows = computed(() => priceRowsForStoreGroup(prices.value, currentProductStore.value.primaryStoreGroupId, storeCurrencyUomId.value))
+
+const expirePricePayload = (price: ProductPrice, thruDate: string) => ({
+  productPriceTypeId: price.productPriceTypeId,
+  currencyUomId: price.currencyUomId,
+  productPricePurposeId: price.productPricePurposeId || DEFAULT_PRICE_PURPOSE,
+  productStoreId: price.productStoreId || currentProductStore.value.productStoreId,
+  productStoreGroupId: price.productStoreGroupId || currentProductStore.value.primaryStoreGroupId,
+  fromDate: price.fromDate,
+  thruDate
+})
 
 const priceSource = computed(() => {
-  const active = prices.value.filter((p: ProductPrice) => p.active)
+  const entries = priceRows.value.map((row) => [row.key, row.price.price.toString()])
 
-  return {
-    currencyUomId: active[0]?.currencyUomId ?? "USD",
-    DEFAULT_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? "",
-    LIST_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? "",
-    WHOLESALE_PRICE: active.find((p: ProductPrice) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
-  }
+  return Object.fromEntries(entries) as Record<string, string>
 })
 
 const priceDraft = useCardDraft(priceSource)
@@ -343,38 +351,30 @@ const onSavePrices = async () => {
   if(pricesSaving.value) {return}
   pricesSaving.value = true
   try {
-    const activePrices = prices.value.filter((p: ProductPrice) => p.active)
     const now = new Date().toISOString()
+    const productStoreGroupId = currentProductStore.value.primaryStoreGroupId
 
-    const pricePayload = PRICE_TYPES
-      .map((type) => {
-        const draftVal = (priceDraft.draft[type as PriceType] ?? "").trim()
-        const savedVal = (priceSource.value[type as PriceType] ?? "").trim()
-        if(draftVal === savedVal) return null
-        if(draftVal) {
-          return {
-            productPriceTypeId: type,
-            currencyUomId: priceDraft.draft.currencyUomId,
-            price: Number(draftVal),
-            productPricePurposeId: "LISTING",
-            productStoreId: currentProductStore.value.productStoreId,
-            productStoreGroupId: currentProductStore.value.primaryStoreGroupId
-          }
-        }
-        const existing = activePrices.find((p: ProductPrice) => p.productPriceTypeId === type)
-        if(!existing) return null
-        return {
-          productPriceTypeId: type,
-          currencyUomId: existing.currencyUomId,
-          productPricePurposeId: "LISTING",
+    // Only shown prices are edited: each changed one is retired and replaced, keeping its purpose.
+    const pricePayload = priceRows.value.flatMap((row) => {
+      const draftVal = (priceDraft.draft[row.key] ?? "").trim()
+      if(!draftVal || draftVal === (priceSource.value[row.key] ?? "").trim()) {return []}
+
+      const replacedPrices = activePricesForRow(prices.value, row.productPriceTypeId, row.currencyUomId, productStoreGroupId)
+
+      return [
+        ...replacedPrices.map((price) => expirePricePayload(price, now)),
+        {
+          productPriceTypeId: row.productPriceTypeId,
+          currencyUomId: row.currencyUomId,
+          price: Number(draftVal),
+          productPricePurposeId: purposeForNewPrice(replacedPrices),
           productStoreId: currentProductStore.value.productStoreId,
-          productStoreGroupId: currentProductStore.value.primaryStoreGroupId,
-          thruDate: now
+          productStoreGroupId
         }
-      })
-      .filter(Boolean)
+      ]
+    })
 
-    if(!pricePayload.length) return
+    if(!pricePayload.length) {return}
 
     await updateProductFields(editingProductId.value, { prices: pricePayload })
 
@@ -392,11 +392,11 @@ const onCopyPricesFromParent = async () => {
   if(!canEditProduct.value) {return}
   if(!parentProductId.value) {return}
   const parent = await queryClient.ensureQueryData(productCoreOptions(parentProductId.value))
-  const active = parent.prices.filter((p) => p.active)
-  priceDraft.draft.currencyUomId = active[0]?.currencyUomId ?? priceDraft.draft.currencyUomId
-  priceDraft.draft.DEFAULT_PRICE = active.find((p) => p.productPriceTypeId === "DEFAULT_PRICE")?.price?.toString() ?? ""
-  priceDraft.draft.LIST_PRICE = active.find((p) => p.productPriceTypeId === "LIST_PRICE")?.price?.toString() ?? ""
-  priceDraft.draft.WHOLESALE_PRICE = active.find((p) => p.productPriceTypeId === "WHOLESALE_PRICE")?.price?.toString() ?? ""
+  const parentRows = priceRowsForStoreGroup(parent.prices, currentProductStore.value.primaryStoreGroupId)
+  for(const row of priceRows.value) {
+    const parentRow = parentRows.find((candidate) => candidate.key === row.key)
+    if(parentRow) {priceDraft.draft[row.key] = parentRow.price.price.toString()}
+  }
 }
 
 // tags on the anchor (virtual) product
@@ -454,12 +454,10 @@ const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
-const currenciesQuery = useQuery(currencyUomOptions())
 const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
 const featureTypes = computed(() => featureTypesQuery.data.value ?? [])
 const lengthUoms = computed(() => lengthUomsQuery.data.value ?? [])
 const weightUoms = computed(() => weightUomsQuery.data.value ?? [])
-const currencies = computed(() => currenciesQuery.data.value ?? [])
 
 const coreErrorText = computed(() => errorMessage(coreErrorValue.value, translate("Could not load this product")))
 

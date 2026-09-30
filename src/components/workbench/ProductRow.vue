@@ -20,12 +20,9 @@
     </ion-thumbnail>
 
     <ion-label>
-      <h2>{{ displayName }}</h2>
-      <p>
-        {{ product.sku || product.productId }}
-        <template v-if="secondaryLine">
-          · {{ secondaryLine }}
-        </template>
+      {{ primaryIdentifier }}
+      <p v-if="secondaryIdentifier">
+        {{ secondaryIdentifier }}
       </p>
       <div
         v-if="product.isVirtual || presellState || visibleTags.length"
@@ -96,7 +93,9 @@ import router from "../../router"
 import { DxpShopifyImg, translate } from "@common"
 import { productDisplayName } from "@/domain/normalize/product"
 import { displayableTags, getPresellState, presellColor, presellLabel } from "@/domain/product/flags"
+import { productIdentifierValue } from "@/domain/product/identification"
 import type { ProductSummary, RowSalesSpark } from "@/domain/types/product"
+import { useProductIdentificationStore } from "@/store/productIdentification"
 
 const props = withDefaults(
   defineProps<{
@@ -120,14 +119,14 @@ const resolvedRouterLink = computed(() => {
 
   return router.resolve(props.routerLink).href
 })
-const displayName = computed(() => productDisplayName(props.product))
+const productIdentificationStore = useProductIdentificationStore()
+const productIdentificationPref = computed(() => productIdentificationStore.getProductIdentificationPref)
+// Primary and secondary follow Settings > Product identifier; without a primary value the row shows the name.
+const primaryIdentifier = computed(() =>
+  productIdentifierValue(productIdentificationPref.value.primaryId, props.product) || productDisplayName(props.product))
+const secondaryIdentifier = computed(() => productIdentifierValue(productIdentificationPref.value.secondaryId, props.product))
 const presellState = computed(() => getPresellState(props.product))
 const visibleTags = computed(() => displayableTags(props.product.tags).slice(0, props.maxTags))
-const secondaryLine = computed(() => {
-  if(props.product.isVariant && props.product.parentProductName) {return props.product.parentProductName}
-
-  return props.product.brandName || props.product.productTypeId
-})
 const variantCountLabel = computed(() => {
   const count = props.variantCounts[props.product.productId] ?? props.product.variantCount
 

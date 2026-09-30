@@ -1,0 +1,84 @@
+import { translate } from "@common"
+import { defineStore } from "pinia"
+import { fetchGoodIdentificationTypes, fetchProductIdentificationSetting, storeProductIdentificationSetting } from "@/api/productIdentification"
+import { runProductSolrQuery, solrDocs } from "@/api/solr"
+import {
+  DEFAULT_PRODUCT_IDENTIFICATION_PREF, PRODUCT_DOCUMENT_IDENTIFIERS, type ProductIdentificationOption,
+  type ProductIdentificationPref, parseProductIdentificationPref
+} from "@/domain/product/identification"
+import logger from "@/logger"
+import { showToast } from "@/utils"
+
+/** The ProductStore's product identifier preference (PRDT_IDEN_PREF), ported from the other
+ *  AccxUI apps' product store settings so rows show the same primary and secondary identifiers. */
+export const useProductIdentificationStore = defineStore("productIdentification", {
+  state: () => ({
+    productIdentificationPref: { ...DEFAULT_PRODUCT_IDENTIFICATION_PREF } as ProductIdentificationPref,
+    productIdentificationOptions: [] as ProductIdentificationOption[],
+    sampleProducts: [] as Record<string, unknown>[],
+    currentSampleProduct: null as Record<string, unknown> | null
+  }),
+  getters: {
+    getProductIdentificationPref: (state) => state.productIdentificationPref,
+    getProductIdentificationOptions: (state) => state.productIdentificationOptions,
+    getCurrentSampleProduct: (state) => state.currentSampleProduct
+  },
+  actions: {
+    async fetchProductIdentificationPref(productStoreId: string) {
+      if(!productStoreId) {
+        this.productIdentificationPref = { ...DEFAULT_PRODUCT_IDENTIFICATION_PREF }
+
+        return
+      }
+
+      try {
+        this.productIdentificationPref = parseProductIdentificationPref(await fetchProductIdentificationSetting(productStoreId))
+      } catch (error) {
+        logger.error("Failed to fetch the product identifier setting", error)
+      }
+    },
+    async setProductIdentificationPref(productStoreId: string, productIdentificationPref: ProductIdentificationPref) {
+      try {
+        await storeProductIdentificationSetting(productStoreId, JSON.stringify(productIdentificationPref))
+        this.productIdentificationPref = productIdentificationPref
+        await showToast(translate("Product Store setting updated successfully."))
+      } catch (error) {
+        logger.error("Failed to update the product identifier setting", error)
+        await showToast(translate("Failed to update Product Store setting."))
+      }
+    },
+    async prepareProductIdentifierOptions() {
+      let goodIdentificationTypes: ProductIdentificationOption[] = []
+      try {
+        goodIdentificationTypes = (await fetchGoodIdentificationTypes()).map((type) => ({
+          goodIdentificationTypeId: String(type.goodIdentificationTypeId ?? ""),
+          description: type.description ? String(type.description) : undefined
+        }))
+      } catch (error) {
+        logger.error("Failed to fetch good identification types", error)
+      }
+
+      const options = new Map([...PRODUCT_DOCUMENT_IDENTIFIERS, ...goodIdentificationTypes]
+        .filter((option) => option.goodIdentificationTypeId)
+        .map((option) => [option.goodIdentificationTypeId, option]))
+      this.productIdentificationOptions = [...options.values()]
+    },
+    async fetchSampleProducts() {
+      try {
+        this.sampleProducts = solrDocs(await runProductSolrQuery({ query: "*:*", filter: ["docType:PRODUCT"], limit: 10 }))
+      } catch (error) {
+        logger.error("Failed to fetch sample products", error)
+        this.sampleProducts = []
+      }
+      this.shuffleProduct()
+    },
+    shuffleProduct() {
+      this.currentSampleProduct = this.sampleProducts.length
+        ? this.sampleProducts[Math.floor(Math.random() * this.sampleProducts.length)]
+        : null
+    }
+  },
+  persist: {
+    pick: ["productIdentificationPref"]
+  }
+})

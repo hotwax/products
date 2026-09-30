@@ -61,5 +61,6 @@ export const useWorkbenchStore = defineStore("workbench", {
       this.selectedProductIds = []
     }
   },
-  persist: { pick: ["productTypeId", "productKind", "productStoreId", "sort"] }
+  // Sort has no control on the page for now, so it is not persisted: every visit uses the default order.
+  persist: { pick: ["productTypeId", "productKind", "productStoreId"] }
 })

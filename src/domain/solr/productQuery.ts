@@ -63,6 +63,17 @@ export function workbenchSearchPayload(params: ProductSearchParams, pageIndex: n
   }
 }
 
+/** Product documents for a known set of productIds (image and identifiers for rows from other APIs). */
+export function productsByIdPayload(productIds: string[]): SolrJsonQuery {
+  const ids = Array.from(new Set(productIds.filter(Boolean)))
+
+  return {
+    query: "*:*",
+    filter: ["docType:PRODUCT", `productId: (${ids.map((id) => `"${escapeSolrValue(id)}"`).join(" OR ")})`],
+    limit: ids.length
+  }
+}
+
 export function rowSalesAnalyticsPayload(productIds: string[], startIso: string): SolrJsonQuery {
   const ids = Array.from(new Set(productIds.filter(Boolean)))
 
