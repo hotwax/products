@@ -2,7 +2,7 @@ import { type ComputedRef, type Ref, computed } from "vue"
 import { useQueryClient } from "@tanstack/vue-query"
 import { productCoreOptions } from "@/queries/productDetail"
 import { useUpdateProductFields } from "@/mutations/useProductMutations"
-import { useCardDraft } from "./useCardDraft"
+import { useCardDraft, type CardDraft } from "./useCardDraft"
 import { useToast } from "./useToast"
 import { translate } from "@common"
 import type { ProductCore } from "@/domain/types/product"
@@ -67,27 +67,38 @@ function shippingSlice(core: ProductCore) {
 export function useProductEditor(editingProductId: Ref<string>, core: ComputedRef<ProductCore | null>, parentProductId: Ref<string>) {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const updateMutation = useUpdateProductFields(() => editingProductId.value, () => parentProductId.value)
+  const updateMutation = useUpdateProductFields()
+  const sourceScope = computed(() => core.value?.productId ?? "")
 
-  const display = useCardDraft(computed(() => (core.value ? displaySlice(core.value) : null)))
-  const dates = useCardDraft(computed(() => (core.value ? datesSlice(core.value) : null)))
-  const policy = useCardDraft(computed(() => (core.value ? policySlice(core.value) : null)))
-  const shipping = useCardDraft(computed(() => (core.value ? shippingSlice(core.value) : null)))
+  const display = useCardDraft(computed(() => (core.value ? displaySlice(core.value) : null)), sourceScope)
+  const dates = useCardDraft(computed(() => (core.value ? datesSlice(core.value) : null)), sourceScope)
+  const policy = useCardDraft(computed(() => (core.value ? policySlice(core.value) : null)), sourceScope)
+  const shipping = useCardDraft(computed(() => (core.value ? shippingSlice(core.value) : null)), sourceScope)
 
   const anyDirty = computed(() => display.dirty.value || dates.dirty.value || policy.dirty.value || shipping.dirty.value)
   const saving = computed(() => updateMutation.isPending.value)
 
   const save = async <T extends Record<string, any>>(
-    card: { changes: () => Partial<T> },
+    card: CardDraft<T>,
     toPatch: (diff: Record<string, any>) => ProductFieldsPatch
   ) => {
     const diff = card.changes()
     if(!Object.keys(diff).length) {return}
+    if(card.scopeKey.value !== editingProductId.value) {
+      toast.error(new Error(translate("These edits belong to another product. Switch back to save them.")))
+      return
+    }
+    const submitted = card.beginSave()
+    const productId = editingProductId.value
+    let succeeded = false
     try {
-      await updateMutation.mutateAsync(toPatch(diff))
+      await updateMutation.mutateAsync({ productId, parentProductId: parentProductId.value, patch: toPatch(diff) })
+      succeeded = true
       toast.success(translate("Saved"))
     } catch (error) {
       toast.error(error, translate("Could not save"))
+    } finally {
+      card.finishSave(submitted, succeeded)
     }
   }
 
