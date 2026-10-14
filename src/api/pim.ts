@@ -11,10 +11,11 @@ import { request, responseList } from "./http"
 type Raw = Record<string, unknown>
 
 /** Fire-and-forget Solr re-index. Errors are swallowed intentionally —
- *  a failed index should never block or surface as a save error. */
+ *  a failed index should never block or surface as a save error. A caller may
+ *  refresh its cache after a successful index without changing that contract. */
 export function triggerSolrIndex(
   productId: string,
-  options: { indexVariants?: boolean } = { indexVariants: true }
+  options: { indexVariants?: boolean; onIndexed?: () => void } = { indexVariants: true }
 ): void {
   request({
     url: "oms/search/index/product",
@@ -23,7 +24,7 @@ export function triggerSolrIndex(
       productId,
       indexVariants: options.indexVariants ?? true
     }
-  }).catch((error) => {
+  }).then(() => options.onIndexed?.()).catch((error) => {
     console.error("Failed to index product in Solr:", error)
   })
 }
