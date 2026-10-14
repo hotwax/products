@@ -9,7 +9,7 @@ export const qk = {
     rowSales: (productIds: string[]) => ["products", "rowSales", [...productIds].sort()] as const,
     documents: (productIds: string[]) => ["products", "documents", [...productIds].sort()] as const,
     tagFacets: (scope: Omit<ProductSearchParams, "tags">) => ["products", "tagFacets", scope] as const,
-    groupIdFacets: (scope: Omit<ProductSearchParams, "groupIds">) => ["products", "groupIdFacets", scope] as const
+    groupIdFacets: (parentIds: string[]) => ["products", "groupIdFacets", [...parentIds].sort()] as const
   },
   product: {
     root: (productId: string) => ["product", productId] as const,
