@@ -45,16 +45,20 @@ export function tagFacetsOptions(params: ProductSearchParams) {
 }
 
 export function groupIdFacetsOptions(params: ProductSearchParams) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { groupIds: _groupIds, ...scope } = params
+  const parentIds = Array.from(new Set((params.groupIds ?? []).filter(Boolean)))
 
   return queryOptions({
-    queryKey: qk.products.groupIdFacets(scope),
+    queryKey: qk.products.groupIdFacets(parentIds),
+    enabled: parentIds.length > 0,
     queryFn: async (): Promise<Record<string, number>> => {
+      if(!parentIds.length) {return {}}
       const response = await runProductSolrQuery(groupIdFacetPayload(params))
       const buckets: any[] = response.facets?.groupId?.buckets ?? []
 
-      return Object.fromEntries(buckets.map((bucket) => [String(bucket.val), Number(bucket.count)]))
+      return {
+        ...Object.fromEntries(parentIds.map((id) => [id, 0])),
+        ...Object.fromEntries(buckets.map((bucket) => [String(bucket.val), Number(bucket.count)]))
+      }
     },
     staleTime: 5 * 60_000
   })
