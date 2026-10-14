@@ -15,14 +15,20 @@ export interface CardDraft<T extends Record<string, any>> {
   staleUnderEdit: Ref<boolean>
   reset: () => void
   changes: () => Partial<T>
+  scopeKey: Ref<string | undefined>
+  beginSave: () => T
+  finishSave: (submitted: T, succeeded: boolean) => void
 }
 
-export function useCardDraft<T extends Record<string, any>>(source: Ref<T | null | undefined>): CardDraft<T> {
+export function useCardDraft<T extends Record<string, any>>(source: Ref<T | null | undefined>, sourceScope?: Ref<string>): CardDraft<T> {
   const draft = reactive({}) as T
   const seeded = shallowRef<T | null>(null)
+  const scopeKey = shallowRef<string | undefined>(undefined)
+  let saveInFlight = false
 
   const seed = (value: T) => {
     seeded.value = { ...value }
+    scopeKey.value = sourceScope?.value
     for(const key of Object.keys(draft)) {delete (draft as any)[key]}
     Object.assign(draft, value)
   }
@@ -47,7 +53,7 @@ export function useCardDraft<T extends Record<string, any>>(source: Ref<T | null
     source,
     (next) => {
       if(!next) {return}
-      if(!seeded.value || !dirty.value) {seed(next)}
+      if(!saveInFlight && (!seeded.value || !dirty.value)) {seed(next)}
       // dirty → hold the draft; the staleUnderEdit computed surfaces the conflict
     },
     { deep: false }
@@ -67,7 +73,22 @@ export function useCardDraft<T extends Record<string, any>>(source: Ref<T | null
     return diff
   }
 
-  return { draft, dirty, staleUnderEdit, reset, changes }
+  const beginSave = (): T => {
+    saveInFlight = true
+    return { ...draft }
+  }
+
+  const finishSave = (submitted: T, succeeded: boolean) => {
+    if(succeeded) {
+      // Advance only to the submitted values. Later edits remain in the draft,
+      // and unrelated server changes still compare against their old baseline.
+      seeded.value = { ...submitted }
+      if(!dirty.value) {seed(source.value ?? submitted)}
+    }
+    saveInFlight = false
+  }
+
+  return { draft, dirty, staleUnderEdit, reset, changes, scopeKey, beginSave, finishSave }
 }
 
 function valueEquals(a: unknown, b: unknown): boolean {
