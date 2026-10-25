@@ -3,11 +3,23 @@
 
 name: Deploy to Firebase Hosting on release
 'on':
+  workflow_dispatch:
+    inputs:
+      tooling_ref:
+        description: 'AccxUI commit containing the publish-only tools to test'
+        required: true
+        type: string
+      version:
+        description: 'Already-hosted stable release to omit from the test copy and republish'
+        default: 'v1.0.0'
+        required: true
+        type: string
   push:
     tags:
       - '*' # Push events to every tag not containing / Refer https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#patterns-to-match-branches-and-tags
 jobs:
   call-workflow-in-another-repo:
+    if: github.event_name == 'push'
     uses: hotwax/accxui/.github/workflows/common-firebase-hosting-release.yml@main
     with:
       config-path: .github/labeler.yml
@@ -17,3 +29,61 @@ jobs:
     secrets:
       envPAT: ${{ secrets.envPAT }}
       HOTWAX_PUBLIC_SECRET: ${{ secrets.HOTWAX_PUBLIC_SECRET }}
+
+  test-publish-only:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: development
+    permissions:
+      contents: read
+    concurrency:
+      group: release-hotwax/products
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: hotwax/accxui
+          ref: ${{ inputs.tooling_ref }}
+          fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          path: apps/products
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g firebase-tools@15.34.1
+      - name: Test additive publishing in an isolated Products UAT preview
+        env:
+          HOTWAX_PUBLIC_SECRET: ${{ secrets.HOTWAX_PUBLIC_SECRET }}
+          GH_TOKEN: ${{ github.token }}
+          TEST_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          channel="publish-only-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node --test scripts/hosting/*.test.mjs
+          node scripts/hosting/prepare-publish-test.mjs products "$channel" "$TEST_VERSION"
+          bash scripts/deploy.sh --publish-only --app products --environment uat --versions "$TEST_VERSION" --channel "$channel" --execute
+          # A second call must be a no-op, including no rebuild/replacement.
+          bash scripts/deploy.sh --publish-only --app products --environment uat --versions "$TEST_VERSION" --channel "$channel" --execute
+          node --input-type=module <<'JS'
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { isDeepStrictEqual } from 'node:util';
+          import { firebaseConnection, snapshot } from './scripts/hosting/publish-versions.mjs';
+          const before=JSON.parse(await readFile('publish-evidence/live-before.json','utf8'));
+          const {api}=await firebaseConnection();
+          const after=await snapshot(api,'hotwax-products-uat','live');
+          if(!isDeepStrictEqual(before,after)) throw Error('Products live deployment changed');
+          await writeFile('publish-evidence/live-after.json',JSON.stringify(after,null,2));
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: publish-only-uat-evidence
+          path: |
+            publish-evidence/*.json
+            apps/_worktrees/publish-products-uat-*/*.json
+            apps/_worktrees/publish-products-uat-*/v*/build-record.json
