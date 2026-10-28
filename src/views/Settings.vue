@@ -4,6 +4,12 @@
       <ion-toolbar>
         <ion-menu-button slot="start" />
         <ion-title>{{ translate("Settings") }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button fill="clear" @click="openLogs()">
+            <ion-icon slot="start" :icon="documentTextOutline" />
+            {{ translate("View logs") }}
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -218,12 +224,13 @@ import {
   IonSelectOption,
   IonSpinner,
   IonTitle,
-  IonToolbar
+  IonToolbar,
+  modalController
 } from "@ionic/vue"
-import { closeOutline, openOutline, saveOutline } from "ionicons/icons"
+import { closeOutline, openOutline, saveOutline, documentTextOutline } from "ionicons/icons"
 import { DateTime } from "luxon"
 import { computed, onBeforeMount, ref } from "vue"
-import { commonUtil, cookieHelper, translate } from "@common"
+import { commonUtil, cookieHelper, translate, DxpLogsModal } from "@common"
 import { useAuth, isMoquiOmsRef } from "@common/composables/useAuth"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/vue-query"
 import DxpProductIdentifier from "@/components/settings/DxpProductIdentifier.vue"
@@ -340,6 +347,13 @@ function clearSearch() {
   queryString.value = ""
   filteredTimeZones.value = []
   isLoading.value = true
+}
+
+async function openLogs() {
+  const logsModal = await modalController.create({
+    component: DxpLogsModal
+  });
+  return logsModal.present();
 }
 </script>
 
