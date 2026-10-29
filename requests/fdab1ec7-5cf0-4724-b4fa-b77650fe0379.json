@@ -6,8 +6,29 @@
   "action": "",
   "version": null,
   "actor": "ravilodhi",
-  "status": "running",
+  "status": "completed",
   "createdAt": "2026-10-29T13:10:11.709Z",
   "steps": [],
-  "runUrl": "https://github.com/hotwax/products/actions/runs/40879402127"
+  "runUrl": "https://github.com/hotwax/products/actions/runs/40879402127",
+  "hosting": {
+    "available": true,
+    "target": {
+      "project": "hotwax-digital-commerce-uat",
+      "site": "hotwax-products-uat",
+      "environment": "uat",
+      "origin": "https://hotwax-products-uat.web.app"
+    },
+    "versions": [
+      "v1.1.0",
+      "v1.0.0"
+    ],
+    "defaultVersion": "v1.1.0",
+    "configuredEnvironment": "AppEnvUAT",
+    "defaultSource": "Hosting manifest",
+    "checkedAt": "2026-10-29T13:10:17.137Z",
+    "deployedAt": "2026-10-24T15:29:34.319Z",
+    "release": "sites/hotwax-products-uat/channels/live/releases/1792855774319000",
+    "fileCount": 72
+  },
+  "finishedAt": "2026-10-29T13:10:19.828Z"
 }
