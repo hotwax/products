@@ -164,12 +164,18 @@ export function tagFacetPayload(params: ProductSearchParams): SolrJsonQuery {
   }
 }
 
-/** GroupId facet over the current scope minus the groupId filter and productKind check (isVariant/isVirtual)
- *  so facet counts reflect all docs in the group regardless of variant/virtual split. */
+/** Variant totals for the visible virtual parents supplied in groupIds. Workbench filters choose
+ *  the parent rows; they must not narrow each parent's family or count its virtual document. */
 export function groupIdFacetPayload(params: ProductSearchParams): SolrJsonQuery {
+  const parentIds = Array.from(new Set((params.groupIds ?? []).filter(Boolean)))
+
   return {
-    query: productSearchQueryText(params.queryString),
-    filter: productScopeFilters({ ...params, groupIds: [], productKind: undefined }),
+    query: parentIds.length ? "*:*" : "-*:*",
+    filter: [
+      "docType:PRODUCT",
+      "isVariant:true",
+      ...(parentIds.length ? [`groupId: (${parentIds.map((id) => `"${escapeSolrValue(id)}"`).join(" OR ")})`] : [])
+    ],
     limit: 0,
     facet: { groupId: { type: "terms", field: "groupId", limit: -1, mincount: 1 } },
     params: {

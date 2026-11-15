@@ -49,9 +49,9 @@ export function useProductWorkbench() {
   const productTypesQuery = useQuery(productTypesOptions())
   const productStoresQuery = useQuery(productStoresOptions())
 
-  const groupIdFacetsQuery = useQuery(computed(() => groupIdFacetsOptions(workbench.searchParams)))
-
   const products = computed(() => searchQuery.data.value?.pages.flatMap((page) => page.products) ?? [])
+  const visibleParentIds = computed(() => products.value.filter((product) => product.isVirtual).map((product) => product.productId))
+  const groupIdFacetsQuery = useQuery(computed(() => groupIdFacetsOptions({ ...workbench.searchParams, groupIds: visibleParentIds.value })))
   const visibleProductIds = computed(() => products.value.map((product) => product.productId))
   const { rowSales, rowSalesMax } = useRowSales(visibleProductIds)
   const total = computed(() => searchQuery.data.value?.pages[0]?.total ?? 0)
