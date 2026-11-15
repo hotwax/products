@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "a19ba714-aba4-4d88-ae7b-d6976c1cad9f",
+  "repo": "hotwax/products",
+  "actor": "dt2patel",
+  "toolsSha": "aa65bf41f5162d77eb2783f507315d59d080638f",
+  "action": "replace",
+  "environment": "prod",
+  "version": "v1.2.0,v1.1.0",
+  "targetDefault": "v1.2.0",
+  "build": [
+    "v1.2.0",
+    "v1.1.0"
+  ],
+  "added": [
+    "v1.2.0",
+    "v1.1.0"
+  ],
+  "replaced": [],
+  "removed": [],
+  "retained": [
+    "v1.2.0",
+    "v1.1.0"
+  ],
+  "previousDefault": "v1.1.0",
+  "nextDefault": "v1.2.0",
+  "rootChanges": true,
+  "confirmation": "PUBLISH TO PRODUCTION",
+  "app": {
+    "id": "products",
+    "repo": "hotwax/products",
+    "name": "products"
+  },
+  "target": {
+    "project": "digital-commerce-71eb8",
+    "site": "hotwax-products",
+    "environment": "prod",
+    "origin": "https://hotwax-products.web.app"
+  },
+  "baseFingerprint": "6b82217b9086acb56827be7b9d9eb572f0c3619bec07b94756b117e96d91ece1",
+  "baseRelease": "sites/hotwax-products/channels/live/releases/1786946564080000",
+  "sources": [
+    {
+      "version": "v1.2.0",
+      "appCommit": "8a074a11819ea64f36a56498f1c73d4d9a2c0e4b",
+      "frameworkCommit": "2d81ce390bc5d45bf926fcea3a4ff5acbdd1254e",
+      "frameworkPin": "v1.13.3",
+      "appId": "PRODUCTS",
+      "config": {
+        "appId": "PRODUCTS",
+        "environmentTypeId": "AppEnvDev",
+        "buildVersion": ""
+      }
+    },
+    {
+      "version": "v1.1.0",
+      "appCommit": "623f70f9efee12bad9858c04dc7b1088492282d2",
+      "frameworkCommit": "1cd78810a727e2b92224bec247f8dc08680e5227",
+      "frameworkPin": "v1.5.0",
+      "appId": "PRODUCTS",
+      "config": {
+        "appId": "PRODUCTS",
+        "environmentTypeId": "AppEnvDev",
+        "buildVersion": ""
+      }
+    }
+  ],
+  "sourceCommits": [
+    {
+      "version": "v1.2.0",
+      "appCommit": "8a074a11819ea64f36a56498f1c73d4d9a2c0e4b",
+      "frameworkCommit": "2d81ce390bc5d45bf926fcea3a4ff5acbdd1254e",
+      "frameworkPin": "v1.13.3",
+      "appId": "PRODUCTS"
+    },
+    {
+      "version": "v1.1.0",
+      "appCommit": "623f70f9efee12bad9858c04dc7b1088492282d2",
+      "frameworkCommit": "1cd78810a727e2b92224bec247f8dc08680e5227",
+      "frameworkPin": "v1.5.0",
+      "appId": "PRODUCTS"
+    }
+  ],
+  "createdAt": "2026-11-15T13:05:17.130Z",
+  "expiresAt": "2026-11-15T14:05:17.130Z",
+  "writable": true,
+  "warnings": [
+    "Users of the main URL receive v1.2.0. The site afterwards serves only v1.2.0, v1.1.0."
+  ]
+}
