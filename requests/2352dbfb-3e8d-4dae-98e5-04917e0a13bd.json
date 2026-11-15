@@ -6,8 +6,80 @@
   "action": "replace",
   "version": "v1.2.0,v1.1.0",
   "actor": "dt2patel",
-  "status": "running",
+  "status": "completed",
   "createdAt": "2026-11-15T13:06:05.303Z",
-  "steps": [],
-  "runUrl": "https://github.com/hotwax/products/actions/runs/43717190410"
+  "steps": [
+    {
+      "message": "Checking out v1.2.0",
+      "at": "2026-11-15T13:06:11.446Z"
+    },
+    {
+      "message": "Installing pinned dependencies for v1.2.0",
+      "at": "2026-11-15T13:06:12.893Z"
+    },
+    {
+      "message": "Building v1.2.0 version URL",
+      "at": "2026-11-15T13:06:19.341Z"
+    },
+    {
+      "message": "Checking out v1.1.0",
+      "at": "2026-11-15T13:06:39.814Z"
+    },
+    {
+      "message": "Installing pinned dependencies for v1.1.0",
+      "at": "2026-11-15T13:06:40.830Z"
+    },
+    {
+      "message": "Building v1.1.0 version URL",
+      "at": "2026-11-15T13:06:44.131Z"
+    },
+    {
+      "message": "Checking out v1.2.0 as Default",
+      "at": "2026-11-15T13:07:01.530Z"
+    },
+    {
+      "message": "Installing pinned dependencies for v1.2.0",
+      "at": "2026-11-15T13:07:02.572Z"
+    },
+    {
+      "message": "Building v1.2.0 Default",
+      "at": "2026-11-15T13:07:06.168Z"
+    },
+    {
+      "message": "Uploading 88 built files",
+      "at": "2026-11-15T13:07:29.198Z"
+    },
+    {
+      "message": "Publishing verified Firebase deployment",
+      "at": "2026-11-15T13:08:29.496Z"
+    }
+  ],
+  "runUrl": "https://github.com/hotwax/products/actions/runs/43717190410",
+  "deployment": {
+    "release": "sites/hotwax-products/channels/live/releases/1794748109207000",
+    "version": "sites/hotwax-products/versions/ccd1073b859417ad",
+    "previousVersion": "sites/hotwax-products/versions/1f4182fc7f2636b2",
+    "files": 106
+  },
+  "hosting": {
+    "available": true,
+    "target": {
+      "project": "digital-commerce-71eb8",
+      "site": "hotwax-products",
+      "environment": "prod",
+      "origin": "https://hotwax-products.web.app"
+    },
+    "versions": [
+      "v1.2.0",
+      "v1.1.0"
+    ],
+    "defaultVersion": "v1.2.0",
+    "configuredEnvironment": "AppEnvProd",
+    "defaultSource": "Hosting manifest",
+    "checkedAt": "2026-11-15T13:08:31.522Z",
+    "deployedAt": "2026-11-15T13:08:29.207Z",
+    "release": "sites/hotwax-products/channels/live/releases/1794748109207000",
+    "fileCount": 106
+  },
+  "finishedAt": "2026-11-15T13:08:32.676Z"
 }
