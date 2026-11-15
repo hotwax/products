@@ -6,12 +6,15 @@
     "environment": "prod",
     "origin": "https://hotwax-products.web.app"
   },
-  "versions": [],
-  "defaultVersion": "v1.1.0",
-  "configuredEnvironment": "AppEnvDev",
-  "defaultSource": "Compiled build metadata",
-  "checkedAt": "2026-11-15T13:05:14.399Z",
-  "deployedAt": "2026-08-17T06:02:44.080Z",
-  "release": "sites/hotwax-products/channels/live/releases/1786946564080000",
-  "fileCount": 25
+  "versions": [
+    "v1.2.0",
+    "v1.1.0"
+  ],
+  "defaultVersion": "v1.2.0",
+  "configuredEnvironment": "AppEnvProd",
+  "defaultSource": "Hosting manifest",
+  "checkedAt": "2026-11-15T13:08:31.522Z",
+  "deployedAt": "2026-11-15T13:08:29.207Z",
+  "release": "sites/hotwax-products/channels/live/releases/1794748109207000",
+  "fileCount": 106
 }
