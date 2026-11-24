@@ -16,7 +16,7 @@
 import { IonApp, IonRouterOutlet, IonSplitPane, loadingController } from "@ionic/vue"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { Settings } from "luxon"
-import { FastTravel, translate } from "@common"
+import { FastTravel, translate, useSessionChangeAlert } from "@common"
 
 import Menu from "@/components/Menu.vue"
 import emitter from "@/event-bus"
@@ -29,6 +29,9 @@ const loader = ref<HTMLIonLoadingElement | null>(null)
 const userStore = useUserStore()
 const userProfile = computed(() => userStore.getUserProfile)
 const productIdentificationStore = useProductIdentificationStore()
+
+// A login in another tab or app replaced the shared session cookies: ask the user to reload.
+useSessionChangeAlert()
 
 // Product rows read the current ProductStore's identifier preference, so load it whenever the store changes.
 // No store (logged out, or "None") resets it to the default rather than keeping the last store's.
