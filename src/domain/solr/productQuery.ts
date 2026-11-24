@@ -153,44 +153,19 @@ export function rowSalesAnalyticsPayload(productIds: string[], startIso: string)
   }
 }
 
-export interface SolrSearchQueryPayload {
-  query: string
-  filter: string[]
-  params: Record<string, unknown>
-}
-
-/** Tag query payload targeting Solr traditional faceting (supported on SortableTextField tags without docValues). */
-export function tagSearchQueryPayload(params: ProductSearchParams): SolrSearchQueryPayload {
-  return {
-    query: productSearchQueryText(params.queryString),
-    filter: productScopeFilters({ ...params, tags: [] }),
-    params: {
-      "q.op": "AND",
-      rows: 0,
-      facet: true,
-      "facet.field": "tags",
-      "facet.mincount": 1,
-      "facet.limit": 200,
-      "facet.sort": "count"
-    }
-  }
-}
-
 /** Tag facet over the current scope minus the tag filter itself (so more tags can be added). */
 export function tagFacetPayload(params: ProductSearchParams): SolrJsonQuery {
   return {
     query: productSearchQueryText(params.queryString),
     filter: productScopeFilters({ ...params, tags: [] }),
     limit: 0,
-    facet: { tags: { type: "terms", field: "tags", limit: 200, mincount: 1 } },
     params: {
       "q.op": "AND",
       rows: 0,
       facet: true,
       "facet.field": "tags",
       "facet.mincount": 1,
-      "facet.limit": 200,
-      "facet.sort": "count"
+      "facet.limit": 200
     }
   }
 }

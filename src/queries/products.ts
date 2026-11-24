@@ -1,9 +1,7 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/vue-query"
-import { logger } from "@common"
-import { request } from "@/api/http"
-import { runProductSolrQuery, searchProductSolr, solrDocs, solrTotal } from "@/api/solr"
+import { runProductSolrQuery, solrDocs, solrTotal } from "@/api/solr"
 import { normalizeProductSummary } from "@/domain/normalize/product"
-import { groupIdFacetPayload, productsByIdPayload, rowSalesAnalyticsPayload, tagFacetPayload, tagSearchQueryPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
+import { groupIdFacetPayload, productsByIdPayload, rowSalesAnalyticsPayload, tagFacetPayload, workbenchSearchPayload } from "@/domain/solr/productQuery"
 import type { ProductSearchPage, ProductSearchParams, RowSalesSpark, TagFacet } from "@/domain/types/product"
 import { qk } from "./keys"
 
@@ -30,99 +28,26 @@ export function workbenchSearchOptions(params: ProductSearchParams) {
   })
 }
 
-export function parseTagFacets(response: any): TagFacet[] {
-  if (!response) return []
-
-  // Check Solr facet_counts.facet_fields.tags (standard Solr faceting)
-  const facetCounts = response?.facet_counts?.facet_fields?.tags ??
-                      response?.response?.facet_counts?.facet_fields?.tags
-  if (Array.isArray(facetCounts) && facetCounts.length > 0) {
-    const list: TagFacet[] = []
-    for (let i = 0; i < facetCounts.length; i += 2) {
-      const val = String(facetCounts[i] ?? "").trim()
-      const count = Number(facetCounts[i + 1]) || 0
-      if (val) {
-        list.push({ value: val, count })
-      }
-    }
-    if (list.length > 0) return list
-  }
-
-  // Check Solr JSON Facet API: facets.tags.buckets
-  const buckets: any[] = response?.facets?.tags?.buckets ??
-                         response?.response?.facets?.tags?.buckets ?? []
-  if (Array.isArray(buckets) && buckets.length > 0) {
-    return buckets
-      .map((bucket) => ({ value: String(bucket.val ?? "").trim(), count: Number(bucket.count) || 0 }))
-      .filter((facet) => facet.value.length > 0)
-  }
-
-  return []
-}
-
-export async function fetchProductTagFacets(params: ProductSearchParams): Promise<TagFacet[]> {
-  // 1. Primary: admin/search/query with traditional Solr facet params (as used in order-routing)
-  try {
-    const searchPayload = tagSearchQueryPayload(params)
-    const response = await searchProductSolr(searchPayload)
-    const facets = parseTagFacets(response)
-    if (facets.length > 0) return facets
-  } catch (error) {
-    logger.warn("search/query tag faceting failed, attempting runSolrQuery", error)
-  }
-
-  // 2. Secondary: admin/runSolrQuery with tagFacetPayload
-  try {
-    const facetPayload = tagFacetPayload(params)
-    const response = await runProductSolrQuery(facetPayload)
-    const facets = parseTagFacets(response)
-    if (facets.length > 0) return facets
-  } catch (error) {
-    logger.warn("runSolrQuery tag faceting failed, attempting admin/solrFacets", error)
-  }
-
-  // 3. Tertiary: admin/solrFacets (co.hotwax.search.SearchServices.autoComplete#SolrFacet)
-  try {
-    const scopeFilters = productScopeFilters({ ...params, tags: [] })
-    const resp = await request<any>({
-      url: "admin/solrFacets",
-      method: "get",
-      params: {
-        facetToSelect: "tagsFacet",
-        docType: "PRODUCT",
-        coreName: "enterpriseSearch",
-        jsonQuery: JSON.stringify({
-          query: productSearchQueryText(params.queryString),
-          filter: scopeFilters
-        }),
-        noConditionFind: "Y",
-        limit: 200,
-        searchfield: "tags"
-      }
-    })
-    const options: any[] = resp?.facetResponse?.response ?? resp?.response ?? []
-    if (Array.isArray(options) && options.length > 0) {
-      return options
-        .map((opt) => ({
-          value: String(opt.value ?? opt.label ?? opt.id ?? opt.val ?? "").trim(),
-          count: Number(opt.count) || 0
-        }))
-        .filter((facet) => facet.value.length > 0)
-    }
-  } catch (error) {
-    logger.warn("admin/solrFacets failed", error)
-  }
-
-  return []
-}
-
 export function tagFacetsOptions(params: ProductSearchParams) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { tags: _tags, ...scope } = params
 
   return queryOptions({
     queryKey: qk.products.tagFacets(scope),
-    queryFn: () => fetchProductTagFacets(params),
+    queryFn: async (): Promise<TagFacet[]> => {
+      const response = await runProductSolrQuery(tagFacetPayload(params))
+      const counts = response.facet_counts?.facet_fields?.tags ?? []
+      if(counts.length) {
+        const facets: TagFacet[] = []
+        for(let i = 0; i < counts.length; i += 2) {
+          facets.push({ value: String(counts[i]), count: Number(counts[i + 1]) })
+        }
+        return facets
+      }
+      const buckets: any[] = response.facets?.tags?.buckets ?? []
+
+      return buckets.map((bucket) => ({ value: String(bucket.val), count: Number(bucket.count) }))
+    },
     staleTime: 5 * 60_000
   })
 }

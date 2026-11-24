@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { identifierCoveragePayload, listPriceField, productScopeFilters, productSearchQueryText, productSort, rowSalesAnalyticsPayload, tagFacetPayload, tagSearchQueryPayload, workbenchSearchPayload } from "../productQuery"
+import { identifierCoveragePayload, listPriceField, productScopeFilters, productSearchQueryText, productSort, rowSalesAnalyticsPayload, tagFacetPayload, workbenchSearchPayload } from "../productQuery"
 import type { ProductSearchParams } from "../../types/product"
 
 const params: ProductSearchParams = {
@@ -105,22 +105,11 @@ describe("payloads", () => {
     })
   })
 
-  it("excludes the tag filter from the tag facet scope", () => {
+  it("excludes the tag filter from the tag facet scope and includes facet params", () => {
     const payload = tagFacetPayload(params)
     expect(payload.filter).not.toContain("tags:\"summer\"")
-    expect(payload.facet?.tags).toBeTruthy()
     expect(payload.params?.facet).toBe(true)
     expect(payload.params?.["facet.field"]).toBe("tags")
-  })
-
-  it("builds traditional Solr facet payload for tag searches without docValues constraints", () => {
-    const payload = tagSearchQueryPayload(params)
-    expect(payload.filter).not.toContain("tags:\"summer\"")
-    expect(payload.params.facet).toBe(true)
-    expect(payload.params["facet.field"]).toBe("tags")
-    expect(payload.params.rows).toBe(0)
-    expect(payload.params["facet.mincount"]).toBe(1)
-    expect(payload.params["facet.sort"]).toBe("count")
   })
 })
 
