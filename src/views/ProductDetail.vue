@@ -27,174 +27,220 @@
           :core="core"
           :family-anchor="heroFamilyAnchor"
           :product-types="productTypes"
-          @edit="scrollToDisplay"
-          @edit-image="onEditImageUrl"
-        />
-
-        <!-- family navigator: pick a variant by its feature combo (Color/Size) when feature data
-             exists, else a thumbnail strip; a standalone product edits its own features -->
-        <FeatureSelector
-          :options="featureOptions"
-          :selected="selectedVariantSelection"
-          :show-add-variant="canAddVariant"
-          @select="selectByFeature"
-          @add-variant="addVariantModalOpen = true"
-        />
-        <VariantStrip
-          :variants="variants"
-          :selected-variant-id="selectedVariantId"
-          @select="selectVariant"
-        />
-        <FeaturesSection
-          :family-axes="familyFeatureAxes"
-          :applied-feature-ids="appliedFeatureIds"
-          :feature-types="featureTypes"
-          :can-apply-features="canApplyFeatures"
-          :can-remove-features="canRemoveFeatures"
-          @toggle="onToggleFeature"
-          @create-value="onCreateFeatureValue"
-        />
-
-        <ion-segment
-          ref="segmentRef"
-          v-if="hasParent"
-          :value="segment"
-          class="edit-segment"
-          @ion-change="setSegment(($event.detail.value as 'parent' | 'variant') ?? 'variant')"
-        >
-          <ion-segment-button value="parent">
-            <ion-label>{{ translate("Edit parent") }}</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="variant">
-            <ion-label>{{ translate("Edit variant") }}</ion-label>
-          </ion-segment-button>
-        </ion-segment>
-
-        <DisplayCard
-          ref="displayCardRef"
-          :draft="editor.display.draft"
-          :product-types="productTypes"
-          :dirty="editor.display.dirty.value || stagedComponents.length > 0"
-          :saving="editor.saving.value"
-          :stale-under-edit="editor.display.staleUnderEdit.value"
-          :components="[...associationGroups.components, ...stagedComponentAssociations]"
-          :can-edit="canEditProduct"
-          @save="onSaveDisplayWithComponents"
-          @reset="editor.display.reset"
-          @add-component="openPicker('display-component')"
-          @expire-component="onExpireOrRemoveComponent"
-          @reactivate-component="onReactivateAssociation"
-        />
-
-        <ComponentsCard
-          v-if="isKit"
-          :components="associationGroups.components"
-          :can-edit="canEditProduct"
-          @add-component="openPicker('component')"
-          @expire-component="onExpireAssociation"
-          @reactivate-component="onReactivateAssociation"
-        />
-
-        <IdentificationsCard
-          :product-id="editingProductId"
-          :identifications="identifications"
-          :identification-types="identificationTypes"
-          :can-edit="canEditProduct"
-          @add="onAddIdentification"
-          @update-value="onUpdateIdentification"
-          @expire="onExpireIdentification"
-        />
-
-        <DatesCard
-          :draft="editor.dates.draft"
-          :can-copy-from-parent="segment === 'variant' && hasParent"
-          :dirty="editor.dates.dirty.value"
-          :saving="editor.saving.value"
-          :stale-under-edit="editor.dates.staleUnderEdit.value"
-          :can-edit="canEditProduct"
-          @save="saveDates"
-          @reset="editor.dates.reset"
-          @copy-from-parent="copyDatesFromParent"
-        />
-
-        <TagsCard
-          :anchor-tags="anchorTags"
-          :variant-tags="selectedVariantTags"
           :has-parent="hasParent"
           :segment="segment"
-          :can-edit="canEditProduct"
-          @add-tag="onAddTag"
-          @remove-tag="onRemoveTag"
-          @add-variant-tag="onAddVariantTag"
-          @remove-variant-tag="onRemoveVariantTag"
+          :variants="variants"
+          :selected-variant-id="selectedVariantId"
+          @edit="scrollToDisplay"
+          @edit-image="onEditImageUrl"
+          @change-segment="setSegment"
+          @select-variant="selectVariant"
         />
 
-        <CategoriesCard
-          :categories="categories"
-          :can-edit="canEditProduct"
-          @add="onAddCategory"
-          @expire="onExpireCategory"
-        />
+        <div class="detail-nav-container">
+          <ion-segment
+            :value="activeTab"
+            scrollable
+            class="detail-nav-segment"
+            @ion-change="activeTab = ($event.detail.value as DetailTab) ?? 'details'"
+          >
+            <ion-segment-button value="details">
+              <ion-label>{{ translate("Details") }}</ion-label>
+            </ion-segment-button>
 
-        <PricesCard
-          :rows="priceRows"
-          :draft="priceDraft.draft"
-          :saved="priceSource"
-          :dirty="priceDraft.dirty.value"
-          :saving="pricesSaving"
-          :stale-under-edit="priceDraft.staleUnderEdit.value"
-          :can-copy-from-parent="segment === 'variant' && hasParent"
-          :can-edit="canEditProduct"
-          @save="onSavePrices"
-          @reset="resetPrices"
-          @copy-from-parent="onCopyPricesFromParent"
-        />
+            <ion-segment-button
+              v-if="hasParent || hasFeatureSelection"
+              value="variants"
+            >
+              <ion-label>{{ translate("Variants") }}</ion-label>
+            </ion-segment-button>
 
-        <ShopifyShopProductsCard
-          :shopify-shop-products="shopifyShopProducts"
-          :product-id="editingProductId"
-          :product="shopifyListingProduct"
-          :product-ready="shopifyListingProductReady"
-          :saving="shopifyMutations.upsert.isPending.value || shopifyMutations.remove.isPending.value || shopifyMutations.replace.isPending.value"
-          :can-edit="canEditProduct"
-          @upsert="onUpsertShopifyShopProduct"
-          @replace="onReplaceShopifyShopProduct"
-          @remove="onRemoveShopifyShopProduct"
-        />
+            <ion-segment-button value="pricing">
+              <ion-label>{{ translate("Pricing & Channels") }}</ion-label>
+            </ion-segment-button>
 
-        <InventoryPolicyCard
-          :draft="editor.policy.draft"
-          :substitutes="[...associationGroups.substitutes, ...stagedSubstituteAssociations]"
-          :dirty="editor.policy.dirty.value || stagedSubstitutes.length > 0"
-          :saving="editor.saving.value"
-          :stale-under-edit="editor.policy.staleUnderEdit.value"
-          :can-edit="canEditProduct"
-          @save="onSavePolicyWithSubstitutes"
-          @reset="onResetPolicy"
-          @add-substitute="openPicker('substitute')"
-          @expire-substitute="onExpireOrRemoveSubstitute"
-          @reactivate-substitute="onReactivateAssociation"
-        />
+            <ion-segment-button value="logistics">
+              <ion-label>{{ translate("Logistics") }}</ion-label>
+            </ion-segment-button>
 
-        <ShippingHandlingCard
-          :draft="editor.shipping.draft"
-          :box-types="boxTypes"
-          :length-uoms="lengthUoms"
-          :weight-uoms="weightUoms"
-          :can-copy-from-parent="segment === 'variant' && hasParent"
-          :dirty="editor.shipping.dirty.value"
-          :saving="editor.saving.value"
-          :stale-under-edit="editor.shipping.staleUnderEdit.value"
-          :can-edit="canEditProduct"
-          @save="saveShipping"
-          @reset="editor.shipping.reset"
-          @copy-from-parent="copyShippingFromParent"
-        />
+            <ion-segment-button value="history">
+              <ion-label>{{ translate("History") }}</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </div>
 
-        <HistoryCard
-          :entries="audit"
-          :identification-type-labels="identificationTypeLabels"
-        />
+        <div
+          v-show="activeTab === 'details'"
+          class="tab-pane"
+        >
+          <DisplayCard
+            ref="displayCardRef"
+            :draft="editor.display.draft"
+            :product-types="productTypes"
+            :dirty="editor.display.dirty.value || stagedComponents.length > 0"
+            :saving="editor.saving.value"
+            :stale-under-edit="editor.display.staleUnderEdit.value"
+            :components="[...associationGroups.components, ...stagedComponentAssociations]"
+            :can-edit="canEditProduct"
+            @save="onSaveDisplayWithComponents"
+            @reset="editor.display.reset"
+            @add-component="openPicker('display-component')"
+            @expire-component="onExpireOrRemoveComponent"
+            @reactivate-component="onReactivateAssociation"
+          />
+
+          <IdentificationsCard
+            :product-id="editingProductId"
+            :identifications="identifications"
+            :identification-types="identificationTypes"
+            :can-edit="canEditProduct"
+            @add="onAddIdentification"
+            @update-value="onUpdateIdentification"
+            @expire="onExpireIdentification"
+          />
+
+          <CategoriesCard
+            :categories="categories"
+            :can-edit="canEditProduct"
+            @add="onAddCategory"
+            @expire="onExpireCategory"
+          />
+
+          <TagsCard
+            :anchor-tags="anchorTags"
+            :variant-tags="selectedVariantTags"
+            :has-parent="hasParent"
+            :segment="segment"
+            :can-edit="canEditProduct"
+            @add-tag="onAddTag"
+            @remove-tag="onRemoveTag"
+            @add-variant-tag="onAddVariantTag"
+            @remove-variant-tag="onRemoveVariantTag"
+          />
+
+          <DatesCard
+            :draft="editor.dates.draft"
+            :can-copy-from-parent="segment === 'variant' && hasParent"
+            :dirty="editor.dates.dirty.value"
+            :saving="editor.saving.value"
+            :stale-under-edit="editor.dates.staleUnderEdit.value"
+            :can-edit="canEditProduct"
+            @save="saveDates"
+            @reset="editor.dates.reset"
+            @copy-from-parent="copyDatesFromParent"
+          />
+        </div>
+
+        <div
+          v-show="activeTab === 'variants'"
+          class="tab-pane"
+        >
+          <FeatureSelector
+            :options="featureOptions"
+            :selected="selectedVariantSelection"
+            :show-add-variant="canAddVariant"
+            @select="selectByFeature"
+            @add-variant="addVariantModalOpen = true"
+          />
+          <VariantStrip
+            :variants="variants"
+            :selected-variant-id="selectedVariantId"
+            @select="selectVariant"
+          />
+          <FeaturesSection
+            :family-axes="familyFeatureAxes"
+            :applied-feature-ids="appliedFeatureIds"
+            :feature-types="featureTypes"
+            :can-apply-features="canApplyFeatures"
+            :can-remove-features="canRemoveFeatures"
+            @toggle="onToggleFeature"
+            @create-value="onCreateFeatureValue"
+          />
+        </div>
+
+        <div
+          v-show="activeTab === 'pricing'"
+          class="tab-pane"
+        >
+          <PricesCard
+            :rows="priceRows"
+            :draft="priceDraft.draft"
+            :saved="priceSource"
+            :dirty="priceDraft.dirty.value"
+            :saving="pricesSaving"
+            :stale-under-edit="priceDraft.staleUnderEdit.value"
+            :can-copy-from-parent="segment === 'variant' && hasParent"
+            :can-edit="canEditProduct"
+            @save="onSavePrices"
+            @reset="resetPrices"
+            @copy-from-parent="onCopyPricesFromParent"
+          />
+
+          <ShopifyShopProductsCard
+            :shopify-shop-products="shopifyShopProducts"
+            :product-id="editingProductId"
+            :product="shopifyListingProduct"
+            :product-ready="shopifyListingProductReady"
+            :saving="shopifyMutations.upsert.isPending.value || shopifyMutations.remove.isPending.value || shopifyMutations.replace.isPending.value"
+            :can-edit="canEditProduct"
+            @upsert="onUpsertShopifyShopProduct"
+            @replace="onReplaceShopifyShopProduct"
+            @remove="onRemoveShopifyShopProduct"
+          />
+        </div>
+
+        <div
+          v-show="activeTab === 'logistics'"
+          class="tab-pane"
+        >
+          <InventoryPolicyCard
+            :draft="editor.policy.draft"
+            :substitutes="[...associationGroups.substitutes, ...stagedSubstituteAssociations]"
+            :dirty="editor.policy.dirty.value || stagedSubstitutes.length > 0"
+            :saving="editor.saving.value"
+            :stale-under-edit="editor.policy.staleUnderEdit.value"
+            :can-edit="canEditProduct"
+            @save="onSavePolicyWithSubstitutes"
+            @reset="onResetPolicy"
+            @add-substitute="openPicker('substitute')"
+            @expire-substitute="onExpireOrRemoveSubstitute"
+            @reactivate-substitute="onReactivateAssociation"
+          />
+
+          <ShippingHandlingCard
+            :draft="editor.shipping.draft"
+            :box-types="boxTypes"
+            :length-uoms="lengthUoms"
+            :weight-uoms="weightUoms"
+            :can-copy-from-parent="segment === 'variant' && hasParent"
+            :dirty="editor.shipping.dirty.value"
+            :saving="editor.saving.value"
+            :stale-under-edit="editor.shipping.staleUnderEdit.value"
+            :can-edit="canEditProduct"
+            @save="saveShipping"
+            @reset="editor.shipping.reset"
+            @copy-from-parent="copyShippingFromParent"
+          />
+
+          <ComponentsCard
+            v-if="isKit"
+            :components="associationGroups.components"
+            :can-edit="canEditProduct"
+            @add-component="openPicker('component')"
+            @expire-component="onExpireAssociation"
+            @reactivate-component="onReactivateAssociation"
+          />
+        </div>
+
+        <div
+          v-show="activeTab === 'history'"
+          class="tab-pane"
+        >
+          <HistoryCard
+            :entries="audit"
+            :identification-type-labels="identificationTypeLabels"
+          />
+        </div>
 
         <AddVariantModal
           :is-open="addVariantModalOpen"
@@ -227,11 +273,11 @@
 <script setup lang="ts">
 import {
   alertController,
-  IonBackButton, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
+  IonBackButton, IonBadge, IonButtons, IonContent, IonHeader, IonLabel, IonMenuButton, IonPage, IonProgressBar, IonSegment,
   IonSegmentButton, IonTitle, IonToolbar
 } from "@ionic/vue"
 import { computed, ref, toRef, watch, type ComponentPublicInstance } from "vue"
-import { onBeforeRouteLeave } from "vue-router"
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router"
 import { useQuery, useQueryClient } from "@tanstack/vue-query"
 import { qk } from "@/queries/keys"
 import { translate } from "@common"
@@ -272,7 +318,8 @@ import { ASSOC_TYPE } from "@/domain/normalize/association"
 import { FEATURE_APPL_TYPE } from "@/domain/normalize/feature"
 import { productDisplayName } from "@/domain/normalize/product"
 import { DEFAULT_PRICE_PURPOSE, type PriceRow, activePricesForRow, priceRowsForStoreGroup, purposeForNewPrice } from "@/domain/product/prices"
-import type { FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
+import { ALWAYS_OFFERED_IDENTIFICATION_TYPES } from "@/domain/product/identification"
+import type { CatalogOption, FeatureAxis, ProductAssociation, ProductCategory, ProductCategoryMembership, ProductCore, ProductFeatureApplication, ProductPrice, ProductSummary } from "@/domain/types/product"
 import type { IdentificationCreate, IdentificationKey } from "@/domain/types/pim"
 import { useUserStore } from "@/store/user"
 import Actions from "@/authorization/actions"
@@ -280,20 +327,44 @@ import Actions from "@/authorization/actions"
 const props = defineProps<{ productId: string }>()
 const toast = useToast()
 const userStore = useUserStore()
+const route = useRoute()
+const router = useRouter()
+
+type DetailTab = "details" | "variants" | "pricing" | "logistics" | "history"
+
+const activeTab = ref<DetailTab>(
+  (route.query.tab as DetailTab) && ["details", "variants", "pricing", "logistics", "history"].includes(route.query.tab as string)
+    ? (route.query.tab as DetailTab)
+    : "details"
+)
+
+watch(activeTab, (tab) => {
+  if(route.query.tab !== tab) {
+    router.replace({ query: { ...route.query, tab } })
+  }
+})
+
+watch(
+  () => route.query.tab,
+  (tab) => {
+    if(tab && typeof tab === "string" && ["details", "variants", "pricing", "logistics", "history"].includes(tab)) {
+      activeTab.value = tab as DetailTab
+    }
+  }
+)
 
 const canEditProduct = computed(() => userStore.hasPermission(Actions.APP_PRODUCT_UPDATE))
 const canApplyFeatures = computed(() => userStore.hasPermission(Actions.APP_FEATURE_UPDATE))
 const canRemoveFeatures = computed(() => userStore.hasPermission(Actions.APP_FEATURE_REMOVE))
 
 const contentRef = ref<ComponentPublicInstance | null>(null)
-const segmentRef = ref<ComponentPublicInstance | null>(null)
 const displayCardRef = ref<ComponentPublicInstance | null>(null)
 
 const currentProductStore = computed(() => useUserStore().getCurrentProductStore)
 
 const scrollToDisplay = async () => {
-  // scroll to the segment when it's visible (product has variants), otherwise the DisplayCard
-  const target = segmentRef.value ?? displayCardRef.value
+  activeTab.value = "details"
+  const target = displayCardRef.value
   const el = (target as any)?.$el as HTMLElement | undefined
   const content = (contentRef.value as any)?.$el as HTMLIonContentElement | undefined
   if(!el || !content) {return}
@@ -494,7 +565,24 @@ const identificationTypesQuery = useQuery(identificationTypesOptions())
 const featureTypesQuery = useQuery(featureTypesOptions())
 const lengthUomsQuery = useQuery(lengthUomOptions())
 const weightUomsQuery = useQuery(weightUomOptions())
-const identificationTypes = computed(() => identificationTypesQuery.data.value ?? [])
+const identificationTypes = computed<CatalogOption[]>(() => {
+  const queryTypes = identificationTypesQuery.data.value ?? []
+  const list: CatalogOption[] = [...queryTypes]
+
+  for (const offered of ALWAYS_OFFERED_IDENTIFICATION_TYPES) {
+    if (!list.some((item) => item.id === offered.goodIdentificationTypeId)) {
+      list.unshift({ id: offered.goodIdentificationTypeId, label: offered.description ?? offered.goodIdentificationTypeId })
+    }
+  }
+
+  for (const iden of identifications.value) {
+    if (iden.goodIdentificationTypeId && !list.some((item) => item.id === iden.goodIdentificationTypeId)) {
+      list.push({ id: iden.goodIdentificationTypeId, label: iden.typeDescription || iden.goodIdentificationTypeId })
+    }
+  }
+
+  return list
+})
 // Labels for the history: the type list, plus the descriptions this product's own identifications carry
 // (SKU, for one, is not in the type list).
 const identificationTypeLabels = computed<Record<string, string>>(() => ({
@@ -926,8 +1014,27 @@ onBeforeRouteLeave(async () => {
 </script>
 
 <style scoped>
-.edit-segment {
-  max-width: 320px;
-  margin: 8px 16px;
+.detail-nav-container {
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+.detail-nav-segment {
+  width: 100%;
+}
+
+.detail-nav-segment ion-segment-button {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  min-width: max-content;
+}
+
+.detail-nav-segment ion-label {
+  white-space: nowrap;
+}
+
+.tab-pane {
+  display: flex;
+  flex-direction: column;
 }
 </style>

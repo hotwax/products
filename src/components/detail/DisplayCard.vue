@@ -1,5 +1,5 @@
 <template>
-  <CardSection :title="translate('Display')">
+  <CardSection :title="translate('Product information')">
     <div class="grid-4">
       <ion-input
         v-model="draft.productName"
@@ -43,7 +43,7 @@
     <div class="grid-desc">
       <ion-textarea
         v-model="draft.description"
-        :label="translate('Desc')"
+        :label="translate('Description')"
         label-placement="stacked"
         auto-grow
         :disabled="!canEdit"
@@ -51,7 +51,7 @@
       />
       <ion-textarea
         v-model="draft.longDescription"
-        :label="translate('Long desc')"
+        :label="translate('Long description')"
         label-placement="stacked"
         auto-grow
         :disabled="!canEdit"

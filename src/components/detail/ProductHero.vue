@@ -11,110 +11,275 @@
     >
       <DxpShopifyImg
         :src="core?.imageUrl ?? ''"
-        size="grande"
+        size="medium"
       />
+      <div class="image-badge">
+        <ion-icon :icon="cameraOutline" />
+      </div>
     </div>
 
     <div class="hero-main">
-      <div class="hero-main-head">
-        <p
-          v-if="familyAnchor"
-          class="hero-overline"
-        >
-          {{ translate("Parent product") }} · {{ core?.productId }}
-        </p>
-      </div>
+      <div class="hero-identity-row">
+        <div class="hero-identity-content">
+          <div class="hero-badges">
+            <ion-badge v-if="familyAnchor" color="primary">
+              {{ translate("Parent") }}
+            </ion-badge>
+            <ion-badge v-else-if="core?.isVariant" color="tertiary">
+              {{ translate("Variant") }}
+            </ion-badge>
+            <ion-badge v-if="core?.productId" color="light">
+              {{ core?.productId }}
+            </ion-badge>
+            <ion-badge v-if="typeLabel && typeLabel !== '—'" color="medium">
+              {{ typeLabel }}
+            </ion-badge>
+          </div>
 
-      <ion-list lines="none">
-        <ion-item>
-          <ion-label>
-            <h2><strong>{{ translate("Name") }}: </strong>{{ core?.productName || "—" }}</h2>
-            <h2><strong>{{ translate("Internal Name") }}: </strong>{{ core?.internalName || "—" }}</h2>
-            <h2><strong>{{ translate("Brand") }}: </strong>{{ core?.brandName || "-" }}</h2>
-            <h2><strong>{{ translate("Product Type") }}: </strong>{{ typeLabel }}</h2>
-          </ion-label>
+          <h1 class="hero-title">
+            {{ core?.productName || core?.productId || translate("Product") }}
+          </h1>
+
+          <div class="hero-meta-row">
+            <span v-if="core?.internalName" class="meta-item">
+              <ion-note><strong>{{ translate("Internal name") }}:</strong> {{ core.internalName }}</ion-note>
+            </span>
+            <span v-if="core?.brandName" class="meta-item">
+              <ion-note><strong>{{ translate("Brand") }}:</strong> {{ core.brandName }}</ion-note>
+            </span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
           <ion-button
-            slot="end"
-            fill="clear"
-            class="edit-btn"
+            fill="outline"
+            size="small"
             @click="$emit('edit')"
           >
-            <ion-icon
-              slot="icon-only"
-              :icon="pencilOutline"
-            />
+            <ion-icon slot="start" :icon="pencilOutline" />
+            {{ translate("Edit details") }}
           </ion-button>
-        </ion-item>
-      </ion-list>
-    </div>
+        </div>
+      </div>
 
+      <div v-if="hasParent" class="hero-family-controls">
+        <div v-if="segment === 'variant'" class="hero-context-row">
+          <ion-button
+            fill="clear"
+            size="small"
+            class="parent-breadcrumb-btn"
+            @click="$emit('changeSegment', 'parent')"
+          >
+            <ion-icon slot="start" :icon="arrowBackOutline" />
+            {{ translate("View parent style") }}
+          </ion-button>
+
+          <div v-if="variants && variants.length > 1" class="variant-selector-wrap">
+            <ion-select
+              interface="popover"
+              :value="selectedVariantId"
+              :aria-label="translate('Select variant')"
+              @ion-change="$emit('selectVariant', $event.detail.value)"
+            >
+              <ion-select-option
+                v-for="v in variants"
+                :key="v.productId"
+                :value="v.productId"
+              >
+                {{ variantDisplayName(v) }}
+              </ion-select-option>
+            </ion-select>
+          </div>
+        </div>
+
+        <div v-else class="hero-context-row">
+          <ion-badge color="primary">
+            {{ translate("Parent style") }}
+          </ion-badge>
+          <ion-button
+            v-if="variants && variants.length > 0"
+            fill="outline"
+            size="small"
+            class="switch-variant-btn"
+            @click="$emit('changeSegment', 'variant')"
+          >
+            {{ translate("Edit active variant") }} ({{ variants.length }})
+          </ion-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IonButton, IonIcon, IonItem, IonLabel, IonList } from "@ionic/vue"
+import {
+  IonBadge, IonButton, IonIcon, IonNote, IonSelect, IonSelectOption
+} from "@ionic/vue"
 import { computed } from "vue"
-import { pencilOutline } from "ionicons/icons"
+import { arrowBackOutline, cameraOutline, pencilOutline } from "ionicons/icons"
 import { DxpShopifyImg, translate } from "@common"
+import { useProductIdentity } from "@/composables/useProductIdentity"
 import type { CatalogOption, ProductCore } from "@/domain/types/product"
+import type { FamilyVariant } from "@/domain/product/family"
 
-const props = defineProps<{
-  core: ProductCore | null
-  familyAnchor: boolean
-  productTypes: CatalogOption[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    core: ProductCore | null
+    familyAnchor: boolean
+    productTypes: CatalogOption[]
+    hasParent?: boolean
+    segment?: "parent" | "variant"
+    variants?: FamilyVariant[]
+    selectedVariantId?: string
+  }>(),
+  {
+    hasParent: false,
+    segment: "variant",
+    variants: () => [],
+    selectedVariantId: ""
+  }
+)
 
 defineEmits<{
   (event: "edit"): void
   (event: "editImage"): void
+  (event: "changeSegment", segment: "parent" | "variant"): void
+  (event: "selectVariant", productId: string): void
 }>()
+
+const { identityOf } = useProductIdentity()
 
 const typeLabel = computed(() => {
   const typeId = props.core?.productTypeId ?? ""
-
   return props.productTypes.find((option) => option.id === typeId)?.label || typeId || "—"
 })
+
+const variantDisplayName = (v: FamilyVariant) => {
+  const id = identityOf(v.product)
+  const primary = id.primary || v.productId
+  if (id.secondary && id.secondary !== primary) {
+    return `${primary} (${id.secondary})`
+  }
+  return primary
+}
 </script>
 
 <style scoped>
 .hero {
-  display: grid;
-  grid-template-columns: minmax(220px, 343px) 1fr;
+  display: flex;
   gap: 16px;
   padding: 16px;
-  align-items: start;
+  align-items: flex-start;
+}
+
+.hero-image {
+  position: relative;
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--ion-color-step-150);
+  background: var(--ion-color-step-50);
+  cursor: pointer;
 }
 
 .hero-image :deep(img) {
   width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 8px;
+  height: 100%;
   object-fit: contain;
 }
 
-.hero-main-head {
+.image-badge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 4px;
+  border-radius: 50%;
+  background: var(--ion-background-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+.hero-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-identity-row {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  min-height: 28px;
+  gap: 16px;
 }
 
-.hero-overline {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ion-color-medium);
+.hero-identity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.edit-btn {
-  align-self: flex-start;
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
-@media (max-width: 960px) {
+.hero-title {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.hero-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.meta-item {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.hero-actions {
+  flex-shrink: 0;
+}
+
+.hero-family-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.hero-context-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.variant-selector-wrap {
+  min-width: 200px;
+}
+
+@media (max-width: 768px) {
   .hero {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .hero-image {
+    width: 96px;
+    height: 96px;
+  }
+  .hero-identity-row {
+    flex-direction: column;
   }
 }
 </style>

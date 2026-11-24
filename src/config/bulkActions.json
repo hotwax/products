@@ -1,0 +1,28 @@
+{
+  "addTag": {
+    "configId": "",
+    "label": "Add tag",
+    "activityLabel": "Add tags to products",
+    "type": "inline"
+  },
+  "productIdentification": {
+    "configId": "MDM_IMP_PROD_IDENT",
+    "label": "Update identifiers",
+    "activityLabel": "Update product ERP code and identifiers",
+    "type": "mdm",
+    "columns": [
+      { "name": "productId", "type": "string", "required": true },
+      { "name": "goodIdentificationTypeId", "type": "string", "required": true },
+      { "name": "idValue", "type": "string", "required": true }
+    ]
+  },
+  "shopifyProductSync": {
+    "configId": "SYNC_SHOPIFY_PRODUCT",
+    "label": "Sync Shopify products",
+    "activityLabel": "Sync selected products to Shopify",
+    "type": "mdm",
+    "columns": [
+      { "name": "productId", "type": "string", "required": true }
+    ]
+  }
+}

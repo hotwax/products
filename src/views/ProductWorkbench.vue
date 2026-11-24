@@ -170,22 +170,14 @@
       />
     </ion-content>
 
-    <ion-footer v-if="selectMode">
-      <ion-toolbar>
-        <ion-title size="small">
-          {{ translate("{count} selected", { count: selectedProductIds.length }) }}
-        </ion-title>
-        <ion-buttons slot="end">
-          <ion-button
-            fill="outline"
-            :disabled="!selectedProductIds.length"
-            @click="isAddTagModalOpen = true"
-          >
-            {{ translate("Add tag") }}
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-footer>
+    <BulkSelectionFooter
+      v-if="selectMode"
+      :count="selectedProductIds.length"
+      :disabled="isLoading || bulkBusy"
+      :build-csv="buildProductsCsv"
+      filename="selected-products.csv"
+      :actions="bulkActions"
+    />
   </ion-page>
 </template>
 
@@ -203,10 +195,12 @@ import { addProductKeyword, triggerSolrIndex } from "@/api/pim"
 import EmptyState from "@/components/EmptyState.vue"
 import ErrorState from "@/components/ErrorState.vue"
 import SortPopover from "@/components/SortPopover.vue"
+import BulkSelectionFooter from "@/components/common/BulkSelectionFooter.vue"
 import AddTagModal from "@/components/workbench/AddTagModal.vue"
 import ProductRow from "@/components/workbench/ProductRow.vue"
 import TagFilterModal from "@/components/workbench/TagFilterModal.vue"
 import WorkbenchFilters from "@/components/workbench/WorkbenchFilters.vue"
+import { useProductBulkActions } from "@/composables/useProductBulkActions"
 import { useProductWorkbench } from "@/composables/useProductWorkbench"
 import { useToast } from "@/composables/useToast"
 import { familyRouteFor } from "@/domain/product/family"
@@ -248,6 +242,31 @@ function toggleSelectMode() {
 function exitSelectMode() {
   selectMode.value = false
   selectedProductIds.value = []
+}
+
+const { actions: bulkActions, busy: bulkBusy } = useProductBulkActions(
+  () => selectedProductIds.value,
+  {
+    onAddTag: () => { isAddTagModalOpen.value = true },
+    onActionCompleted: () => { exitSelectMode() }
+  }
+)
+
+function buildProductsCsv(): string {
+  const selectedSet = new Set(selectedProductIds.value)
+  const rows = products.value.filter((p) => selectedSet.has(p.productId))
+  const headers = ["productId", "internalName", "productName", "productTypeId"]
+  const lines = [headers.join(",")]
+  for(const r of rows) {
+    const values = [
+      `"${(r.productId ?? '').replaceAll('"', '""')}"`,
+      `"${(r.internalName ?? '').replaceAll('"', '""')}"`,
+      `"${(r.productName ?? '').replaceAll('"', '""')}"`,
+      `"${(r.productTypeId ?? '').replaceAll('"', '""')}"`
+    ]
+    lines.push(values.join(","))
+  }
+  return lines.join("\r\n")
 }
 
 function toggleLoadedSelection(checked: boolean) {

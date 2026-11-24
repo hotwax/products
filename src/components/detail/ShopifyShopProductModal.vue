@@ -73,6 +73,9 @@
             color="danger"
           >
             {{ translate("Could not search Shopify") }}
+            <p v-if="candidatesQuery.error.value">
+              <ion-note color="danger">{{ errorMessage(candidatesQuery.error.value) }}</ion-note>
+            </p>
           </ion-label>
           <ion-button
             slot="end"
@@ -270,6 +273,7 @@ import { familyRouteFor } from "@/domain/product/family"
 import { type ShopifyLinkCandidate, defaultCandidateSearch } from "@/domain/shopify/linkCandidates"
 import type { ListingCheckProduct } from "@/domain/shopify/listingCheck"
 import type { ShopifyShop, ShopifyShopProduct } from "@/domain/types/product"
+import { errorMessage } from "@/api/http"
 import { shopifyLinkCandidatesOptions, shopifyLinkOwnerOptions, shopifyLinkValidationOptions } from "@/queries/productDetail"
 
 const props = defineProps<{
