@@ -160,7 +160,11 @@ export function tagFacetPayload(params: ProductSearchParams): SolrJsonQuery {
     filter: productScopeFilters({ ...params, tags: [] }),
     limit: 0,
     facet: { tags: { type: "terms", field: "tags", limit: 200, mincount: 1 } },
-    params: { "q.op": "AND" }
+    params: {
+      "defType": "edismax",
+      "q.op": "OR",
+      "qf": "productId groupId parentProductName productName internalName sku upc"
+    }
   }
 }
 
